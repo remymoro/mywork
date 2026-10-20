@@ -11,6 +11,6 @@ test("les pages privées renvoient vers la connexion", async ({ page }) => {
 });
 
 test("un pseudo inconnu affiche une page 404", async ({ page }) => {
-  const response = await page.goto("/ce-pseudo-n-existe-pas");
-  expect(response?.status()).toBe(404);
+  await page.goto("/ce-pseudo-n-existe-pas");
+  await expect(page.getByRole("heading", { name: "Page introuvable" })).toBeVisible();
 });
