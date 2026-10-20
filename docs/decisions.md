@@ -16,6 +16,7 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 | D8 | Stack technique | Acté | Voir section Stack ci-dessous. Priorité : gratuit au départ. |
 | D12 | Authentification | Acté | Supabase Auth (inclus, pas de service en plus). |
 | D13 | Accès aux données | Acté | Client Supabase seul, sans ORM : moins de pièces à comprendre. À revoir si le projet grossit. |
+| D14 | Tests | Acté | **Vitest** pour les tests unitaires (logique : créneaux de RDV, quotas, validation) et **Playwright** pour les tests de bout en bout (parcours réels dans un navigateur : se connecter, remplir son CV, réserver un créneau). Lancés automatiquement par GitHub Actions à chaque envoi de code. |
 | D9 | Nom et domaine | Acté | Projet **MyWork**, domaine `mywork.website`. |
 | D10 | Langue de l'interface | Acté | Français. |
 | D11 | URL publique | Acté (révisable) | `mywork.website/<pseudo>` (pages de modules : `/<pseudo>/rdv`, `/<pseudo>/boards`). Pseudos réservés : `admin`, `login`, `api`, `app`… Domaine personnalisé possible plus tard. |
@@ -39,3 +40,8 @@ Limites des offres gratuites à garder en tête :
 - **Stripe** : pas d'abonnement, mais commission par transaction.
 - **LiveKit** : minutes gratuites limitées par mois.
 - Le domaine `mywork.website` reste payant.
+
+## Tests (D14)
+- Chaque fonctionnalité livrée s'accompagne de ses tests ; l'agent les écrit et les lance lui-même.
+- Vitest : calculs et règles métier. Playwright : un parcours complet par module (CV, RDV, boards, fichiers).
+- Le porteur du projet n'a rien à lancer : l'agent indique « tests passés » ou ce qui échoue, en langage simple.
