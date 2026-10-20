@@ -1,10 +1,15 @@
+import { connection } from "next/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
 
+// Page dépendante de la session ou de l'URL : elle bloque côté serveur (voir docs/decisions.md).
+export const instant = false;
+
 export default async function DashboardPage() {
+  await connection();
   const supabase = await createClient();
   const {
     data: { user },

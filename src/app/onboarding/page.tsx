@@ -1,9 +1,14 @@
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { OnboardingForm } from "./onboarding-form";
 
+// Page dépendante de la session ou de l'URL : elle bloque côté serveur (voir docs/decisions.md).
+export const instant = false;
+
 export default async function OnboardingPage() {
+  await connection();
   const supabase = await createClient();
   const {
     data: { user },

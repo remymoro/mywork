@@ -1,11 +1,16 @@
+import { connection } from "next/server";
 import { notFound, permanentRedirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+
+// Page dépendante de la session ou de l'URL : elle bloque côté serveur (voir docs/decisions.md).
+export const instant = false;
 
 export default async function PublicProfilePage({
   params,
 }: {
   params: Promise<{ username: string }>;
 }) {
+  await connection();
   const { username } = await params;
   const supabase = await createClient();
 
