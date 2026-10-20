@@ -18,3 +18,13 @@ Profil du porteur du projet (non développeur) et comptes à créer : section fi
 - Stack : voir `docs/decisions.md` (D8). Ne pas en introduire d'autre sans accord.
 - Le porteur du projet n'est pas développeur : explique en langage simple, évite le jargon, fais les choix techniques toi-même (avec une courte justification) et ne pose que des questions de produit. Il lui faut des étapes claires et vérifiables (ex. « ouvre cette adresse, tu dois voir… »).
 - Tests obligatoires (Vitest + Playwright, voir D14) : ne livre pas une fonctionnalité sans ses tests, et relance **toute** la suite avant chaque commit. Tests en échec : corrige, relance, ne commite pas. Boucle détaillée dans `docs/decisions.md` (D14).
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

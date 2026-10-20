@@ -33,7 +33,9 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 - Export PDF (D5), à trancher au module CV.
 
 ## Stack (D8)
-Next.js (App Router) + TypeScript, Tailwind CSS + shadcn/ui, déployé sur Vercel. Supabase (Postgres, Auth, Storage). Resend (e-mails), Stripe (abonnement), LiveKit (visio). Code sur GitHub.
+Next.js (App Router) + TypeScript, Tailwind CSS + shadcn/ui, déployé sur Vercel. Supabase (Postgres, Auth, Storage). Resend (e-mails), Stripe (abonnement), LiveKit (visio). Code sur GitHub (`remymoro/mywork`, privé). Gestionnaire de paquets : **pnpm**. Node 24.
+
+Initialisé le 2026-10-20 : Next.js 16, React 19, Tailwind 4, shadcn/ui (composant `button` pour l'instant), code dans `src/`. Lancer le site : `pnpm dev` puis ouvrir http://localhost:3000.
 
 Limites des offres gratuites à garder en tête :
 - **Vercel Hobby** : usage non commercial uniquement. Passer à l'offre Pro avant d'ouvrir l'abonnement payant.
