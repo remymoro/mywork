@@ -45,3 +45,8 @@ Limites des offres gratuites à garder en tête :
 - Chaque fonctionnalité livrée s'accompagne de ses tests ; l'agent les écrit et les lance lui-même.
 - Vitest : calculs et règles métier. Playwright : un parcours complet par module (CV, RDV, boards, fichiers).
 - Le porteur du projet n'a rien à lancer : l'agent indique « tests passés » ou ce qui échoue, en langage simple.
+
+### Boucle de travail (à chaque fonctionnalité)
+1. L'agent ajoute la fonctionnalité.
+2. **Tous** les tests sont relancés (Vitest et Playwright), pas seulement les nouveaux : c'est ce qui repère les régressions (une ancienne fonction cassée par la nouvelle).
+3. Tout passe : commit et push. Une régression est repérée : l'agent corrige, puis relance tous les tests.

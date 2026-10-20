@@ -17,4 +17,4 @@ Profil du porteur du projet (non développeur) et comptes à créer : section fi
 - Documentation en français, concise. Garde un nombre de fichiers minimal.
 - Stack : voir `docs/decisions.md` (D8). Ne pas en introduire d'autre sans accord.
 - Le porteur du projet n'est pas développeur : explique en langage simple, évite le jargon, fais les choix techniques toi-même (avec une courte justification) et ne pose que des questions de produit. Il lui faut des étapes claires et vérifiables (ex. « ouvre cette adresse, tu dois voir… »).
-- Tests obligatoires (Vitest + Playwright, voir D14) : ne livre pas une fonctionnalité sans ses tests, et lance-les avant de dire que c'est terminé.
+- Tests obligatoires (Vitest + Playwright, voir D14) : ne livre pas une fonctionnalité sans ses tests, et relance **toute** la suite avant chaque commit. Tests en échec : corrige, relance, ne commite pas. Boucle détaillée dans `docs/decisions.md` (D14).
