@@ -19,6 +19,7 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 | D14 | Tests | Acté | Standard Next.js : **Vitest** + React Testing Library pour les tests unitaires (logique : créneaux de RDV, quotas, validation) et **Playwright** pour les tests de bout en bout (parcours réels dans un navigateur : se connecter, remplir son CV, réserver un créneau). Lancés automatiquement par GitHub Actions à chaque envoi de code. |
 | D15 | Budget | Acté | Zéro pendant le développement : uniquement des offres gratuites. Seul le domaine est payant. |
 | D16 | RGPD | Acté | S'appuie sur Supabase : projet dans une **région européenne** (`eu-west-1`, Irlande), suppression de compte et export des données via Supabase. Les autres services (Resend, Stripe, LiveKit) seront vérifiés quand on les branchera. |
+| D18 | Pseudo | Acté | Modifiable. L'ancien pseudo redirige vers le nouveau (table `username_history`) et reste réservé à son propriétaire. Format : 3 à 30 caractères, minuscules, chiffres et tirets. |
 | D9 | Nom et domaine | Acté | Projet **MyWork**, domaine `mywork.website`. |
 | D10 | Langue de l'interface | Acté | Français. |
 | D11 | URL publique | Acté (révisable) | `mywork.website/<pseudo>` (pages de modules : `/<pseudo>/rdv`, `/<pseudo>/boards`). Pseudos réservés : `admin`, `login`, `api`, `app`… Domaine personnalisé possible plus tard. |
