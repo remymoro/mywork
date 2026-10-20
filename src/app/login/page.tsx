@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Logo } from "@/components/logo";
 import { GoogleButton } from "./google-button";
 
 async function LoginError({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -21,10 +22,11 @@ export default function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-6">
+      <Logo />
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Se connecter à MyWork</CardTitle>
+          <CardTitle>Se connecter</CardTitle>
           <CardDescription>Un seul clic avec ton compte Google.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

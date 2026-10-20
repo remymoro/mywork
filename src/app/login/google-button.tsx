@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { GoogleLogo } from "@/components/google-logo";
 import { createClient } from "@/lib/supabase/client";
 
 export function GoogleButton() {
@@ -13,7 +14,8 @@ export function GoogleButton() {
   }
 
   return (
-    <Button onClick={signIn} className="w-full">
+    <Button variant="outline" size="lg" onClick={signIn} className="w-full gap-2">
+      <GoogleLogo />
       Continuer avec Google
     </Button>
   );

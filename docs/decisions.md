@@ -21,6 +21,7 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 | D16 | RGPD | Acté | S'appuie sur Supabase : projet dans une **région européenne** (`eu-west-1`, Irlande), suppression de compte et export des données via Supabase. Les autres services (Resend, Stripe, LiveKit) seront vérifiés quand on les branchera. |
 | D18 | Pseudo | Acté | Modifiable. L'ancien pseudo redirige vers le nouveau (table `username_history`) et reste réservé à son propriétaire. Format : 3 à 30 caractères, minuscules, chiffres et tirets. |
 | D19 | Connexion | Acté | **Google uniquement** (OAuth via Supabase Auth). Premier passage : choix du pseudo (`/onboarding`), puis `/dashboard`. Pages : `/login`, `/dashboard`, `/<pseudo>` (profil public, redirige les anciens pseudos). D'autres moyens (e-mail, GitHub) pourront s'ajouter. |
+| D20 | Style visuel | Acté | Variante **A : sobre et professionnelle**. Fond blanc, noir et gris (palette neutre shadcn), pas de couleur de marque, logo « M » noir provisoire + nom MyWork (`src/components/logo.tsx`), police Geist. Boutons de connexion blancs bordés avec logo Google. Thème sombre et couleur d'accent : à décider plus tard. |
 | D9 | Nom et domaine | Acté | Projet **MyWork**, domaine `mywork.website`. |
 | D10 | Langue de l'interface | Acté | Français. |
 | D11 | URL publique | Acté (révisable) | `mywork.website/<pseudo>` (pages de modules : `/<pseudo>/rdv`, `/<pseudo>/boards`). Pseudos réservés : `admin`, `login`, `api`, `app`… Domaine personnalisé possible plus tard. |
