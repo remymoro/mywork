@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Bloque le commit si un secret (clé, jeton, mot de passe) est détecté dans les fichiers ajoutés.
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "gitleaks n'est pas installé : la vérification des secrets est ignorée en local (la CI la fera)."
+  exit 0
+fi
+gitleaks git --staged --redact --no-banner --verbose || {
+  echo "Commit bloqué : un secret a peut-être été détecté. Retire-le du fichier, puis recommence."
+  exit 1
+}

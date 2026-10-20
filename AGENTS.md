@@ -28,3 +28,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+- Dépôt public : jamais de secret dans le code ni dans la documentation (voir D17). Ne contourne jamais le hook de pré-commit (`--no-verify`).
