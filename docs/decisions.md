@@ -57,3 +57,5 @@ Limites des offres gratuites à garder en tête :
 - Les pages Next.js rendues côté serveur ne se testent pas bien avec Vitest : elles sont couvertes par Playwright.
 
 Installé le 2026-10-20 : commandes `pnpm test` (Vitest, fichiers `*.test.ts(x)` à côté du code), `pnpm test:e2e` (Playwright, dossier `e2e/`), `pnpm test:all` (les deux). GitHub Actions (`.github/workflows/ci.yml`) lance lint, Vitest et Playwright à chaque push. Chromium pour Playwright : `pnpm exec playwright install chromium`.
+
+Déployé sur Vercel le 2026-10-20 : projet `mywork` (compte `remymoro`, offre Hobby), connecté au dépôt GitHub. Chaque push sur `main` met le site à jour automatiquement. Adresse de production provisoire : https://mywork-pearl-two.vercel.app (le domaine `mywork.website` sera branché plus tard). Dépôt GitHub public pour que les vérifications automatiques restent gratuites : ne jamais y mettre de clé secrète (variables d'environnement dans Vercel et dans `.env.local`, ignoré par git).
