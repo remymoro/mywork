@@ -1,0 +1,41 @@
+# Décisions et questions ouvertes
+
+Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommandation en attente de validation), **Ouvert** (à trancher).
+
+## Décisions
+
+| # | Sujet | Statut | Contenu |
+|---|---|---|---|
+| D1 | Plateforme | Acté | Application web, écran d'ordinateur d'abord. |
+| D2 | Première fonctionnalité | Proposé | Module CV et profil public. |
+| D3 | Multi-utilisateur | Proposé | Toutes les données sont rattachées à un utilisateur dès le premier jour, même si un seul compte existe au départ. Cela évite une migration lourde à l'ouverture publique. |
+| D4 | Authentification | Proposé | Authentification minimale dans le socle (le propriétaire doit se connecter pour éditer). L'inscription publique et l'abonnement viennent plus tard. |
+| D5 | Export PDF | Proposé | Générer le PDF à partir du même gabarit HTML que la page publique : une seule mise en page à maintenir. Sur Vercel, le navigateur headless est lourd (`@sparticuz/chromium`) ; alternative : `@react-pdf/renderer`. À trancher au module CV. |
+| D6 | Visio | Acté | LiveKit (offre gratuite au départ), pas de développement maison. |
+| D7 | Stockage des fichiers | Acté | Supabase Storage, avec quota par utilisateur prévu dans le modèle dès le module Fichiers. |
+| D8 | Stack technique | Acté | Voir section Stack ci-dessous. Priorité : gratuit au départ. |
+| D12 | Authentification | Acté | Supabase Auth (inclus, pas de service en plus). |
+| D13 | Accès aux données | Acté | Client Supabase seul, sans ORM : moins de pièces à comprendre. À revoir si le projet grossit. |
+| D9 | Nom et domaine | Acté | Projet **MyWork**, domaine `mywork.website`. |
+| D10 | Langue de l'interface | Acté | Français. |
+| D11 | URL publique | Acté (révisable) | `mywork.website/<pseudo>` (pages de modules : `/<pseudo>/rdv`, `/<pseudo>/boards`). Pseudos réservés : `admin`, `login`, `api`, `app`… Domaine personnalisé possible plus tard. |
+
+## Points d'attention
+- **Rendez-vous** : fuseaux horaires, e-mails de confirmation et d'annulation, synchronisation avec un agenda externe pour éviter les doubles réservations.
+- **Fichiers publics** : risque d'abus de bande passante ; prévoir des limites.
+- **Profil public** : choisir ce qui est indexable par les moteurs de recherche.
+- **RGPD** : consentement, suppression de compte, export des données.
+
+## Questions ouvertes
+- Export PDF (D5), à trancher au module CV.
+
+## Stack (D8)
+Next.js (App Router) + TypeScript, Tailwind CSS + shadcn/ui, déployé sur Vercel. Supabase (Postgres, Auth, Storage). Resend (e-mails), Stripe (abonnement), LiveKit (visio). Code sur GitHub.
+
+Limites des offres gratuites à garder en tête :
+- **Vercel Hobby** : usage non commercial uniquement. Passer à l'offre Pro avant d'ouvrir l'abonnement payant.
+- **Supabase gratuit** : projet mis en pause après environ une semaine d'inactivité, 1 Go de fichiers, 500 Mo de base. Le quota de données de l'abonnement devra tenir compte de ces plafonds.
+- **Resend gratuit** : domaine à vérifier (`mywork.website`) et volume limité par jour.
+- **Stripe** : pas d'abonnement, mais commission par transaction.
+- **LiveKit** : minutes gratuites limitées par mois.
+- Le domaine `mywork.website` reste payant.
