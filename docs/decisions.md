@@ -76,3 +76,5 @@ Branchement Next.js ↔ Supabase (2026-10-20) : bibliothèques `@supabase/supaba
 2. **L'application accède aux données** : `.env.local` (adresse du projet + clé publique `sb_publishable_…`), jamais sur GitHub.
 
 Le mot de passe de la base de données ne sert à aucune des deux pour l'instant. Le porteur le garde (gestionnaire de mots de passe) : la CLI en aura besoin pour certaines opérations (ex. envoyer les migrations).
+
+Base de données (2026-10-20) : migrations dans `supabase/migrations/` (appliquées avec `pnpm exec supabase db push`). Tables `profiles` (pseudo, nom affiché, titre), `username_history` (redirections), `reserved_usernames` (pseudos interdits). Sécurité RLS : profils lisibles par tous, modifiables seulement par leur propriétaire ; l'historique des pseudos n'est écrit que par la base elle-même. Piège : sur ce projet Supabase, chaque nouvelle table demande aussi des `grant` explicites (voir la 2e migration), sinon l'API répond « permission denied ».
