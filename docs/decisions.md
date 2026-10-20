@@ -55,3 +55,5 @@ Limites des offres gratuites à garder en tête :
 2. **Tous** les tests sont relancés (Vitest et Playwright), pas seulement les nouveaux : c'est ce qui repère les régressions (une ancienne fonction cassée par la nouvelle).
 3. Tout passe : commit et push. Une régression est repérée : l'agent corrige, puis relance tous les tests.
 - Les pages Next.js rendues côté serveur ne se testent pas bien avec Vitest : elles sont couvertes par Playwright.
+
+Installé le 2026-10-20 : commandes `pnpm test` (Vitest, fichiers `*.test.ts(x)` à côté du code), `pnpm test:e2e` (Playwright, dossier `e2e/`), `pnpm test:all` (les deux). GitHub Actions (`.github/workflows/ci.yml`) lance lint, Vitest et Playwright à chaque push. Chromium pour Playwright : `pnpm exec playwright install chromium`.
