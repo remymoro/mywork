@@ -18,7 +18,7 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 | D13 | Accès aux données | Acté | Client Supabase seul, sans ORM : moins de pièces à comprendre. À revoir si le projet grossit. |
 | D14 | Tests | Acté | Standard Next.js : **Vitest** + React Testing Library pour les tests unitaires (logique : créneaux de RDV, quotas, validation) et **Playwright** pour les tests de bout en bout (parcours réels dans un navigateur : se connecter, remplir son CV, réserver un créneau). Lancés automatiquement par GitHub Actions à chaque envoi de code. |
 | D15 | Budget | Acté | Zéro pendant le développement : uniquement des offres gratuites. Seul le domaine est payant. |
-| D16 | RGPD | Acté | S'appuie sur Supabase : projet créé dans une **région européenne** (Francfort), suppression de compte et export des données via Supabase. Les autres services (Resend, Stripe, LiveKit) seront vérifiés quand on les branchera. |
+| D16 | RGPD | Acté | S'appuie sur Supabase : projet dans une **région européenne** (`eu-west-1`, Irlande), suppression de compte et export des données via Supabase. Les autres services (Resend, Stripe, LiveKit) seront vérifiés quand on les branchera. |
 | D9 | Nom et domaine | Acté | Projet **MyWork**, domaine `mywork.website`. |
 | D10 | Langue de l'interface | Acté | Français. |
 | D11 | URL publique | Acté (révisable) | `mywork.website/<pseudo>` (pages de modules : `/<pseudo>/rdv`, `/<pseudo>/boards`). Pseudos réservés : `admin`, `login`, `api`, `app`… Domaine personnalisé possible plus tard. |
@@ -59,3 +59,5 @@ Limites des offres gratuites à garder en tête :
 Installé le 2026-10-20 : commandes `pnpm test` (Vitest, fichiers `*.test.ts(x)` à côté du code), `pnpm test:e2e` (Playwright, dossier `e2e/`), `pnpm test:all` (les deux). GitHub Actions (`.github/workflows/ci.yml`) lance lint, Vitest et Playwright à chaque push. Chromium pour Playwright : `pnpm exec playwright install chromium`.
 
 Déployé sur Vercel le 2026-10-20 : projet `mywork` (compte `remymoro`, offre Hobby), connecté au dépôt GitHub. Chaque push sur `main` met le site à jour automatiquement. Adresse de production provisoire : https://mywork-pearl-two.vercel.app (le domaine `mywork.website` sera branché plus tard). Dépôt GitHub public pour que les vérifications automatiques restent gratuites : ne jamais y mettre de clé secrète (variables d'environnement dans Vercel et dans `.env.local`, ignoré par git).
+
+Supabase (2026-10-20) : projet `mywork` (réf. `egdspbycutxqvxlvsskn`, Postgres 17, `eu-west-1`) dans l'organisation `remy_moro.org`, offre gratuite. CLI installée en dépendance du projet (`pnpm exec supabase ...`), connectée au compte et reliée au projet (`supabase link`). Le dossier `supabase/` contiendra les migrations (changements de la base, versionnés dans git).
