@@ -17,3 +17,10 @@ test("le bouton du thème passe en sombre et garde le choix", async ({ page }) =
   await page.getByRole("button", { name: "Passer au thème clair" }).click();
   await expect(html).not.toHaveClass(/dark/);
 });
+
+test("l'exemple de profil affiche nom, titre et liens", async ({ page }) => {
+  await page.goto("/design/profil");
+  await expect(page.getByRole("heading", { level: 1, name: "Camille Dupont" })).toBeVisible();
+  await expect(page.getByText("Développeuse web freelance")).toBeVisible();
+  await expect(page.getByRole("link", { name: /GitHub/ })).toHaveAttribute("href", /github\.com\/camille-dupont/);
+});

@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
 
@@ -32,11 +32,16 @@ export default async function DashboardPage() {
           mywork.website/{profile.username}
         </Link>
       </p>
-      <form action={signOut}>
-        <Button type="submit" variant="outline">
-          Se déconnecter
-        </Button>
-      </form>
+      <div className="flex gap-3">
+        <Link href="/dashboard/profil" className={buttonVariants()}>
+          Modifier mon profil
+        </Link>
+        <form action={signOut}>
+          <Button type="submit" variant="outline">
+            Se déconnecter
+          </Button>
+        </form>
+      </div>
     </main>
   );
 }

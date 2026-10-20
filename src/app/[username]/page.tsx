@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { notFound, permanentRedirect } from "next/navigation";
+import { ProfileView } from "@/components/profile-view";
 import { createClient } from "@/lib/supabase/server";
 
 // Page dépendante de la session ou de l'URL : elle bloque côté serveur (voir docs/decisions.md).
@@ -16,7 +17,7 @@ export default async function PublicProfilePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, display_name, headline")
+    .select("*")
     .eq("username", username)
     .maybeSingle();
 
@@ -38,10 +39,5 @@ export default async function PublicProfilePage({
     notFound();
   }
 
-  return (
-    <main className="mx-auto max-w-2xl space-y-2 p-6">
-      <h1 className="text-3xl font-semibold">{profile.display_name ?? profile.username}</h1>
-      {profile.headline && <p className="text-muted-foreground">{profile.headline}</p>}
-    </main>
-  );
+  return <ProfileView profile={profile} />;
 }

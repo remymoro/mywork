@@ -14,3 +14,8 @@ test("un pseudo inconnu affiche une page 404", async ({ page }) => {
   await page.goto("/ce-pseudo-n-existe-pas");
   await expect(page.getByRole("heading", { name: "Page introuvable" })).toBeVisible();
 });
+
+test("la modification du profil renvoie vers la connexion", async ({ page }) => {
+  await page.goto("/dashboard/profil");
+  await expect(page).toHaveURL(/\/login/);
+});
