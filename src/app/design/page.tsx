@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { Logo } from "@/components/logo";
-import { Alert } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Heading, Text } from "@/components/ui/typography";
 
 export const metadata: Metadata = {
   title: "Design — MyWork",
@@ -29,7 +28,7 @@ const colors = [
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4">
-      <Heading level={2}>{title}</Heading>
+      <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
       {children}
     </section>
   );
@@ -40,11 +39,11 @@ export default function DesignPage() {
     <main className="mx-auto max-w-3xl space-y-12 p-6 py-12">
       <header className="space-y-3">
         <Logo />
-        <Heading level={1}>Design system</Heading>
-        <Text variant="lead">
-          Style sobre et professionnel (D20). Chaque couleur est un jeton défini dans <code>globals.css</code> : on ne
+        <h1 className="text-3xl font-semibold tracking-tight">Design system</h1>
+        <p className="text-lg text-muted-foreground">
+          Sobre et professionnel, avec un accent bleu et un thème sombre (bouton en haut à droite). Chaque couleur est un jeton défini dans <code>globals.css</code> : on ne
           met jamais de couleur en dur dans une page.
-        </Text>
+        </p>
       </header>
 
       <Section title="Couleurs">
@@ -52,7 +51,7 @@ export default function DesignPage() {
           {colors.map(([name, cls]) => (
             <li key={name} className="space-y-1.5">
               <div className={`h-12 rounded-lg ring-1 ring-foreground/10 ${cls}`} />
-              <Text variant="muted">{name}</Text>
+              <p className="text-sm text-muted-foreground">{name}</p>
             </li>
           ))}
         </ul>
@@ -60,12 +59,12 @@ export default function DesignPage() {
 
       <Section title="Typographie">
         <div className="space-y-2">
-          <Heading level={1}>Titre de page</Heading>
-          <Heading level={2}>Titre de section</Heading>
-          <Heading level={3}>Sous-titre</Heading>
-          <Text>Texte courant, pour les paragraphes.</Text>
-          <Text variant="muted">Texte discret, pour les aides et les détails.</Text>
-          <Text variant="lead">Texte d&apos;introduction, sous un titre.</Text>
+          <h1 className="text-3xl font-semibold tracking-tight">Titre de page</h1>
+          <h2 className="text-2xl font-semibold tracking-tight">Titre de section</h2>
+          <h3 className="text-lg font-semibold tracking-tight">Sous-titre</h3>
+          <p>Texte courant, pour les paragraphes.</p>
+          <p className="text-sm text-muted-foreground">Texte discret, pour les aides et les détails.</p>
+          <p className="text-lg text-muted-foreground">Texte d&apos;introduction, sous un titre.</p>
         </div>
       </Section>
 
@@ -97,7 +96,10 @@ export default function DesignPage() {
           <Alert>Information neutre.</Alert>
           <Alert variant="success">Enregistré.</Alert>
           <Alert variant="warning">Attention, vérifie ce point.</Alert>
-          <Alert variant="destructive">Une erreur est survenue.</Alert>
+          <Alert variant="destructive">
+            <AlertTitle>Connexion impossible</AlertTitle>
+            <AlertDescription>Une erreur est survenue. Réessaie.</AlertDescription>
+          </Alert>
         </div>
       </Section>
 
