@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Logo } from "@/components/logo";
 import { GoogleButton } from "./google-button";
@@ -7,9 +8,7 @@ async function LoginError({ searchParams }: { searchParams: Promise<{ error?: st
   const { error } = await searchParams;
   if (!error) return null;
   return (
-    <p role="alert" className="text-sm text-red-600">
-      La connexion a échoué. Réessaie.
-    </p>
+    <Alert variant="destructive">La connexion a échoué. Réessaie.</Alert>
   );
 }
 

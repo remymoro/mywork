@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,11 +23,7 @@ export function OnboardingForm() {
         <Label htmlFor="display_name">Nom affiché</Label>
         <Input id="display_name" name="display_name" maxLength={80} />
       </div>
-      {state.error && (
-        <p role="alert" className="text-sm text-red-600">
-          {state.error}
-        </p>
-      )}
+      {state.error && <Alert variant="destructive">{state.error}</Alert>}
       <Button type="submit" disabled={pending} className="w-full">
         Créer mon profil
       </Button>
