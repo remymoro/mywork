@@ -69,7 +69,7 @@ Dépôt public, donc aucun secret dans le code. Deux filets avec **gitleaks** :
 - **Sur GitHub** : `.github/workflows/secrets.yml` scanne tout l'historique à chaque push.
 Les secrets vont dans `.env.local` (ignoré par git) et dans les variables d'environnement de Vercel.
 
-Branchement Next.js ↔ Supabase (2026-10-20) : bibliothèques `@supabase/supabase-js` et `@supabase/ssr`. Clients dans `src/lib/supabase/client.ts` (navigateur) et `server.ts` (serveur). Variables `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (clé publique, modèle dans `.env.example`) dans `.env.local` ; à ajouter aussi dans Vercel pour la production. La clé secrète (`service_role`) n'est jamais utilisée sans accord explicite.
+Branchement Next.js ↔ Supabase (2026-10-20) : bibliothèques `@supabase/supabase-js` et `@supabase/ssr`. Clients dans `src/lib/supabase/client.ts` (navigateur) et `server.ts` (serveur). Variables `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (clé publique, modèle dans `.env.example`) dans `.env.local` ; ajoutées aussi dans Vercel (production, preview, development) le 2026-10-20. La clé secrète (`service_role`) n'est jamais utilisée sans accord explicite.
 
 ### Deux liaisons vers Supabase
 1. **L'agent agit au nom du porteur** : CLI Supabase (`pnpm exec supabase ...`), connectée une fois par `supabase login` (code de vérification dans le navigateur). Sert à créer les tables et gérer le projet.
