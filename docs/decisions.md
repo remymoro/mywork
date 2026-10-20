@@ -16,7 +16,9 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 | D8 | Stack technique | Acté | Voir section Stack ci-dessous. Priorité : gratuit au départ. |
 | D12 | Authentification | Acté | Supabase Auth (inclus, pas de service en plus). |
 | D13 | Accès aux données | Acté | Client Supabase seul, sans ORM : moins de pièces à comprendre. À revoir si le projet grossit. |
-| D14 | Tests | Acté | **Vitest** pour les tests unitaires (logique : créneaux de RDV, quotas, validation) et **Playwright** pour les tests de bout en bout (parcours réels dans un navigateur : se connecter, remplir son CV, réserver un créneau). Lancés automatiquement par GitHub Actions à chaque envoi de code. |
+| D14 | Tests | Acté | Standard Next.js : **Vitest** + React Testing Library pour les tests unitaires (logique : créneaux de RDV, quotas, validation) et **Playwright** pour les tests de bout en bout (parcours réels dans un navigateur : se connecter, remplir son CV, réserver un créneau). Lancés automatiquement par GitHub Actions à chaque envoi de code. |
+| D15 | Budget | Acté | Zéro pendant le développement : uniquement des offres gratuites. Seul le domaine est payant. |
+| D16 | RGPD | Acté | S'appuie sur Supabase : projet créé dans une **région européenne** (Francfort), suppression de compte et export des données via Supabase. Les autres services (Resend, Stripe, LiveKit) seront vérifiés quand on les branchera. |
 | D9 | Nom et domaine | Acté | Projet **MyWork**, domaine `mywork.website`. |
 | D10 | Langue de l'interface | Acté | Français. |
 | D11 | URL publique | Acté (révisable) | `mywork.website/<pseudo>` (pages de modules : `/<pseudo>/rdv`, `/<pseudo>/boards`). Pseudos réservés : `admin`, `login`, `api`, `app`… Domaine personnalisé possible plus tard. |
@@ -25,7 +27,7 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 - **Rendez-vous** : fuseaux horaires, e-mails de confirmation et d'annulation, synchronisation avec un agenda externe pour éviter les doubles réservations.
 - **Fichiers publics** : risque d'abus de bande passante ; prévoir des limites.
 - **Profil public** : choisir ce qui est indexable par les moteurs de recherche.
-- **RGPD** : consentement, suppression de compte, export des données.
+- **RGPD** (D16) : consentement, suppression de compte, export des données.
 
 ## Questions ouvertes
 - Export PDF (D5), à trancher au module CV.
@@ -50,3 +52,4 @@ Limites des offres gratuites à garder en tête :
 1. L'agent ajoute la fonctionnalité.
 2. **Tous** les tests sont relancés (Vitest et Playwright), pas seulement les nouveaux : c'est ce qui repère les régressions (une ancienne fonction cassée par la nouvelle).
 3. Tout passe : commit et push. Une régression est repérée : l'agent corrige, puis relance tous les tests.
+- Les pages Next.js rendues côté serveur ne se testent pas bien avec Vitest : elles sont couvertes par Playwright.
