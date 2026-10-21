@@ -7,22 +7,22 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 | # | Sujet | Statut | Contenu |
 |---|---|---|---|
 | D1 | Plateforme | Acté | Application web, écran d'ordinateur d'abord. |
-| D2 | Première fonctionnalité | Proposé | Module CV et profil public. |
+| D2 | Première fonctionnalité | Proposé | Module Profil (anciennement « module CV », renommé le 2026-10-21) et profil public. |
 | D3 | Multi-utilisateur | Proposé | Toutes les données sont rattachées à un utilisateur dès le premier jour, même si un seul compte existe au départ. Cela évite une migration lourde à l'ouverture publique. |
 | D4 | Authentification | Proposé | Authentification minimale dans le socle (le propriétaire doit se connecter pour éditer). L'inscription publique et l'abonnement viennent plus tard. |
-| D5 | Export PDF | Proposé | Générer le PDF à partir du même gabarit HTML que la page publique : une seule mise en page à maintenir. Sur Vercel, le navigateur headless est lourd (`@sparticuz/chromium`) ; alternative : `@react-pdf/renderer`. À trancher au module CV. |
+| D5 | Export PDF | Proposé | Générer le PDF à partir du même gabarit HTML que la page publique : une seule mise en page à maintenir. Sur Vercel, le navigateur headless est lourd (`@sparticuz/chromium`) ; alternative : `@react-pdf/renderer`. À trancher au module Profil. |
 | D6 | Visio | Acté | LiveKit (offre gratuite au départ), pas de développement maison. |
 | D7 | Stockage des fichiers | Acté | Supabase Storage, avec quota par utilisateur prévu dans le modèle dès le module Fichiers. |
 | D8 | Stack technique | Acté | Voir section Stack ci-dessous. Priorité : gratuit au départ. |
 | D12 | Authentification | Acté | Supabase Auth (inclus, pas de service en plus). |
 | D13 | Accès aux données | Acté | Client Supabase seul, sans ORM : moins de pièces à comprendre. À revoir si le projet grossit. |
-| D14 | Tests | Acté | Standard Next.js : **Vitest** + React Testing Library pour les tests unitaires (logique : créneaux de RDV, quotas, validation) et **Playwright** pour les tests de bout en bout (parcours réels dans un navigateur : se connecter, remplir son CV, réserver un créneau). Lancés automatiquement par GitHub Actions à chaque envoi de code. |
+| D14 | Tests | Acté | Standard Next.js : **Vitest** + React Testing Library pour les tests unitaires (logique : créneaux de RDV, quotas, validation) et **Playwright** pour les tests de bout en bout (parcours réels dans un navigateur : se connecter, remplir son profil, réserver un créneau). Lancés automatiquement par GitHub Actions à chaque envoi de code. |
 | D15 | Budget | Acté | Zéro pendant le développement : uniquement des offres gratuites. Seul le domaine est payant. |
 | D16 | RGPD | Acté | S'appuie sur Supabase : projet dans une **région européenne** (`eu-west-1`, Irlande), suppression de compte et export des données via Supabase. Les autres services (Resend, Stripe, LiveKit) seront vérifiés quand on les branchera. |
 | D18 | Pseudo | Acté | Modifiable. L'ancien pseudo redirige vers le nouveau (table `username_history`) et reste réservé à son propriétaire. Format : 3 à 30 caractères, minuscules, chiffres et tirets. |
 | D19 | Connexion | Acté | **Google uniquement** (OAuth via Supabase Auth). Premier passage : choix du pseudo (`/onboarding`), puis `/dashboard`. Pages : `/` (redirige vers `/login`, pas de page d'accueil séparée), `/login`, `/dashboard`, `/<pseudo>` (profil public, redirige les anciens pseudos). D'autres moyens (e-mail, GitHub) pourront s'ajouter. |
 | D20 | Style visuel | Acté | **Remplacé par D22** (le style sobre en variante A n'est plus celui du site). |
-| D21 | Tableau de bord | Acté | Disposition « barre latérale + deux colonnes » (proposée par Gemini via `agy`, choisie le 2026-10-21) : menu à gauche (Profil public actif, CV / Rendez-vous / Boards / Fichiers / Visio en « Bientôt »), édition du profil au centre, aperçu public en direct à droite, lien public avec « Copier » et « Voir ma page ». Brique Profil livrée : pseudo, nom affiché, titre (`src/app/dashboard/`). Depuis le 2026-10-21 : `/dashboard` est le tableau de bord central, volontairement vide pour l'instant (les modules s'y afficheront), et l'édition du profil est sur `/dashboard/profil` ; le menu a deux entrées actives : « Mon tableau de bord » (`/dashboard`, page d'arrivée après connexion ou en ouvrant MyWork déjà connecté ; texte provisoire « Futures informations sur mon espace », deviendra une vue d'ensemble de l'activité) et « Mon profil » (`/dashboard/profil`, base du futur module CV). Menu utilisateur en bas de la barre (option « menu flottant vers le haut », 2026-10-21) : initiales + nom + engrenage, mode clair/sombre mémorisé dans le navigateur (la couleur reste toujours Éditorial ; le choix entre 4 variantes a été retiré à la demande du porteur) (`localStorage`, appliqués avant l'affichage par un petit script dans `layout.tsx`), « Se déconnecter ». Menu refait d'après une maquette du porteur : e-mail, sous-menu « Mon profil public » (interrupteur « Profil en ligne », copier l'adresse, ouvrir la page), sous-menu « Thème » (Clair / Sombre). « Profil en ligne » = colonne `is_online` (migration `20261021120000`) : un profil hors ligne n'est lisible que par son propriétaire (règle RLS). Claude orchestre, `agy` et `codex` sont consultés. |
+| D21 | Tableau de bord | Acté | Disposition « barre latérale + deux colonnes » (proposée par Gemini via `agy`, choisie le 2026-10-21) : menu à gauche (Profil public actif, Profil / Rendez-vous / Boards / Fichiers / Visio en « Bientôt »), édition du profil au centre, aperçu public en direct à droite, lien public avec « Copier » et « Voir ma page ». Brique Profil livrée : pseudo, nom affiché, titre (`src/app/dashboard/`). Depuis le 2026-10-21 : `/dashboard` est le tableau de bord central, volontairement vide pour l'instant (les modules s'y afficheront), et l'édition du profil est sur `/dashboard/profil` ; le menu a deux entrées actives : « Mon tableau de bord » (`/dashboard`, page d'arrivée après connexion ou en ouvrant MyWork déjà connecté ; texte provisoire « Futures informations sur mon espace », deviendra une vue d'ensemble de l'activité) et « Mon profil » (`/dashboard/profil`, base du module Profil). Menu utilisateur en bas de la barre (option « menu flottant vers le haut », 2026-10-21) : initiales + nom + engrenage, mode clair/sombre mémorisé dans le navigateur (la couleur reste toujours Éditorial ; le choix entre 4 variantes a été retiré à la demande du porteur) (`localStorage`, appliqués avant l'affichage par un petit script dans `layout.tsx`), « Se déconnecter ». Menu refait d'après une maquette du porteur : e-mail, sous-menu « Mon profil public » (interrupteur « Profil en ligne », copier l'adresse, ouvrir la page), sous-menu « Thème » (Clair / Sombre). « Profil en ligne » = colonne `is_online` (migration `20261021120000`) : un profil hors ligne n'est lisible que par son propriétaire (règle RLS). Claude orchestre, `agy` et `codex` sont consultés. |
 | D22 | Design system | Acté | Variante **D « Éditorial »** choisie le 2026-10-21, appliquée à tout le site (`data-theme="editorial"` sur `<html>`, clair par défaut) : fond crème, titres en serif (Newsreader), texte en Geist, accent carmin, logo « M » blanc sur carré rouge, petite ligne « ESPACE PRIVÉ » au-dessus des titres. Les variantes A (neutre), B (bleu ardoise) et C (sauge et argile) restent comparables sur `/design`. Composants shadcn ajoutés : badge, alert, textarea, separator, tabs, dialog, switch, avatar. Thème sombre : présent dans les jetons, pas encore proposé dans l'application. Réalisé par `agy` (Gemini), relu et testé par Claude. |
 | D9 | Nom et domaine | Acté | Projet **MyWork**, domaine `mywork.website`. |
 | D10 | Langue de l'interface | Acté | Français. |
@@ -35,7 +35,7 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 - **RGPD** (D16) : consentement, suppression de compte, export des données.
 
 ## Questions ouvertes
-- Export PDF (D5), à trancher au module CV.
+- Export PDF (D5), à trancher au module Profil.
 
 ## Stack (D8)
 Next.js (App Router) + TypeScript, Tailwind CSS + shadcn/ui, déployé sur Vercel. Supabase (Postgres, Auth, Storage). Resend (e-mails), Stripe (abonnement), LiveKit (visio). Code sur GitHub (`remymoro/mywork`, privé). Gestionnaire de paquets : **pnpm**. Node 24.
@@ -52,7 +52,7 @@ Limites des offres gratuites à garder en tête :
 
 ## Tests (D14)
 - Chaque fonctionnalité livrée s'accompagne de ses tests ; l'agent les écrit et les lance lui-même.
-- Vitest : calculs et règles métier. Playwright : un parcours complet par module (CV, RDV, boards, fichiers).
+- Vitest : calculs et règles métier. Playwright : un parcours complet par module (Profil, RDV, boards, fichiers).
 - Le porteur du projet n'a rien à lancer : l'agent indique « tests passés » ou ce qui échoue, en langage simple.
 
 ### Boucle de travail (à chaque fonctionnalité)
