@@ -60,17 +60,19 @@ describe("SectionList", () => {
     moveSectionItem.mockClear();
   });
 
-  it("déplie le formulaire vide au clic sur « Ajouter »", () => {
-    render(<SectionList section="experiences" title="Expérience" items={[]} />);
+  it("déplie le formulaire vide au clic sur « Ajouter une expérience »", () => {
+    render(<SectionList section="experiences" title="Expérience" addLabel="Ajouter une expérience" items={[]} />);
     expect(screen.queryByLabelText("Poste")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Ajouter" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ajouter une expérience" }));
     expect(screen.getByLabelText("Poste")).toBeInTheDocument();
+    // Le bouton laisse la place au formulaire.
+    expect(screen.queryByRole("button", { name: "Ajouter une expérience" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Entreprise")).toBeInTheDocument();
   });
 
   it("désactive Monter sur le premier élément et Descendre sur le dernier", () => {
-    render(<SectionList section="experiences" title="Expérience" items={sampleExperiences} />);
+    render(<SectionList section="experiences" title="Expérience" addLabel="Ajouter une expérience" items={sampleExperiences} />);
 
     expect(screen.getByText("Développeur · MyWork — janv. 2024 – aujourd'hui")).toBeInTheDocument();
     expect(screen.getByText("Consultant · Acme — mars 2022 – déc. 2023")).toBeInTheDocument();
@@ -86,7 +88,7 @@ describe("SectionList", () => {
   });
 
   it("appelle setSectionItemVisible au clic sur Masquer ou Afficher", () => {
-    render(<SectionList section="experiences" title="Expérience" items={sampleExperiences} />);
+    render(<SectionList section="experiences" title="Expérience" addLabel="Ajouter une expérience" items={sampleExperiences} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Masquer" }));
     expect(setSectionItemVisible).toHaveBeenCalledWith("experiences", "exp-1", false);
@@ -97,7 +99,7 @@ describe("SectionList", () => {
 
   it("déplie le formulaire prérempli avec l'identifiant caché au clic sur Modifier", () => {
     const { container } = render(
-      <SectionList section="experiences" title="Expérience" items={sampleExperiences} />,
+      <SectionList section="experiences" title="Expérience" addLabel="Ajouter une expérience" items={sampleExperiences} />,
     );
 
     const editButtons = screen.getAllByRole("button", { name: "Modifier" });
@@ -153,24 +155,37 @@ describe("ProjectFields", () => {
 });
 
 describe("FreelanceForm", () => {
-  it("cache les détails tant que la case freelance n'est pas cochée", () => {
-    render(
-      <FreelanceForm
-        enabled={false}
-        availableFrom={null}
-        daysPerWeek={null}
-        workModes={["hybride"]}
-        dailyRate={450}
-        travelZone=""
-      />,
-    );
-    const checkbox = screen.getByRole("checkbox", { name: "Je propose mes services en freelance" });
-    expect(checkbox).not.toBeChecked();
-    expect(screen.queryByLabelText("TJM (€ HT par jour)")).not.toBeVisible();
+  const props = {
+    enabled: false,
+    availability: "non_precisee" as const,
+    availableFrom: null,
+    workModes: ["hybride"],
+    dailyRate: 450,
+    travelZone: "",
+    services: <p>Liste des prestations</p>,
+  };
 
-    fireEvent.click(checkbox);
-    expect(screen.getByLabelText("TJM (€ HT par jour)")).toBeVisible();
-    expect(screen.getByLabelText("TJM (€ HT par jour)")).toHaveValue(450);
+  it("affiche l'interrupteur, la disponibilité, les modes, le TJM et les prestations", () => {
+    const { container } = render(<FreelanceForm {...props} />);
+    const toggle = screen.getByRole("switch", { name: "Je propose mes services en freelance" });
+    expect(toggle).not.toBeChecked();
+    expect(container.querySelector('input[name="freelance_enabled"]')).toBeNull();
+
+    fireEvent.click(toggle);
+    expect(container.querySelector('input[name="freelance_enabled"]')).toHaveValue("on");
+
+    expect(screen.getByRole("radio", { name: "Non précisée" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Hybride" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "À distance" })).not.toBeChecked();
+    expect(screen.getByLabelText("TJM")).toHaveValue(450);
+    expect(screen.getByText("€ HT / jour")).toBeInTheDocument();
+    expect(screen.getByText("Liste des prestations")).toBeInTheDocument();
+  });
+
+  it("demande la date seulement pour « À partir du »", () => {
+    render(<FreelanceForm {...props} />);
+    expect(screen.queryByLabelText("Date de disponibilité")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "À partir du" }));
+    expect(screen.getByLabelText("Date de disponibilité")).toHaveAttribute("type", "date");
   });
 });

@@ -15,12 +15,14 @@ import {
   EMPLOYMENT_TYPES,
   LANGUAGE_LEVELS,
   WORK_MODES,
+  formatDay,
   formatDuration,
   formatEuros,
   formatMonth,
   getInitials,
   labelOf,
   normalizeSectionOrder,
+  type FreelanceAvailability,
   type PublicSectionId,
 } from "@/lib/profile-sections";
 import { ContactButton } from "./contact-button";
@@ -49,8 +51,8 @@ export type PublicProfileData = {
 };
 
 export type FreelanceOffer = {
+  availability: FreelanceAvailability;
   available_from: string | null;
-  days_per_week: number | null;
   work_modes: string[];
   daily_rate: number | null;
   travel_zone: string | null;
@@ -66,14 +68,17 @@ export function FreelanceSection({
   nowIso?: string;
 }) {
   if (!offer) return null;
-  const now = nowIso ?? currentMonthIso();
+  const today = nowIso ?? new Date().toISOString().slice(0, 10);
+  // Une date « à partir du » déjà passée revient à « disponible ».
   const availability =
-    offer.available_from && offer.available_from > now
-      ? `Disponible à partir de ${formatMonth(offer.available_from)}`
-      : "Disponible dès maintenant";
-  const days = offer.days_per_week
-    ? `${offer.days_per_week} jour${offer.days_per_week > 1 ? "s" : ""} par semaine`
-    : null;
+    offer.availability === "disponible" ||
+    (offer.availability === "a_partir_du" && offer.available_from && offer.available_from <= today)
+      ? { text: "Disponible dès maintenant", variant: "success" as const }
+      : offer.availability === "a_partir_du" && offer.available_from
+        ? { text: `Disponible à partir du ${formatDay(offer.available_from)}`, variant: "success" as const }
+        : offer.availability === "indisponible"
+          ? { text: "Indisponible pour le moment", variant: "secondary" as const }
+          : null;
   const modes = offer.work_modes.map((m) => labelOf(WORK_MODES, m)).filter(Boolean).join(" · ");
 
   const details = [
@@ -87,8 +92,8 @@ export function FreelanceSection({
       <SectionHeading>FREELANCE</SectionHeading>
       <div className="space-y-4 rounded-xl border p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="success">{availability}</Badge>
-          {days && <span className="text-sm text-muted-foreground">{days}</span>}
+          <span className="text-sm font-medium">Je propose mes services en freelance</span>
+          {availability && <Badge variant={availability.variant}>{availability.text}</Badge>}
         </div>
         {details.length > 0 && (
           <dl className="grid gap-3 text-sm sm:grid-cols-3">

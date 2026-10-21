@@ -1,80 +1,98 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { WORK_MODES, toMonthInput } from "@/lib/profile-sections";
+import { Switch } from "@/components/ui/switch";
+import { FREELANCE_AVAILABILITY, type FreelanceAvailability } from "@/lib/profile-sections";
 import { updateFreelance, type FormState } from "./actions";
+import { SECTION_HEADER, SECTION_TITLE } from "./section-style";
+
+// Libellés de la maquette (« À distance » plutôt que « Télétravail »), mêmes valeurs qu'en base.
+const FREELANCE_MODES = [
+  { value: "teletravail", label: "À distance" },
+  { value: "sur_site", label: "Sur site" },
+  { value: "hybride", label: "Hybride" },
+] as const;
 
 type Props = {
   enabled: boolean;
+  availability: FreelanceAvailability;
   availableFrom: string | null;
-  daysPerWeek: number | null;
   workModes: string[];
   dailyRate: number | null;
   travelZone: string;
+  /** Liste des prestations, affichée sous le formulaire (hors du <form> : elle a ses propres formulaires). */
+  services: ReactNode;
 };
 
-export function FreelanceForm(initial: Props) {
+export function FreelanceForm({ services, ...initial }: Props) {
   const [enabled, setEnabled] = useState(initial.enabled);
+  const [availability, setAvailability] = useState(initial.availability);
   const [state, action, pending] = useActionState<FormState, FormData>(updateFreelance, {});
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Freelance</CardTitle>
-        <CardDescription>
-          Coche la case pour proposer tes services en freelance sur ta page publique. Décochée, rien
-          n&apos;est affiché, mais tes informations sont gardées.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form action={action} className="space-y-4">
-          <label className="flex items-center gap-2 rounded-lg border p-3 text-sm font-medium">
-            <input
-              type="checkbox"
-              name="freelance_enabled"
-              checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
-              className="size-4 accent-primary"
-            />
+      <CardHeader className={SECTION_HEADER}>
+        <CardTitle className={SECTION_TITLE}>Offre freelance</CardTitle>
+        <CardAction className="flex items-center gap-3 self-center">
+          <label htmlFor="freelance_enabled" className="text-sm">
             Je propose mes services en freelance
           </label>
+          <Switch
+            id="freelance_enabled"
+            checked={enabled}
+            onCheckedChange={setEnabled}
+          />
+        </CardAction>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <form id="freelance-form" action={action} className="space-y-5">
+          {enabled && <input type="hidden" name="freelance_enabled" value="on" />}
+          {!enabled && (
+            <p className="text-sm text-muted-foreground">
+              Interrupteur coupé : l&apos;offre n&apos;apparaît pas sur ta page publique. Tes informations
+              restent enregistrées.
+            </p>
+          )}
 
-          {/* Champs masqués (mais envoyés) quand la case est décochée : on ne perd rien. */}
-          <fieldset hidden={!enabled} className="space-y-4">
-            <legend className="sr-only">Détails de l&apos;offre freelance</legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="freelance_available_from">Disponible à partir de</Label>
+          <fieldset className="space-y-2">
+            <legend className="mb-2 text-sm font-semibold">Disponibilité</legend>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              {FREELANCE_AVAILABILITY.map((option) => (
+                <label key={option.value} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="freelance_availability"
+                    value={option.value}
+                    checked={availability === option.value}
+                    onChange={() => setAvailability(option.value)}
+                    className="size-4 accent-primary"
+                  />
+                  {option.label}
+                </label>
+              ))}
+              {availability === "a_partir_du" && (
                 <Input
-                  id="freelance_available_from"
+                  aria-label="Date de disponibilité"
                   name="freelance_available_from"
-                  type="month"
-                  defaultValue={toMonthInput(initial.availableFrom)}
+                  type="date"
+                  required
+                  defaultValue={initial.availableFrom ?? ""}
+                  className="w-auto"
                 />
-                <p className="text-xs text-muted-foreground">Vide = disponible dès maintenant.</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="freelance_days_per_week">Jours par semaine</Label>
-                <Input
-                  id="freelance_days_per_week"
-                  name="freelance_days_per_week"
-                  type="number"
-                  min={1}
-                  max={5}
-                  defaultValue={initial.daysPerWeek ?? ""}
-                />
-              </div>
+              )}
             </div>
+          </fieldset>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Mode de travail</p>
-              <div className="flex flex-wrap gap-4">
-                {WORK_MODES.map((mode) => (
+          <div className="grid gap-5 md:grid-cols-[1fr_auto]">
+            <fieldset>
+              <legend className="mb-2 text-sm font-semibold">Mode de travail</legend>
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                {FREELANCE_MODES.map((mode) => (
                   <label key={mode.value} className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
@@ -86,11 +104,12 @@ export function FreelanceForm(initial: Props) {
                   </label>
                 ))}
               </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="freelance_daily_rate">TJM (€ HT par jour)</Label>
+            </fieldset>
+            <div className="space-y-2">
+              <Label htmlFor="freelance_daily_rate" className="font-semibold">
+                TJM
+              </Label>
+              <div className="flex items-center gap-2">
                 <Input
                   id="freelance_daily_rate"
                   name="freelance_daily_rate"
@@ -99,20 +118,25 @@ export function FreelanceForm(initial: Props) {
                   max={10000}
                   inputMode="numeric"
                   defaultValue={initial.dailyRate ?? ""}
+                  className="w-40"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="freelance_travel_zone">Zone de déplacement</Label>
-                <Input
-                  id="freelance_travel_zone"
-                  name="freelance_travel_zone"
-                  maxLength={120}
-                  defaultValue={initial.travelZone}
-                  placeholder="Ex. Agen et 100 km, Bordeaux"
-                />
+                <span className="text-sm whitespace-nowrap text-muted-foreground">€ HT / jour</span>
               </div>
             </div>
-          </fieldset>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="freelance_travel_zone" className="font-semibold">
+              Zone de déplacement
+            </Label>
+            <Input
+              id="freelance_travel_zone"
+              name="freelance_travel_zone"
+              maxLength={120}
+              defaultValue={initial.travelZone}
+              placeholder="Lyon et environs, Paris ponctuellement"
+            />
+          </div>
 
           {state.error && (
             <Alert variant="destructive" role="alert">
@@ -129,6 +153,8 @@ export function FreelanceForm(initial: Props) {
             Enregistrer
           </Button>
         </form>
+
+        {services}
       </CardContent>
     </Card>
   );

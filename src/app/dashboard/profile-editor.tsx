@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DISPLAY_NAME_MAX, HEADLINE_MAX } from "@/lib/profile";
 import { updateProfile, type ProfileState } from "./profile-actions";
+import { SECTION_HEADER, SECTION_TITLE } from "./profil/section-style";
 
 type Props = { username: string; displayName: string; headline: string };
 
@@ -21,8 +22,8 @@ export function ProfileEditor(initial: Props) {
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Éditer mon profil</CardTitle>
+          <CardHeader className={SECTION_HEADER}>
+            <CardTitle className={SECTION_TITLE}>En-tête</CardTitle>
           </CardHeader>
           <CardContent>
             <form action={action} className="space-y-4">

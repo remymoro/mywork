@@ -33,7 +33,7 @@ export default async function ProfilePage() {
   const { data: profile, error } = await supabase
     .from("profiles")
     .select(
-      "username, display_name, headline, is_online, avatar_url, location, open_to_work, open_to_work_details, contact_email, website_url, linkedin_url, github_url, other_url, about, top_skills, skills, section_order, freelance_enabled, freelance_available_from, freelance_days_per_week, freelance_work_modes, freelance_daily_rate, freelance_travel_zone",
+      "username, display_name, headline, is_online, avatar_url, location, open_to_work, open_to_work_details, contact_email, website_url, linkedin_url, github_url, other_url, about, top_skills, skills, section_order, freelance_enabled, freelance_availability, freelance_available_from, freelance_work_modes, freelance_daily_rate, freelance_travel_zone",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -109,23 +109,42 @@ export default async function ProfilePage() {
       </div>
       <ProfileSectionsNav
         username={profile.username}
+        filled={{
+          "en-tete": Boolean(profile.display_name || profile.headline || profile.avatar_url),
+          coordonnees: Boolean(
+            profile.location ||
+              profile.contact_email ||
+              profile.website_url ||
+              profile.linkedin_url ||
+              profile.github_url ||
+              profile.other_url,
+          ),
+          "a-propos": Boolean(profile.about || (profile.top_skills ?? []).length),
+          freelance: Boolean(profile.freelance_enabled),
+          experiences: experiences.length > 0,
+          projets: projects.length > 0,
+          formation: educations.length > 0,
+          certifications: certifications.length > 0,
+          competences: (profile.skills ?? []).length > 0,
+          langues: languages.length > 0,
+        }}
         sections={{
-          identite: (
-            <ProfileEditor
-              key={`${profile.username}|${profile.display_name}|${profile.headline}`}
-              username={profile.username}
-              displayName={profile.display_name ?? ""}
-              headline={profile.headline ?? ""}
-            />
-          ),
-          photo: (
-            <AvatarForm
-              avatarUrl={profile.avatar_url ?? null}
-              displayName={profile.display_name ?? ""}
-              username={profile.username}
-            />
-          ),
           "en-tete": (
+            <>
+              <ProfileEditor
+                key={`${profile.username}|${profile.display_name}|${profile.headline}`}
+                username={profile.username}
+                displayName={profile.display_name ?? ""}
+                headline={profile.headline ?? ""}
+              />
+              <AvatarForm
+                avatarUrl={profile.avatar_url ?? null}
+                displayName={profile.display_name ?? ""}
+                username={profile.username}
+              />
+            </>
+          ),
+          coordonnees: (
             <HeaderForm
               key={`${profile.location}|${profile.open_to_work}|${profile.open_to_work_details}|${profile.contact_email}|${profile.website_url}|${profile.linkedin_url}|${profile.github_url}|${profile.other_url}`}
               location={profile.location ?? ""}
@@ -138,20 +157,6 @@ export default async function ProfilePage() {
               otherUrl={profile.other_url ?? ""}
             />
           ),
-          freelance: (
-            <div className="space-y-6">
-              <FreelanceForm
-                key={`${profile.freelance_enabled}|${profile.freelance_available_from}|${profile.freelance_days_per_week}|${(profile.freelance_work_modes ?? []).join(",")}|${profile.freelance_daily_rate}|${profile.freelance_travel_zone}`}
-                enabled={profile.freelance_enabled ?? false}
-                availableFrom={profile.freelance_available_from ?? null}
-                daysPerWeek={profile.freelance_days_per_week ?? null}
-                workModes={profile.freelance_work_modes ?? []}
-                dailyRate={profile.freelance_daily_rate ?? null}
-                travelZone={profile.freelance_travel_zone ?? ""}
-              />
-              <SectionList section="services" title="Prestations" items={services} />
-            </div>
-          ),
           "a-propos": (
             <AboutForm
               key={`${profile.about}|${(profile.top_skills ?? []).join(",")}`}
@@ -159,16 +164,59 @@ export default async function ProfilePage() {
               topSkills={profile.top_skills ?? []}
             />
           ),
-          experience: <SectionList section="experiences" title="Expérience" items={experiences} />,
-          formation: <SectionList section="educations" title="Formation" items={educations} />,
+          freelance: (
+            <FreelanceForm
+              key={`${profile.freelance_enabled}|${profile.freelance_availability}|${profile.freelance_available_from}|${(profile.freelance_work_modes ?? []).join(",")}|${profile.freelance_daily_rate}|${profile.freelance_travel_zone}`}
+              enabled={profile.freelance_enabled ?? false}
+              availability={profile.freelance_availability ?? "non_precisee"}
+              availableFrom={profile.freelance_available_from ?? null}
+              workModes={profile.freelance_work_modes ?? []}
+              dailyRate={profile.freelance_daily_rate ?? null}
+              travelZone={profile.freelance_travel_zone ?? ""}
+              services={
+                <SectionList
+                  section="services"
+                  title="Prestations"
+                  addLabel="Ajouter une prestation"
+                  items={services}
+                  embedded
+                />
+              }
+            />
+          ),
+          experiences: (
+            <SectionList
+              section="experiences"
+              title="Expériences"
+              addLabel="Ajouter une expérience"
+              items={experiences}
+            />
+          ),
+          projets: (
+            <SectionList section="projects" title="Projets" addLabel="Ajouter un projet" items={projects} />
+          ),
+          formation: (
+            <SectionList
+              section="educations"
+              title="Formation"
+              addLabel="Ajouter une formation"
+              items={educations}
+            />
+          ),
+          certifications: (
+            <SectionList
+              section="certifications"
+              title="Certifications"
+              addLabel="Ajouter une certification"
+              items={certifications}
+            />
+          ),
           competences: (
             <SkillsForm key={(profile.skills ?? []).join(",")} skills={profile.skills ?? []} />
           ),
-          langues: <SectionList section="languages" title="Langues" items={languages} />,
-          certifications: (
-            <SectionList section="certifications" title="Certifications" items={certifications} />
+          langues: (
+            <SectionList section="languages" title="Langues" addLabel="Ajouter une langue" items={languages} />
           ),
-          projets: <SectionList section="projects" title="Projets" items={projects} />,
           ordre: <SectionOrderForm initialOrder={normalizeSectionOrder(profile.section_order)} />,
         }}
       />

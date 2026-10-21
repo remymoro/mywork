@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatDuration,
   formatMonth,
+  formatDay,
   formatEuros,
   getInitials,
   validateFreelance,
@@ -186,12 +187,12 @@ describe("ordre des sections", () => {
 });
 
 describe("validateFreelance et validateService", () => {
-  it("lit la case, les modes cochés, le TJM et la disponibilité", () => {
+  it("lit l'interrupteur, la disponibilité, les modes cochés, le TJM et la zone", () => {
     expect(
       validateFreelance({
         freelance_enabled: "on",
-        freelance_available_from: "2026-11",
-        freelance_days_per_week: "3",
+        freelance_availability: "a_partir_du",
+        freelance_available_from: "2026-11-15",
         freelance_mode_hybride: "on",
         freelance_mode_teletravail: "on",
         freelance_daily_rate: "1 200",
@@ -201,16 +202,27 @@ describe("validateFreelance et validateService", () => {
       ok: true,
       value: {
         freelance_enabled: true,
-        freelance_available_from: "2026-11-01",
-        freelance_days_per_week: 3,
+        freelance_availability: "a_partir_du",
+        freelance_available_from: "2026-11-15",
         freelance_work_modes: ["hybride", "teletravail"],
         freelance_daily_rate: 1200,
         freelance_travel_zone: "Agen et 100 km",
       },
     });
-    expect(validateFreelance({})).toMatchObject({ ok: true, value: { freelance_enabled: false, freelance_work_modes: [] } });
+    expect(validateFreelance({})).toMatchObject({
+      ok: true,
+      value: { freelance_enabled: false, freelance_availability: "non_precisee", freelance_work_modes: [] },
+    });
+    // La date n'est gardée que pour « À partir du », et y est obligatoire.
+    expect(
+      validateFreelance({ freelance_availability: "disponible", freelance_available_from: "2026-11-15" }),
+    ).toMatchObject({ ok: true, value: { freelance_available_from: null } });
+    expect(validateFreelance({ freelance_availability: "a_partir_du" })).toEqual({
+      ok: false,
+      error: "Indique la date à partir de laquelle tu es disponible.",
+    });
+    expect(validateFreelance({ freelance_availability: "bientot" }).ok).toBe(false);
     expect(validateFreelance({ freelance_daily_rate: "abc" }).ok).toBe(false);
-    expect(validateFreelance({ freelance_days_per_week: "6" }).ok).toBe(false);
   });
 
   it("valide une prestation et formate les euros", () => {
@@ -221,5 +233,6 @@ describe("validateFreelance et validateService", () => {
     expect(validateService({ title: "" })).toEqual({ ok: false, error: "Le nom de la prestation est obligatoire." });
     expect(formatEuros(1200)).toBe("1 200 €");
     expect(formatEuros(450)).toBe("450 €");
+    expect(formatDay("2026-11-05")).toBe("5 nov. 2026");
   });
 });

@@ -45,7 +45,7 @@ export default async function PublicProfilePage({
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "id, username, is_online, display_name, headline, avatar_url, location, open_to_work, open_to_work_details, contact_email, website_url, linkedin_url, github_url, other_url, about, top_skills, skills, section_order, freelance_enabled, freelance_available_from, freelance_days_per_week, freelance_work_modes, freelance_daily_rate, freelance_travel_zone",
+      "id, username, is_online, display_name, headline, avatar_url, location, open_to_work, open_to_work_details, contact_email, website_url, linkedin_url, github_url, other_url, about, top_skills, skills, section_order, freelance_enabled, freelance_availability, freelance_available_from, freelance_work_modes, freelance_daily_rate, freelance_travel_zone",
     )
     .eq("username", username)
     .maybeSingle();
@@ -136,8 +136,8 @@ export default async function PublicProfilePage({
         section_order: profile.section_order ?? [],
         freelance: profile.freelance_enabled
           ? {
+              availability: profile.freelance_availability,
               available_from: profile.freelance_available_from,
-              days_per_week: profile.freelance_days_per_week,
               work_modes: profile.freelance_work_modes ?? [],
               daily_rate: profile.freelance_daily_rate,
               travel_zone: profile.freelance_travel_zone,

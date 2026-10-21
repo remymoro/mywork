@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateHeader, type FormState } from "./actions";
+import { SECTION_HEADER, SECTION_TITLE } from "./section-style";
 
 export type HeaderFormProps = {
   location: string;
@@ -25,8 +26,8 @@ export function HeaderForm(initial: HeaderFormProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>En-tête</CardTitle>
+      <CardHeader className={SECTION_HEADER}>
+        <CardTitle className={SECTION_TITLE}>Coordonnées</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={action} className="space-y-4">

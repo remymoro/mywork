@@ -311,10 +311,19 @@ export function validateProject(fields: Fields): Result<ProjectInput> {
   });
 }
 
+export const FREELANCE_AVAILABILITY = [
+  { value: "non_precisee", label: "Non précisée" },
+  { value: "disponible", label: "Disponible" },
+  { value: "a_partir_du", label: "À partir du" },
+  { value: "indisponible", label: "Indisponible" },
+] as const;
+
+export type FreelanceAvailability = (typeof FREELANCE_AVAILABILITY)[number]["value"];
+
 export type FreelanceInput = {
   freelance_enabled: boolean;
+  freelance_availability: FreelanceAvailability;
   freelance_available_from: string | null;
-  freelance_days_per_week: number | null;
   freelance_work_modes: (typeof WORK_MODES)[number]["value"][];
   freelance_daily_rate: number | null;
   freelance_travel_zone: string | null;
@@ -328,21 +337,41 @@ function integer(fields: Fields, name: string, label: string, min: number, max: 
   return n;
 }
 
+/** Jour saisi avec <input type="date"> (« 2026-11-15 »). */
+function day(fields: Fields, name: string, label: string): string | null {
+  const value = (fields[name] ?? "").trim();
+  if (!value) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value))) fail(`${label} : date invalide.`);
+  return value;
+}
+
 /**
- * Offre freelance. Case décochée : rien n'est affiché côté public, mais les champs remplis sont gardés.
+ * Offre freelance. Interrupteur coupé : rien n'est affiché côté public, mais les champs remplis sont gardés.
  * Modes de travail : une case par mode (« freelance_mode_<valeur> »).
  */
 export function validateFreelance(fields: Fields): Result<FreelanceInput> {
-  return validate(() => ({
-    freelance_enabled: checkbox(fields, "freelance_enabled"),
-    freelance_available_from: month(fields, "freelance_available_from", "Disponible à partir de"),
-    freelance_days_per_week: integer(fields, "freelance_days_per_week", "Jours par semaine", 1, 5),
-    freelance_work_modes: WORK_MODES.map((m) => m.value).filter((v) =>
-      checkbox(fields, `freelance_mode_${v}`),
-    ),
-    freelance_daily_rate: integer(fields, "freelance_daily_rate", "TJM", 1, 10000),
-    freelance_travel_zone: text(fields, "freelance_travel_zone", "Zone de déplacement", 120),
-  }));
+  return validate(() => {
+    const availability =
+      choice(fields, "freelance_availability", "Disponibilité", FREELANCE_AVAILABILITY) ?? "non_precisee";
+    const from = availability === "a_partir_du" ? day(fields, "freelance_available_from", "À partir du") : null;
+    if (availability === "a_partir_du" && !from) fail("Indique la date à partir de laquelle tu es disponible.");
+    return {
+      freelance_enabled: checkbox(fields, "freelance_enabled"),
+      freelance_availability: availability,
+      freelance_available_from: from,
+      freelance_work_modes: WORK_MODES.map((m) => m.value).filter((v) =>
+        checkbox(fields, `freelance_mode_${v}`),
+      ),
+      freelance_daily_rate: integer(fields, "freelance_daily_rate", "TJM", 1, 10000),
+      freelance_travel_zone: text(fields, "freelance_travel_zone", "Zone de déplacement", 120),
+    };
+  });
+}
+
+/** « 2026-11-15 » → « 15 nov. 2026 ». */
+export function formatDay(date: string): string {
+  const [y, m, d] = date.split("-");
+  return `${Number(d)} ${MONTHS[Number(m) - 1]} ${y}`;
 }
 
 export type ServiceInput = { title: string; description: string | null; starting_price: number | null };

@@ -5,7 +5,7 @@ import { ArrowDown, ArrowUp, Eye, EyeOff, Pencil, Plus, Trash2 } from "lucide-re
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,7 @@ import { EducationFields, formatEducationSummary, type EducationRow } from "./ed
 import { ExperienceFields, formatExperienceSummary, type ExperienceRow } from "./experience-fields";
 import { LanguageFields, formatLanguageSummary, type LanguageRow } from "./language-fields";
 import { ProjectFields, formatProjectSummary, type ProjectRow } from "./project-fields";
+import { SECTION_HEADER, SECTION_TITLE } from "./section-style";
 import { ServiceFields, formatServiceSummary, type ServiceRow } from "./service-fields";
 
 export type BaseSectionItem = {
@@ -116,6 +117,10 @@ export type SectionListProps<T extends BaseSectionItem = BaseSectionItem> = {
   section: SectionName;
   title: string;
   items: T[];
+  /** Texte du bouton d'ajout, ex. « Ajouter une expérience ». */
+  addLabel: string;
+  /** Intégrée dans une autre carte (ex. prestations dans l'offre freelance) : petit titre, pas de carte. */
+  embedded?: boolean;
   renderSummary?: (item: T) => string;
   renderFields?: (item?: T) => ReactNode;
 };
@@ -124,6 +129,8 @@ export function SectionList<T extends BaseSectionItem>({
   section,
   title,
   items,
+  addLabel,
+  embedded = false,
   renderSummary,
   renderFields,
 }: SectionListProps<T>) {
@@ -156,153 +163,156 @@ export function SectionList<T extends BaseSectionItem>({
     setDeletingId(null);
   }
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardAction>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setOpenForm(openForm === "new" ? null : "new")}
-          >
-            <Plus aria-hidden="true" className="size-4" />
-            Ajouter
-          </Button>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {actionError && (
-          <Alert variant="destructive" role="alert">
-            <AlertDescription>{actionError}</AlertDescription>
-          </Alert>
-        )}
+  const content = (
+    <>
+      {actionError && (
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
+      )}
 
-        {openForm === "new" && (
-          <SectionItemForm
-            key="new"
-            section={section}
-            onCancel={() => setOpenForm(null)}
-            onSaved={() => setOpenForm(null)}
-          >
-            {getFields(undefined)}
-          </SectionItemForm>
-        )}
-
-        {items.length === 0 && openForm !== "new" && (
-          <p className="text-sm text-muted-foreground">Aucun élément pour le moment.</p>
-        )}
-
-        <ul className="space-y-2">
-          {items.map((item, index) => {
-            const isEditing = openForm === item.id;
-            return (
-              <li key={item.id} className="space-y-2 rounded-lg border p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={
-                        item.is_visible
-                          ? "text-sm font-medium text-foreground"
-                          : "text-sm text-muted-foreground opacity-60"
-                      }
-                    >
-                      {getSummary(item)}
-                    </span>
-                    {!item.is_visible && <Badge variant="secondary">Masqué</Badge>}
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Modifier"
-                      onClick={() => setOpenForm(isEditing ? null : item.id)}
-                    >
-                      <Pencil aria-hidden="true" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={item.is_visible ? "Masquer" : "Afficher"}
-                      onClick={() => handleToggleVisible(item)}
-                    >
-                      {item.is_visible ? (
-                        <EyeOff aria-hidden="true" />
-                      ) : (
-                        <Eye aria-hidden="true" />
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Monter"
-                      disabled={index === 0}
-                      onClick={() => handleMove(item.id, -1)}
-                    >
-                      <ArrowUp aria-hidden="true" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Descendre"
-                      disabled={index === items.length - 1}
-                      onClick={() => handleMove(item.id, 1)}
-                    >
-                      <ArrowDown aria-hidden="true" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Supprimer"
-                      onClick={() => setDeletingId(item.id)}
-                    >
-                      <Trash2 aria-hidden="true" />
-                    </Button>
-                  </div>
+      <ul className="space-y-2">
+        {items.map((item, index) => {
+          const isEditing = openForm === item.id;
+          return (
+            <li key={item.id} className="space-y-2 rounded-lg border p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={
+                      item.is_visible
+                        ? "text-sm font-medium text-foreground"
+                        : "text-sm text-muted-foreground opacity-60"
+                    }
+                  >
+                    {getSummary(item)}
+                  </span>
+                  {!item.is_visible && <Badge variant="secondary">Masqué</Badge>}
                 </div>
 
-                {isEditing && (
-                  <SectionItemForm
-                    key={item.id}
-                    section={section}
-                    itemId={item.id}
-                    onCancel={() => setOpenForm(null)}
-                    onSaved={() => setOpenForm(null)}
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Modifier"
+                    onClick={() => setOpenForm(isEditing ? null : item.id)}
                   >
-                    {getFields(item)}
-                  </SectionItemForm>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                    <Pencil aria-hidden="true" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={item.is_visible ? "Masquer" : "Afficher"}
+                    onClick={() => handleToggleVisible(item)}
+                  >
+                    {item.is_visible ? (
+                      <EyeOff aria-hidden="true" />
+                    ) : (
+                      <Eye aria-hidden="true" />
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Monter"
+                    disabled={index === 0}
+                    onClick={() => handleMove(item.id, -1)}
+                  >
+                    <ArrowUp aria-hidden="true" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Descendre"
+                    disabled={index === items.length - 1}
+                    onClick={() => handleMove(item.id, 1)}
+                  >
+                    <ArrowDown aria-hidden="true" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Supprimer"
+                    onClick={() => setDeletingId(item.id)}
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                </div>
+              </div>
 
-        <Dialog open={deletingId !== null} onOpenChange={(open) => !open && setDeletingId(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Supprimer cet élément ?</DialogTitle>
-              <DialogDescription>
-                Cette action est définitive. Tu peux aussi simplement le masquer au public.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDeletingId(null)}>
-                Annuler
-              </Button>
-              <Button type="button" variant="destructive" onClick={handleConfirmDelete}>
-                Confirmer la suppression
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
+              {isEditing && (
+                <SectionItemForm
+                  key={item.id}
+                  section={section}
+                  itemId={item.id}
+                  onCancel={() => setOpenForm(null)}
+                  onSaved={() => setOpenForm(null)}
+                >
+                  {getFields(item)}
+                </SectionItemForm>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      {openForm === "new" ? (
+        <SectionItemForm
+          key="new"
+          section={section}
+          onCancel={() => setOpenForm(null)}
+          onSaved={() => setOpenForm(null)}
+        >
+          {getFields(undefined)}
+        </SectionItemForm>
+      ) : (
+        <Button type="button" variant="outline" onClick={() => setOpenForm("new")}>
+          <Plus aria-hidden="true" />
+          {addLabel}
+        </Button>
+      )}
+
+      <Dialog open={deletingId !== null} onOpenChange={(open) => !open && setDeletingId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer cet élément ?</DialogTitle>
+            <DialogDescription>
+              Cette action est définitive. Tu peux aussi simplement le masquer au public.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeletingId(null)}>
+              Annuler
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleConfirmDelete}>
+              Confirmer la suppression
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className={SECTION_HEADER}>
+        <CardTitle className={SECTION_TITLE}>{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">{content}</CardContent>
     </Card>
   );
 }

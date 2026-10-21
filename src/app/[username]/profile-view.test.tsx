@@ -261,8 +261,8 @@ describe("Sections publiques du profil", () => {
       <FreelanceSection
         nowIso="2026-10-01"
         offer={{
-          available_from: "2026-12-01",
-          days_per_week: 3,
+          availability: "a_partir_du",
+          available_from: "2026-12-15",
           work_modes: ["hybride", "teletravail"],
           daily_rate: 450,
           travel_zone: "Agen et 100 km",
@@ -279,8 +279,7 @@ describe("Sections publiques du profil", () => {
         ]}
       />,
     );
-    expect(screen.getByText("Disponible à partir de déc. 2026")).toBeInTheDocument();
-    expect(screen.getByText("3 jours par semaine")).toBeInTheDocument();
+    expect(screen.getByText("Disponible à partir du 15 déc. 2026")).toBeInTheDocument();
     expect(screen.getByText("Hybride · Télétravail")).toBeInTheDocument();
     expect(screen.getByText("450 € HT / jour")).toBeInTheDocument();
     expect(screen.getByText("Agen et 100 km")).toBeInTheDocument();
@@ -288,14 +287,22 @@ describe("Sections publiques du profil", () => {
     expect(screen.getByText("à partir de 1 200 € HT")).toBeInTheDocument();
   });
 
-  it("indique « dès maintenant » sans date future", () => {
-    render(
+  it("traduit la disponibilité choisie (date passée = disponible)", () => {
+    const base = { available_from: null, work_modes: [], daily_rate: null, travel_zone: null };
+    const { rerender } = render(
       <FreelanceSection
         nowIso="2026-10-01"
-        offer={{ available_from: "2026-01-01", days_per_week: null, work_modes: [], daily_rate: null, travel_zone: null }}
+        offer={{ ...base, availability: "a_partir_du", available_from: "2026-01-01" }}
         services={[]}
       />,
     );
     expect(screen.getByText("Disponible dès maintenant")).toBeInTheDocument();
+
+    rerender(<FreelanceSection offer={{ ...base, availability: "indisponible" }} services={[]} />);
+    expect(screen.getByText("Indisponible pour le moment")).toBeInTheDocument();
+
+    rerender(<FreelanceSection offer={{ ...base, availability: "non_precisee" }} services={[]} />);
+    expect(screen.queryByText(/Disponible|Indisponible/)).not.toBeInTheDocument();
+    expect(screen.getByText("Je propose mes services en freelance")).toBeInTheDocument();
   });
 });

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PUBLIC_SECTIONS, moveInList, type PublicSectionId } from "@/lib/profile-sections";
 import { updateSectionOrder } from "./actions";
+import { SECTION_HEADER, SECTION_TITLE } from "./section-style";
 
 const LABELS = Object.fromEntries(PUBLIC_SECTIONS.map((s) => [s.id, s.label])) as Record<
   PublicSectionId,
@@ -36,8 +37,8 @@ export function SectionOrderForm({ initialOrder }: { initialOrder: PublicSection
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Ordre des sections</CardTitle>
+      <CardHeader className={SECTION_HEADER}>
+        <CardTitle className={SECTION_TITLE}>Ordre des sections</CardTitle>
         <CardDescription>
           Fais glisser les sections pour choisir leur ordre sur ta page publique. L&apos;en-tête
           (photo, nom, contact) reste toujours en haut ; une section vide n&apos;est pas affichée.

@@ -6,7 +6,7 @@ Détail fonctionnel de chaque module. Les décisions techniques restent dans `do
 
 Vitrine de MyWork : c'est la première chose que voit un visiteur (recruteur, client, partenaire) sur `mywork.website/<pseudo>`. Objectif : un profil professionnel complet, sur le modèle de LinkedIn.
 
-- **Côté privé** (`/dashboard/profil`, « Mon profil ») : menu des sections à gauche (Éditer mon profil, Photo, En-tête, À propos, Expérience, Formation, Compétences, Langues, Certifications, Projets) ; toutes les sections s'enchaînent à droite ; un clic dans le menu fait défiler en douceur jusqu'à la section, et le menu suit la section visible. Dans les sections à plusieurs éléments : ajouter, modifier, masquer au public sans supprimer, changer l'ordre, supprimer. « Ordre des sections » : l'ordre des sections de la page publique se choisit par glisser-déposer (ou flèches), l'en-tête restant en haut.
+- **Côté privé** (`/dashboard/profil`, « Mon profil ») : disposition d'après la maquette du porteur (2026-10-21) : menu des sections à gauche (En-tête, Coordonnées, À propos, Offre freelance, Expériences, Projets, Formation, Certifications, Compétences, Langues), avec ✓ si la section est remplie et — sinon ; puis « Ordre des sections », le bouton « Voir mon profil public » et un groupe CV (aperçu, PDF, PNG) en « Bientôt ». À droite, un fil d'Ariane « Profil > section » avec sa description, puis toutes les sections à la suite ; un clic dans le menu fait défiler en douceur, et le menu suit la section visible. Dans les sections à plusieurs éléments : ajouter, modifier, masquer au public sans supprimer, changer l'ordre, supprimer. « Ordre des sections » : l'ordre des sections de la page publique se choisit par glisser-déposer (ou flèches), l'en-tête restant en haut.
 - **Côté public** (`/<pseudo>`) : mise en page soignée du résultat. Une section vide ou un élément masqué n'apparaît pas. Profil hors ligne (interrupteur « Profil en ligne ») : page introuvable pour les visiteurs.
 
 ### Version 1 (2026-10-21)
@@ -14,7 +14,7 @@ Vitrine de MyWork : c'est la première chose que voit un visiteur (recruteur, cl
 | Section | Contenu |
 |---|---|
 | En-tête | Photo, nom affiché, titre, localisation (ville, pays), disponibilité (« Ouvert aux opportunités » + précision libre, ex. « freelance, CDI »), e-mail de contact, liens (site web, LinkedIn, GitHub, autre) |
-| Freelance | Case « Je propose mes services en freelance » (décochée : rien d'affiché, données gardées) ; disponibilité (à partir de, jours par semaine), modes de travail (sur site, hybride, télétravail), TJM (€ HT / jour), zone de déplacement ; prestations (nom, description, prix « à partir de »), en liste comme les autres sections |
+| Freelance | Case « Je propose mes services en freelance » (décochée : rien d'affiché, données gardées) ; disponibilité (non précisée, disponible, à partir du <date>, indisponible), modes de travail (sur site, hybride, télétravail), TJM (€ HT / jour), zone de déplacement ; prestations (nom, description, prix « à partir de »), en liste comme les autres sections |
 | À propos | Texte de présentation (2 600 caractères max), 5 compétences clés au plus |
 | Expérience | Poste, entreprise, type de contrat (CDI, CDD, freelance, stage, alternance, intérim, bénévole, autre), lieu, mode de travail (sur site, hybride, télétravail), début, fin ou « poste actuel », description, compétences |
 | Formation | École, diplôme, domaine, années de début et de fin, mention, description |

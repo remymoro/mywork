@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ABOUT_MAX, TOP_SKILLS_MAX } from "@/lib/profile-sections";
 import { updateAbout, type FormState } from "./actions";
+import { SECTION_HEADER, SECTION_TITLE } from "./section-style";
 
 type Props = {
   about: string;
@@ -21,8 +22,8 @@ export function AboutForm({ about: initialAbout, topSkills }: Props) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>À propos</CardTitle>
+      <CardHeader className={SECTION_HEADER}>
+        <CardTitle className={SECTION_TITLE}>À propos</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={action} className="space-y-4">

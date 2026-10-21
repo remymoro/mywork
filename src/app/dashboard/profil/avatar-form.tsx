@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getInitials } from "@/lib/profile-sections";
 import { removeAvatar, uploadAvatar, type FormState } from "./actions";
+import { SECTION_HEADER, SECTION_TITLE } from "./section-style";
 
 type Props = {
   avatarUrl: string | null;
@@ -35,8 +36,8 @@ export function AvatarForm({ avatarUrl, displayName, username }: Props) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Photo</CardTitle>
+      <CardHeader className={SECTION_HEADER}>
+        <CardTitle className={SECTION_TITLE}>Photo</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-4">
