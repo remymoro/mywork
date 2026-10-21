@@ -10,7 +10,7 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 | D2 | Première fonctionnalité | Acté | Module Profil (anciennement « module CV », renommé le 2026-10-21) et profil public. Contenu de la version 1 détaillé dans `docs/modules.md` (validé le 2026-10-21). |
 | D3 | Multi-utilisateur | Proposé | Toutes les données sont rattachées à un utilisateur dès le premier jour, même si un seul compte existe au départ. Cela évite une migration lourde à l'ouverture publique. |
 | D4 | Authentification | Proposé | Authentification minimale dans le socle (le propriétaire doit se connecter pour éditer). L'inscription publique et l'abonnement viennent plus tard. |
-| D5 | Export PDF | Proposé | Générer le PDF à partir du même gabarit HTML que la page publique : une seule mise en page à maintenir. Sur Vercel, le navigateur headless est lourd (`@sparticuz/chromium`) ; alternative : `@react-pdf/renderer`. À trancher au module Profil. |
+| D5 | Export PDF | Acté | Une seule mise en page HTML, la feuille A4 de « Aperçu du CV » (`/dashboard/profil/cv`). PDF : impression du navigateur (`window.print()`, feuille d'impression A4) : texte sélectionnable, aucun serveur ; l'utilisateur choisit « Enregistrer au format PDF ». PNG : `html-to-image` (seule dépendance ajoutée) sur la même feuille. Décidé le 2026-10-21 ; un vrai téléchargement PDF direct (navigateur caché côté serveur) reste possible plus tard. |
 | D6 | Visio | Acté | LiveKit (offre gratuite au départ), pas de développement maison. |
 | D7 | Stockage des fichiers | Acté | Supabase Storage, avec quota par utilisateur prévu dans le modèle dès le module Fichiers. |
 | D8 | Stack technique | Acté | Voir section Stack ci-dessous. Priorité : gratuit au départ. |
@@ -35,7 +35,6 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 - **RGPD** (D16) : consentement, suppression de compte, export des données.
 
 ## Questions ouvertes
-- Export PDF (D5), à trancher au module Profil.
 
 ## Stack (D8)
 Next.js (App Router) + TypeScript, Tailwind CSS + shadcn/ui, déployé sur Vercel. Supabase (Postgres, Auth, Storage). Resend (e-mails), Stripe (abonnement), LiveKit (visio). Code sur GitHub (`remymoro/mywork`, privé). Gestionnaire de paquets : **pnpm**. Node 24.

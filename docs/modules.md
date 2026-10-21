@@ -29,9 +29,11 @@ Vitrine de MyWork : c'est la première chose que voit un visiteur (recruteur, cl
 - **Nom et prénom** : on garde pour l'instant le « nom affiché » existant ; la séparation prénom / nom viendra avec les paramètres du compte.
 - **Photo et images de projet** : JPEG, PNG ou WebP, 2 Mo maximum, stockées dans Supabase Storage (D7), dossiers publics `avatars` et `project-images`.
 
+- **CV** : « Aperçu du CV » (feuille A4, éléments visibles seulement, sans l'offre freelance), « Télécharger en PDF » (impression du navigateur) et « Télécharger en PNG », depuis le menu de « Mon profil » (D5).
+
 ### Version 2
 
-Bénévolat, distinctions et prix, publications, centres d'intérêt, « Mis en avant » (liens ou documents épinglés, lié au module Fichiers), image de couverture, téléphone (avec choix de visibilité), export PDF (D5).
+Bénévolat, distinctions et prix, publications, centres d'intérêt, « Mis en avant » (liens ou documents épinglés, lié au module Fichiers), image de couverture, téléphone (avec choix de visibilité).
 
 ### Plus tard
 

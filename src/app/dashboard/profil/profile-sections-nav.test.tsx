@@ -48,10 +48,15 @@ describe("ProfileSectionsNav", () => {
     expect(within(nav).getByRole("button", { name: "Langues (vide)" })).toBeInTheDocument();
   });
 
-  it("met « Ordre des sections » à part, en gras, et le groupe CV en « Bientôt »", () => {
+  it("met « Ordre des sections » à part et relie les actions CV", () => {
     renderNav();
     expect(screen.getByRole("button", { name: "Ordre des sections" })).toHaveClass("font-bold");
-    expect(screen.getByText("Télécharger en PDF")).toBeInTheDocument();
-    expect(screen.getAllByText("Bientôt")).toHaveLength(3);
+    const nav = screen.getByRole("navigation", { name: "Sections du profil" });
+    for (const [label, href] of [["Aperçu du CV", "/dashboard/profil/cv"], ["Télécharger en PDF", "/dashboard/profil/cv?action=pdf"], ["Télécharger en PNG", "/dashboard/profil/cv?action=png"]]) {
+      const link = within(nav).getByRole("link", { name: label });
+      expect(link).toHaveAttribute("href", href);
+      expect(link).toHaveAttribute("target", "_blank");
+    }
+    expect(screen.queryByText("Bientôt")).not.toBeInTheDocument();
   });
 });
