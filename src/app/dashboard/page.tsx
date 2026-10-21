@@ -14,11 +14,13 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("username, display_name, is_online")
     .eq("id", user.id)
     .maybeSingle();
+  // Une erreur de lecture ne doit pas renvoyer vers /onboarding (boucle avec /dashboard).
+  if (error) throw new Error(`Lecture du profil impossible : ${error.message}`);
   if (!profile) redirect("/onboarding");
 
   const userName = profile.display_name ?? profile.username;
