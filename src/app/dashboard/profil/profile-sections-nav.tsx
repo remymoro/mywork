@@ -79,11 +79,13 @@ export function ProfileSectionsNav({
           rel="noreferrer noopener"
           className={buttonVariants({
             variant: "outline",
-            className: "mt-4 w-full shadow-md transition-shadow hover:shadow-lg",
+            size: "sm",
+            className:
+              "mt-4 rounded-sm text-xs font-medium tracking-[0.12em] uppercase shadow-sm transition-shadow hover:shadow-md",
           })}
         >
-          <ExternalLink aria-hidden="true" />
           Voir mon profil public
+          <ExternalLink aria-hidden="true" />
         </a>
       </nav>
 
