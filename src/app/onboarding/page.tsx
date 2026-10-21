@@ -20,7 +20,7 @@ export default async function OnboardingPage() {
   if (profile) redirect("/dashboard");
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background p-6 text-foreground">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background p-4 text-foreground sm:p-6">
       <Logo />
       <Card className="w-full max-w-md">
         <CardHeader>

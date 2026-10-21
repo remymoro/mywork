@@ -87,7 +87,7 @@ export function KanbanWorkspace({
   const boardPeople = people.filter((person) => person.board_id === board?.id);
 
   return (
-    <div className="grid min-w-0 gap-7 md:grid-cols-[14rem_minmax(0,1fr)]">
+    <div className="grid min-w-0 gap-7 lg:grid-cols-[14rem_minmax(0,1fr)]">
       <BoardSidebar
         boards={boards}
         cards={cards}

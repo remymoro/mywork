@@ -101,9 +101,9 @@ export function ProfileSectionsNav({
   }
 
   return (
-    <div className="grid gap-8 md:grid-cols-[15rem_1fr]">
-      <nav aria-label="Sections du profil" className="md:sticky md:top-6 md:self-start">
-        <ul className="flex gap-1 overflow-x-auto md:flex-col">
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
+      <nav aria-label="Sections du profil" className="min-w-0 lg:sticky lg:top-6 lg:self-start">
+        <ul className="flex gap-1 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
           {MAIN_SECTIONS.map(({ id, label }) => {
             const isActive = id === active;
             return (
@@ -115,7 +115,7 @@ export function ProfileSectionsNav({
                   aria-label={`${label} (${filled[id] ? "remplie" : "vide"})`}
                   onClick={() => goTo(id)}
                   className={cn(
-                    "flex w-full items-center justify-between gap-3 border-l-[3px] px-3 py-2 text-left text-sm whitespace-nowrap",
+                    "flex w-full items-center justify-between gap-3 border-b-[3px] px-3 py-2 text-left text-sm whitespace-nowrap lg:border-b-0 lg:border-l-[3px]",
                     isActive
                       ? "border-primary bg-primary/10 font-medium text-primary"
                       : "border-transparent text-foreground hover:bg-accent",
@@ -133,14 +133,14 @@ export function ProfileSectionsNav({
           })}
         </ul>
 
-        <div className="mt-4 space-y-4 border-t pt-4">
+        <div className="mt-3 flex flex-wrap items-center gap-3 lg:mt-4 lg:block lg:space-y-4 lg:border-t lg:pt-4">
           <button
             type="button"
             aria-current={active === "ordre" ? "true" : undefined}
             aria-controls={anchor("ordre")}
             onClick={() => goTo("ordre")}
             className={cn(
-              "flex w-full items-center gap-3 px-3 text-left text-xs font-bold tracking-[0.12em] uppercase",
+              "flex items-center gap-3 px-3 text-left text-xs font-bold tracking-[0.12em] uppercase lg:w-full",
               active === "ordre" ? "text-primary" : "text-foreground hover:text-primary",
             )}
           >
@@ -154,7 +154,7 @@ export function ProfileSectionsNav({
             rel="noreferrer noopener"
             className={cn(
               buttonVariants({ variant: "outline", size: "sm" }),
-              "h-auto w-full rounded-sm py-2 text-center text-xs leading-snug tracking-[0.12em] whitespace-normal uppercase shadow-sm transition-shadow hover:shadow-md",
+              "h-auto rounded-sm py-2 text-center text-xs leading-snug tracking-[0.12em] whitespace-normal uppercase shadow-sm transition-shadow hover:shadow-md lg:w-full",
             )}
           >
             Voir mon profil public
@@ -163,9 +163,9 @@ export function ProfileSectionsNav({
         </div>
 
         {/* Aperçu et export du CV. */}
-        <div className="mt-4 space-y-2 border-t pt-4">
+        <div className="mt-4 space-y-2 border-t pt-4 lg:mt-4">
           <p className="px-3 text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">CV</p>
-          <ul className="space-y-1">
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 lg:block lg:space-y-1">
             {CV_ACTIONS.map(({ label, href, Icon }) => (
               <li key={label}>
                 <a
