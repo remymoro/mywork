@@ -13,7 +13,11 @@ import {
   validateDescription,
   validateChecklistText,
   validateComment,
+  validateCardImage,
+  MAX_CARD_IMAGES,
 } from "@/lib/kanban";
+
+const IMAGES_BUCKET = "kanban-images";
 
 export type KanbanActionResult = { error?: string; saved?: boolean; id?: string; slug?: string };
 
@@ -64,6 +68,25 @@ function databaseMessage(error: DatabaseError, fallback = "Impossible d'enregist
     "30 éléments de checklist au maximum",
   ];
   return limits.find((message) => error?.message.includes(message)) ?? fallback;
+}
+
+/** Chemins des images à effacer du stockage quand on supprime une carte, une liste ou un tableau. */
+async function imagePaths(
+  supabase: Supabase,
+  filter: { boardId: string; cardIds?: string[] },
+): Promise<string[]> {
+  let query = supabase.from("kanban_card_images").select("path").eq("board_id", filter.boardId);
+  if (filter.cardIds) {
+    if (filter.cardIds.length === 0) return [];
+    query = query.in("card_id", filter.cardIds);
+  }
+  const { data } = await query;
+  return (data ?? []).map((row) => row.path as string);
+}
+
+// La base a déjà supprimé les lignes (cascade) : on retire les fichiers, sans bloquer si ça échoue.
+async function removeImageFiles(supabase: Supabase, paths: string[]) {
+  if (paths.length) await supabase.storage.from(IMAGES_BUCKET).remove(paths);
 }
 
 function refresh() {
@@ -176,6 +199,7 @@ export async function updateBoard(
 
 export async function deleteBoard(boardId: string): Promise<KanbanActionResult> {
   const { supabase, userId } = await currentUser();
+  const paths = await imagePaths(supabase, { boardId });
   const { data, error } = await supabase
     .from("kanban_boards")
     .delete()
@@ -184,6 +208,7 @@ export async function deleteBoard(boardId: string): Promise<KanbanActionResult> 
     .select("id")
     .maybeSingle();
   if (error || !data) return { error: "Impossible de supprimer ce tableau. Réessaie." };
+  await removeImageFiles(supabase, paths);
   return saved();
 }
 
@@ -242,6 +267,15 @@ export async function deleteList(boardId: string, listId: string): Promise<Kanba
   const session = await currentUser();
   const access = await ownedBoard(session, boardId);
   if (access.error) return { error: access.error };
+  const { data: listCards } = await session.supabase
+    .from("kanban_cards")
+    .select("id")
+    .eq("list_id", listId)
+    .eq("board_id", boardId);
+  const paths = await imagePaths(session.supabase, {
+    boardId,
+    cardIds: (listCards ?? []).map((card) => card.id as string),
+  });
   const { data, error } = await session.supabase
     .from("kanban_lists")
     .delete()
@@ -250,6 +284,7 @@ export async function deleteList(boardId: string, listId: string): Promise<Kanba
     .select("id")
     .maybeSingle();
   if (error || !data) return { error: "Impossible de supprimer cette liste. Réessaie." };
+  await removeImageFiles(session.supabase, paths);
   return saved();
 }
 
@@ -311,6 +346,7 @@ export async function deleteCard(boardId: string, cardId: string): Promise<Kanba
   const session = await currentUser();
   const access = await ownedBoard(session, boardId);
   if (access.error) return { error: access.error };
+  const paths = await imagePaths(session.supabase, { boardId, cardIds: [cardId] });
   const { data, error } = await session.supabase
     .from("kanban_cards")
     .delete()
@@ -319,6 +355,7 @@ export async function deleteCard(boardId: string, cardId: string): Promise<Kanba
     .select("id")
     .maybeSingle();
   if (error || !data) return { error: "Impossible de supprimer cette carte. Réessaie." };
+  await removeImageFiles(session.supabase, paths);
   return saved();
 }
 
@@ -461,5 +498,69 @@ export async function deleteComment(
     .select("id")
     .maybeSingle();
   if (error || !data) return { error: "Impossible de supprimer ce commentaire. Réessaie." };
+  return saved();
+}
+
+/** Une image par appel (2 Mo max) : la page enchaîne les envois quand on en dépose plusieurs. */
+export async function uploadCardImage(
+  boardId: string,
+  cardId: string,
+  formData: FormData,
+): Promise<KanbanActionResult> {
+  const session = await currentUser();
+  const file = formData.get("image");
+  if (!(file instanceof File)) return { error: "Choisis une image." };
+  const checked = validateCardImage(file);
+  if (!checked.ok) return { error: checked.error };
+  const accessError = await ownedCard(session, boardId, cardId);
+  if (accessError) return { error: accessError };
+
+  const { count } = await session.supabase
+    .from("kanban_card_images")
+    .select("id", { count: "exact", head: true })
+    .eq("card_id", cardId);
+  if ((count ?? 0) >= MAX_CARD_IMAGES) return { error: "5 images au maximum par carte." };
+
+  const path = `${session.userId}/${boardId}/${cardId}/${Date.now()}-${crypto.randomUUID()}.${checked.value}`;
+  const { error: uploadError } = await session.supabase.storage
+    .from(IMAGES_BUCKET)
+    .upload(path, file, { contentType: file.type });
+  if (uploadError) return { error: "Impossible d'envoyer l'image. Réessaie." };
+
+  const { data, error } = await session.supabase
+    .from("kanban_card_images")
+    .insert({ card_id: cardId, board_id: boardId, path })
+    .select("id")
+    .single();
+  if (error || !data) {
+    // Pas de fichier orphelin si la ligne est refusée (limite atteinte entre-temps).
+    await removeImageFiles(session.supabase, [path]);
+    return {
+      error: error?.message.includes("5 images au maximum")
+        ? "5 images au maximum par carte."
+        : "Impossible d'enregistrer l'image. Réessaie.",
+    };
+  }
+  return saved(data.id);
+}
+
+export async function deleteCardImage(
+  boardId: string,
+  cardId: string,
+  imageId: string,
+): Promise<KanbanActionResult> {
+  const session = await currentUser();
+  const accessError = await ownedCard(session, boardId, cardId);
+  if (accessError) return { error: accessError };
+  const { data, error } = await session.supabase
+    .from("kanban_card_images")
+    .delete()
+    .eq("id", imageId)
+    .eq("card_id", cardId)
+    .eq("board_id", boardId)
+    .select("path")
+    .maybeSingle();
+  if (error || !data) return { error: "Impossible de supprimer cette image. Réessaie." };
+  await removeImageFiles(session.supabase, [data.path as string]);
   return saved();
 }

@@ -18,6 +18,14 @@ export const CARD_TITLE_MAX = 150;
 export const DESCRIPTION_MAX = 10000;
 export const CHECKLIST_TEXT_MAX = 200;
 export const COMMENT_MAX = 2000;
+export const MAX_CARD_IMAGES = 5;
+export const CARD_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+/** Types acceptés et extension du fichier enregistré (comme les images du Profil). */
+export const CARD_IMAGE_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 
 export const BOARD_ICONS = [
   { value: "document", label: "Document", icon: FileText },
@@ -111,6 +119,17 @@ export type ChecklistItem = {
   position: number;
 };
 
+export type KanbanCardImage = {
+  id: string;
+  card_id: string;
+  board_id: string;
+  path: string;
+  position: number;
+  created_at: string;
+  /** Adresse signée de courte durée, créée côté serveur ; absente si la signature a échoué. */
+  url?: string;
+};
+
 export type KanbanComment = {
   id: string;
   card_id: string;
@@ -119,6 +138,15 @@ export type KanbanComment = {
   created_at: string;
   author_name?: string;
 };
+
+/** Fichier image d'une carte : type et taille, avant tout envoi au stockage. */
+export function validateCardImage(file: { type: string; size: number }): Result<string> {
+  const extension = CARD_IMAGE_TYPES[file.type];
+  if (!extension) return { ok: false, error: "Formats acceptés : JPEG, PNG ou WebP." };
+  if (file.size <= 0) return { ok: false, error: "Ce fichier est vide." };
+  if (file.size > CARD_IMAGE_MAX_BYTES) return { ok: false, error: "L'image dépasse 2 Mo." };
+  return { ok: true, value: extension };
+}
 
 function validateText(raw: string, label: string, max: number, required = true): Result<string> {
   if (typeof raw !== "string") return { ok: false, error: `${label} : texte invalide.` };

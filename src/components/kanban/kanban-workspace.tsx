@@ -7,6 +7,7 @@ import type {
   ChecklistItem,
   KanbanBoard,
   KanbanCard,
+  KanbanCardImage,
   KanbanComment,
   KanbanList,
 } from "@/lib/kanban";
@@ -20,6 +21,7 @@ export type KanbanWorkspaceProps = {
   cards: KanbanCard[];
   checklist: ChecklistItem[];
   comments: KanbanComment[];
+  images?: KanbanCardImage[];
   username: string;
   selectedSlug?: string;
   selectedCardId?: string;
@@ -32,6 +34,7 @@ export function KanbanWorkspace({
   cards,
   checklist,
   comments,
+  images = [],
   username,
   selectedSlug,
   selectedCardId,
@@ -98,6 +101,7 @@ export function KanbanWorkspace({
           cards={cards.filter((item) => item.board_id === board.id)}
           checklist={checklist}
           comments={comments}
+          images={images}
           username={username}
           readOnly={readOnly}
           onOpen={cardAddress}
@@ -119,6 +123,7 @@ export function KanbanWorkspace({
           list={cardList}
           checklist={checklist.filter((item) => item.card_id === card.id)}
           comments={comments.filter((item) => item.card_id === card.id)}
+          images={images.filter((item) => item.card_id === card.id)}
           readOnly={readOnly}
           onClose={() => cardAddress()}
         />

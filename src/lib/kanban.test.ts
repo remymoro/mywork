@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  validateCardImage,
   BOARD_ICONS,
   LIST_COLORS,
   checklistProgress,
@@ -155,5 +156,21 @@ describe("Markdown limité", () => {
         { type: "paragraph", children: [{ type: "text", text }] },
       ]);
     }
+  });
+});
+
+describe("validateCardImage", () => {
+  it("accepte JPEG, PNG et WebP jusqu'à 2 Mo, et refuse le reste", () => {
+    expect(validateCardImage({ type: "image/png", size: 1000 })).toEqual({ ok: true, value: "png" });
+    expect(validateCardImage({ type: "image/webp", size: 2 * 1024 * 1024 })).toEqual({ ok: true, value: "webp" });
+    expect(validateCardImage({ type: "image/gif", size: 1000 })).toEqual({
+      ok: false,
+      error: "Formats acceptés : JPEG, PNG ou WebP.",
+    });
+    expect(validateCardImage({ type: "image/jpeg", size: 2 * 1024 * 1024 + 1 })).toEqual({
+      ok: false,
+      error: "L'image dépasse 2 Mo.",
+    });
+    expect(validateCardImage({ type: "image/jpeg", size: 0 }).ok).toBe(false);
   });
 });

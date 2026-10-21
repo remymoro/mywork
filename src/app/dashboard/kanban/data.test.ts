@@ -76,6 +76,7 @@ describe("Lecture des tableaux Kanban", () => {
       cards: [],
       checklist: [],
       comments: [],
+      images: [],
     });
     expect(from).not.toHaveBeenCalled();
   });

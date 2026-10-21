@@ -191,7 +191,7 @@ Collaboration à plusieurs sur un tableau (membres, rôles), pièces jointes aut
 
 1. **Étape 1** (code livré le 2026-10-21, migration à appliquer par Claude) : tableaux (création, icône, couleur des listes, public / privé, renommer, supprimer), listes et cartes, glisser-déposer souris/tactile/clavier, fenêtre de carte avec description (Markdown limité sans HTML), checklist et commentaires **du propriétaire** ; page publique **en lecture seule**. Dernier tableau mémorisé, liens de cartes partageables, confirmations de suppression, limites et erreurs affichées. Menu Kanban actif et sélection carmin dans tout le menu principal.
 2. **Étape 2** : identité visiteur (prénom, nom, jeton) ; cartes et commentaires des visiteurs sur un tableau public, protections contre les abus.
-3. **Étape 3** : images des cartes (stockage privé, adresses signées).
+3. **Étape 3** (livrée le 2026-10-21, avant l'étape 2 à la demande du porteur) : images des cartes du propriétaire. Bouton, glisser-déposer d'un fichier ou collage (Ctrl/⌘ + V) dans la fenêtre de la carte ; 5 par carte, 2 Mo, JPEG/PNG/WebP ; vignettes cliquables (grand format dans un nouvel onglet), suppression, indicateur sur la carte. Dossier Storage **privé** `kanban-images`, adresses signées d'une heure créées côté serveur ; le stockage ne signe que les images d'un tableau que l'appelant peut voir (règles de la migration `20261021200000_kanban_images.sql`). Les fichiers sont effacés avec leur carte, leur liste ou leur tableau. Code : `src/components/kanban/card-images.tsx`, actions `uploadCardImage` / `deleteCardImage`.
 
 ### Fichiers de l'étape 1
 

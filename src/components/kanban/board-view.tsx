@@ -30,6 +30,7 @@ import {
   AlignLeft,
   CheckSquare,
   GripVertical,
+  Image as ImageIcon,
   MessageSquare,
   MoreHorizontal,
   MoreVertical,
@@ -77,6 +78,7 @@ import {
   type ChecklistItem,
   type KanbanBoard,
   type KanbanCard,
+  type KanbanCardImage,
   type KanbanComment,
   type KanbanList,
 } from "@/lib/kanban";
@@ -283,6 +285,7 @@ function CardTile({
   card,
   checklist,
   commentCount,
+  imageCount = 0,
   readOnly,
   disabled,
   insertion,
@@ -292,6 +295,7 @@ function CardTile({
   card: KanbanCard;
   checklist: ChecklistItem[];
   commentCount: number;
+  imageCount?: number;
   readOnly: boolean;
   disabled: boolean;
   insertion: Insertion;
@@ -369,7 +373,7 @@ function CardTile({
             </>
           )}
         </div>
-        {(card.description || commentCount > 0 || progress.total > 0) && (
+        {(card.description || commentCount > 0 || imageCount > 0 || progress.total > 0) && (
           <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
             {card.description && (
               <span title="Description" aria-label="Avec une description">
@@ -380,6 +384,12 @@ function CardTile({
               <span className="flex items-center gap-1" aria-label={`${commentCount} commentaires`}>
                 <MessageSquare aria-hidden="true" className="size-3.5" />
                 {commentCount}
+              </span>
+            )}
+            {imageCount > 0 && (
+              <span className="flex items-center gap-1" aria-label={`${imageCount} images`}>
+                <ImageIcon aria-hidden="true" className="size-3.5" />
+                {imageCount}
               </span>
             )}
             {progress.total > 0 && (
@@ -403,6 +413,7 @@ export function ListColumn({
   cards,
   checklist,
   comments,
+  images = [],
   readOnly = false,
   disabled = false,
   insertion = null,
@@ -413,6 +424,7 @@ export function ListColumn({
   cards: KanbanCard[];
   checklist: ChecklistItem[];
   comments: KanbanComment[];
+  images?: KanbanCardImage[];
   readOnly?: boolean;
   disabled?: boolean;
   insertion?: Insertion;
@@ -553,6 +565,7 @@ export function ListColumn({
                 card={card}
                 checklist={checklist.filter((item) => item.card_id === card.id)}
                 commentCount={comments.filter((comment) => comment.card_id === card.id).length}
+                imageCount={images.filter((image) => image.card_id === card.id).length}
                 readOnly={readOnly}
                 disabled={disabled}
                 insertion={insertion}
@@ -649,6 +662,7 @@ export function BoardView({
   cards,
   checklist,
   comments,
+  images = [],
   username,
   readOnly = false,
   onOpen,
@@ -659,6 +673,7 @@ export function BoardView({
   cards: KanbanCard[];
   checklist: ChecklistItem[];
   comments: KanbanComment[];
+  images?: KanbanCardImage[];
   username: string;
   readOnly?: boolean;
   onOpen: (id: string) => void;
@@ -777,6 +792,7 @@ export function BoardView({
                 .sort((a, b) => a.position - b.position)}
               checklist={checklist}
               comments={comments}
+              images={images}
               readOnly={readOnly}
               disabled={pending}
               insertion={insertion}

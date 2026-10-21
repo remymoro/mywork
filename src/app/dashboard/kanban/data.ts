@@ -4,6 +4,7 @@ import type {
   ChecklistItem,
   KanbanBoard,
   KanbanCard,
+  KanbanCardImage,
   KanbanComment,
   KanbanList,
 } from "@/lib/kanban";
@@ -50,6 +51,7 @@ export async function loadKanbanContent(supabase: Supabase, boards: KanbanBoard[
   const cards: KanbanCard[] = [];
   const checklist: ChecklistItem[] = [];
   const comments: KanbanComment[] = [];
+  const images: KanbanCardImage[] = [];
 
   // Petits lots pour ne pas dépasser la taille d'une URL de l'API.
   for (let offset = 0; offset < boards.length; offset += 20) {
@@ -84,7 +86,7 @@ export async function loadKanbanContent(supabase: Supabase, boards: KanbanBoard[
 
   for (let offset = 0; offset < cards.length; offset += 100) {
     const cardIds = cards.slice(offset, offset + 100).map((card) => card.id);
-    const [cardChecklist, cardComments] = await Promise.all([
+    const [cardChecklist, cardComments, cardImages] = await Promise.all([
       readRows<ChecklistItem>(
         (start, end) =>
           supabase
@@ -107,9 +109,21 @@ export async function loadKanbanContent(supabase: Supabase, boards: KanbanBoard[
             .range(start, end),
         "des commentaires",
       ),
+      readRows<KanbanCardImage>(
+        (start, end) =>
+          supabase
+            .from("kanban_card_images")
+            .select("*")
+            .in("card_id", cardIds)
+            .order("position")
+            .order("id")
+            .range(start, end),
+        "des images",
+      ),
     ]);
     checklist.push(...cardChecklist);
     comments.push(...cardComments);
+    images.push(...cardImages);
   }
 
   const authorIds = [
@@ -131,11 +145,26 @@ export async function loadKanbanContent(supabase: Supabase, boards: KanbanBoard[
     lists,
     cards,
     checklist,
+    images: await signImages(supabase, images),
     comments: comments.map((comment) => ({
       ...comment,
       author_name: names.get(comment.author_profile_id ?? "") ?? "Compte supprimé",
     })),
   };
+}
+
+// Dossier privé : chaque image reçoit une adresse signée valable une heure. Le stockage ne signe
+// que les images que l'appelant a le droit de voir (règles de la migration 20261021200000).
+async function signImages(supabase: Supabase, images: KanbanCardImage[]) {
+  if (images.length === 0) return images;
+  const { data } = await supabase.storage
+    .from("kanban-images")
+    .createSignedUrls(
+      images.map((image) => image.path),
+      60 * 60,
+    );
+  const urls = new Map((data ?? []).map((item) => [item.path, item.signedUrl]));
+  return images.map((image) => ({ ...image, url: urls.get(image.path) ?? undefined }));
 }
 
 // Partagé par la page et ses métadonnées, uniquement pendant la requête courante.

@@ -34,6 +34,7 @@ import {
   MAX_CHECKLIST_ITEMS,
   checklistProgress,
   type ChecklistItem,
+  type KanbanCardImage,
   type KanbanCard,
   type KanbanComment,
   type KanbanList,
@@ -46,6 +47,7 @@ import {
   setChecklistItemDone,
   updateCard,
 } from "@/app/dashboard/kanban/actions";
+import { CardImages } from "./card-images";
 import { Markdown } from "./markdown";
 
 type Format = "bold" | "italic" | "link" | "bullet" | "numbered" | "heading";
@@ -64,6 +66,7 @@ export type CardDialogProps = {
   list: KanbanList;
   checklist: ChecklistItem[];
   comments: KanbanComment[];
+  images?: KanbanCardImage[];
   readOnly?: boolean;
   onClose: () => void;
 };
@@ -74,6 +77,7 @@ export function CardDialog({
   list,
   checklist,
   comments,
+  images = [],
   readOnly = false,
   onClose,
 }: CardDialogProps) {
@@ -362,6 +366,8 @@ export function CardDialog({
             <p className="text-sm text-muted-foreground">Aucune description pour le moment.</p>
           )}
         </section>
+
+        <CardImages boardId={card.board_id} cardId={card.id} images={images} readOnly={readOnly} />
 
         <section className="space-y-3 border-t pt-4" aria-labelledby="card-checklist-heading">
           <div className="flex items-center justify-between gap-2">
