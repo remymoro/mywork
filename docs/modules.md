@@ -29,6 +29,8 @@ Vitrine de MyWork : c'est la première chose que voit un visiteur (recruteur, cl
 - **Nom et prénom** : on garde pour l'instant le « nom affiché » existant ; la séparation prénom / nom viendra avec les paramètres du compte.
 - **Photo et images de projet** : JPEG, PNG ou WebP, 2 Mo maximum, stockées dans Supabase Storage (D7), dossiers publics `avatars` et `project-images`.
 
+Démonstration : `/design/profil` affiche un faux profil entièrement rempli (données fictives dans `src/app/design/profil/demo-profile.ts`, images dans `public/demo/`), sans base de données.
+
 ### Version 2
 
 Bénévolat, distinctions et prix, publications, centres d'intérêt, « Mis en avant » (liens ou documents épinglés, lié au module Fichiers), image de couverture, téléphone (avec choix de visibilité), export PDF (D5).
