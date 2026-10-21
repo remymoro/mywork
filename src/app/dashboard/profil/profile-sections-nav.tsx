@@ -77,7 +77,10 @@ export function ProfileSectionsNav({
           href={`/${username}`}
           target="_blank"
           rel="noreferrer noopener"
-          className={buttonVariants({ variant: "outline", className: "mt-4 w-full" })}
+          className={buttonVariants({
+            variant: "outline",
+            className: "mt-4 w-full shadow-md transition-shadow hover:shadow-lg",
+          })}
         >
           <ExternalLink aria-hidden="true" />
           Voir mon profil public
