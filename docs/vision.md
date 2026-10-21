@@ -10,7 +10,7 @@ Tout s'articule autour d'une page publique par utilisateur (ex. `mywork.website/
 
 | Module | Partie privée (propriétaire) | Partie publique (visiteur) |
 |---|---|---|
-| CV | Édition simple des sections | CV consultable par URL, export PDF ou image |
+| Profil (anciennement « CV ») | Édition simple des sections | Profil professionnel consultable par URL, export PDF ou image |
 | Rendez-vous | Disponibilités, liste des réservations | Réservation d'un créneau |
 | Boards | Plusieurs boards type Trello | Un board marqué public |
 | Fichiers | Dossiers et fichiers privés | Dossier public téléchargeable |
@@ -18,7 +18,7 @@ Tout s'articule autour d'une page publique par utilisateur (ex. `mywork.website/
 
 ## Modules et ordre prévu
 1. **Socle** : authentification (compte propriétaire), profil public, modèle de données multi-utilisateur.
-2. **CV** : première fonctionnalité livrée.
+2. **Profil** (anciennement « CV ») : première fonctionnalité livrée.
 3. **Rendez-vous** (Calendly simplifié).
 4. **Boards** (Trello simplifié).
 5. **Fichiers** (Drive simplifié).
@@ -28,7 +28,7 @@ Tout s'articule autour d'une page publique par utilisateur (ex. `mywork.website/
 ## Cibles et contraintes
 - Web, conçu pour ordinateur ; tablette et mobile éventuellement plus tard.
 - Interface en français.
-- Utilisateurs européens, donc RGPD (données personnelles des CV et des réservations).
+- Utilisateurs européens, donc RGPD (données personnelles des profils et des réservations).
 
 ## Hors périmètre pour l'instant
 Applications mobiles natives, offres multiples, collaboration à plusieurs sur un board, édition de documents en ligne.

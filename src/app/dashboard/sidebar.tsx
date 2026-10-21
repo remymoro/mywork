@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   Calendar,
-  FileText,
   FolderOpen,
   LayoutGrid,
   LayoutDashboard,
@@ -13,7 +12,6 @@ import { MODULES } from "./modules";
 import { UserMenu } from "./user-menu";
 
 const MODULE_ICONS = {
-  cv: FileText,
   rdv: Calendar,
   boards: LayoutGrid,
   fichiers: FolderOpen,
@@ -30,11 +28,13 @@ export type SidebarActive = (typeof NAV)[number]["id"];
 export function Sidebar({
   active,
   email,
+  displayName,
   username,
   isOnline,
 }: {
   active: SidebarActive;
   email: string;
+  displayName: string | null;
   username: string;
   isOnline: boolean;
 }) {
@@ -90,7 +90,7 @@ export function Sidebar({
       </div>
 
       <div className="mt-auto border-t border-sidebar-border pt-3">
-        <UserMenu email={email} username={username} isOnline={isOnline} />
+        <UserMenu email={email} displayName={displayName} username={username} isOnline={isOnline} />
       </div>
     </nav>
   );

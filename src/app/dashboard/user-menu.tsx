@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
+import { getInitials } from "@/lib/profile-sections";
 import { DEFAULT_MODE, MODE_STORAGE_KEY, parseMode, type Mode } from "@/lib/appearance";
 import { signOut } from "./actions";
 import { setProfileOnline } from "./profile-actions";
@@ -37,10 +38,12 @@ function readCurrentMode(): Mode {
 
 export function UserMenu({
   email,
+  displayName,
   username,
   isOnline,
 }: {
   email: string;
+  displayName: string | null;
   username: string;
   isOnline: boolean;
 }) {
@@ -48,7 +51,9 @@ export function UserMenu({
   const [online, setOnline] = useState(isOnline);
   const [copied, setCopied] = useState(false);
 
-  const initial = email.trim().charAt(0).toUpperCase() || "?";
+  // En bas de la barre : le nom affiché (sinon le pseudo) ; l'e-mail reste en tête du menu.
+  const name = displayName?.trim() || username;
+  const initials = getInitials(displayName ?? "", username);
 
   function selectMode(next: Mode) {
     setMode(next);
@@ -89,9 +94,9 @@ export function UserMenu({
           aria-hidden="true"
           className="flex size-6 shrink-0 items-center justify-center rounded bg-sidebar-accent text-xs font-medium text-sidebar-accent-foreground"
         >
-          {initial}
+          {initials}
         </span>
-        <span className="flex-1 truncate font-medium">{email}</span>
+        <span className="flex-1 truncate font-medium">{name}</span>
         <ChevronsUpDown
           aria-hidden="true"
           className="size-4 shrink-0 text-muted-foreground"

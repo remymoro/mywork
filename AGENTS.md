@@ -3,7 +3,7 @@
 Carte du projet pour les agents (Claude, Codex, Antigravity…).
 
 ## Le projet en une phrase
-**MyWork** (`mywork.website`) : une application web SaaS personnelle (CV, rendez-vous, boards, fichiers, puis visio) centrée sur un profil public, ouverte plus tard à d'autres utilisateurs par abonnement.
+**MyWork** (`mywork.website`) : une application web SaaS personnelle (profil professionnel, rendez-vous, boards, fichiers, puis visio) centrée sur un profil public, ouverte plus tard à d'autres utilisateurs par abonnement.
 
 ## Lire la documentation dans cet ordre
 1. `docs/vision.md` : idée, concept du profil public, modules et ordre de livraison, périmètre.

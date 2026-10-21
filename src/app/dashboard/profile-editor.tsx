@@ -2,12 +2,13 @@
 
 import { useActionState, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DISPLAY_NAME_MAX, HEADLINE_MAX } from "@/lib/profile";
 import { updateProfile, type ProfileState } from "./profile-actions";
+import { SECTION_HEADER, SECTION_TITLE } from "./profil/section-style";
 
 type Props = { username: string; displayName: string; headline: string };
 
@@ -15,46 +16,14 @@ export function ProfileEditor(initial: Props) {
   const [username, setUsername] = useState(initial.username);
   const [displayName, setDisplayName] = useState(initial.displayName);
   const [headline, setHeadline] = useState(initial.headline);
-  const [copied, setCopied] = useState(false);
   const [state, action, pending] = useActionState<ProfileState, FormData>(updateProfile, {});
-
-  const path = `mywork.website/${initial.username}`;
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(`https://${path}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 text-sm">
-        <span>
-          Ton adresse publique : <strong>{path}</strong>
-        </span>
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={copyLink}>
-            {copied ? "Lien copié" : "Copier le lien"}
-          </Button>
-          <a
-            href={`/${initial.username}`}
-            target="_blank"
-            rel="noreferrer"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            Voir ma page
-          </a>
-        </div>
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Éditer mon profil</CardTitle>
+          <CardHeader className={SECTION_HEADER}>
+            <CardTitle className={SECTION_TITLE}>En-tête</CardTitle>
           </CardHeader>
           <CardContent>
             <form action={action} className="space-y-4">

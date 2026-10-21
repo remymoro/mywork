@@ -8,21 +8,22 @@ import { Sidebar } from "./sidebar";
 
 describe("Sidebar", () => {
   it("marque la page active, liste les modules à venir et affiche le menu utilisateur", () => {
-    render(<Sidebar active="accueil" email="remy@example.com" username="remy" isOnline />);
+    render(<Sidebar active="accueil" email="remy@example.com" displayName="Rémy Moro" username="remy" isOnline />);
     expect(screen.getByRole("link", { name: "Mon tableau de bord" })).toHaveAttribute(
       "aria-current",
       "page",
     );
     expect(screen.getByRole("link", { name: "Mon profil" })).not.toHaveAttribute("aria-current");
-    for (const name of ["CV", "Rendez-vous", "Boards", "Fichiers", "Visio"]) {
+    expect(screen.queryByText("CV")).not.toBeInTheDocument();
+    for (const name of ["Rendez-vous", "Boards", "Fichiers", "Visio"]) {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
-    expect(screen.getAllByText("Bientôt").length).toBeGreaterThanOrEqual(5);
-    expect(screen.getByRole("button", { name: "remy@example.com" })).toBeInTheDocument();
+    expect(screen.getAllByText("Bientôt").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getByRole("button", { name: "Rémy Moro" })).toBeInTheDocument();
   });
 
   it("marque Mon profil comme actif sur sa page", () => {
-    render(<Sidebar active="profil" email="remy@example.com" username="remy" isOnline={false} />);
+    render(<Sidebar active="profil" email="remy@example.com" displayName="Rémy Moro" username="remy" isOnline={false} />);
     expect(screen.getByRole("link", { name: "Mon profil" })).toHaveAttribute(
       "aria-current",
       "page",

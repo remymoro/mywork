@@ -13,11 +13,17 @@ import { UserMenu } from "./user-menu";
 
 const defaultProps = {
   email: "remy@example.com",
+  displayName: "Rémy Moro",
   username: "remy",
   isOnline: true,
 };
 
 describe("UserMenu", () => {
+  it("affiche le pseudo quand il n'y a pas de nom affiché", () => {
+    render(<UserMenu {...defaultProps} displayName={null} />);
+    expect(screen.getByRole("button", { name: "remy" })).toBeInTheDocument();
+  });
+
   beforeEach(() => {
     document.documentElement.setAttribute("data-theme", "editorial");
     document.documentElement.classList.remove("dark");
@@ -26,13 +32,14 @@ describe("UserMenu", () => {
     setProfileOnline.mockResolvedValue({});
   });
 
-  it("affiche l'initiale, l'e-mail et ouvre le menu", () => {
+  it("affiche les initiales et le nom affiché, puis l'e-mail dans le menu", () => {
     render(<UserMenu {...defaultProps} />);
-    expect(screen.getByText("R")).toBeInTheDocument();
+    expect(screen.getByText("RM")).toBeInTheDocument();
+    expect(screen.queryByText("remy@example.com")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "remy@example.com" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rémy Moro" }));
 
-    expect(screen.getAllByText("remy@example.com").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("remy@example.com")).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Mon profil public" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Thème" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Se déconnecter" })).toBeInTheDocument();
@@ -41,7 +48,7 @@ describe("UserMenu", () => {
 
   it("ouvre le sous-menu Mon profil public et appelle setProfileOnline à la bascule du switch", () => {
     render(<UserMenu {...defaultProps} />);
-    fireEvent.click(screen.getByRole("button", { name: "remy@example.com" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rémy Moro" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Mon profil public" }));
 
     const toggle = screen.getByRole("switch", { name: "Profil en ligne" });
@@ -61,7 +68,7 @@ describe("UserMenu", () => {
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
 
     render(<UserMenu {...defaultProps} />);
-    fireEvent.click(screen.getByRole("button", { name: "remy@example.com" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rémy Moro" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Mon profil public" }));
 
     fireEvent.click(screen.getByRole("menuitem", { name: "Copier l'adresse" }));
@@ -71,7 +78,7 @@ describe("UserMenu", () => {
 
   it("ne propose que Clair et Sombre dans le sous-menu Thème", () => {
     render(<UserMenu {...defaultProps} />);
-    fireEvent.click(screen.getByRole("button", { name: "remy@example.com" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rémy Moro" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Thème" }));
 
     const choices = screen.getAllByRole("menuitemradio").map((item) => item.textContent);
@@ -84,7 +91,7 @@ describe("UserMenu", () => {
 
   it("bascule en mode sombre puis clair sur <html> et dans localStorage via le sous-menu Thème", () => {
     render(<UserMenu {...defaultProps} />);
-    fireEvent.click(screen.getByRole("button", { name: "remy@example.com" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rémy Moro" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Thème" }));
 
     fireEvent.click(screen.getByRole("menuitemradio", { name: "Sombre" }));
