@@ -102,7 +102,38 @@ describe("Sections publiques du profil", () => {
           top_skills: ["Produit"],
           skills: [],
         }}
-        experiences={[]}
+        experiences={[
+          {
+            id: "e1",
+            position: 0,
+            is_visible: true,
+            title: "Développeur web",
+            company: "Ancienne boîte",
+            employment_type: null,
+            location: null,
+            work_mode: null,
+            start_date: "2020-01-01",
+            end_date: "2022-01-01",
+            is_current: false,
+            description: null,
+            skills: [],
+          },
+          {
+            id: "e2",
+            position: 1,
+            is_visible: true,
+            title: "Développeur full-stack",
+            company: "MyWork",
+            employment_type: null,
+            location: null,
+            work_mode: null,
+            start_date: "2024-01-01",
+            end_date: null,
+            is_current: true,
+            description: null,
+            skills: [],
+          },
+        ]}
         educations={[]}
         languages={[{ id: "l1", position: 0, is_visible: true, name: "Français", level: "maternelle" }]}
         certifications={[]}
@@ -111,6 +142,8 @@ describe("Sections publiques du profil", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Rémy Moro" })).toBeInTheDocument();
+    expect(screen.getByText("Développeur full-stack · MyWork")).toBeInTheDocument();
+    expect(screen.queryByText("Développeur web · Ancienne boîte")).not.toBeInTheDocument();
     expect(screen.getByText("Lyon, France")).toBeInTheDocument();
     expect(screen.getByText("Ouvert aux opportunités : Freelance, CDI")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Afficher l'e-mail" })).toBeInTheDocument();

@@ -299,6 +299,8 @@ export function PublicProfileView({
 }) {
   const displayName = profile.display_name ?? profile.username;
   const initials = getInitials(profile.display_name ?? "", profile.username);
+  // Comme LinkedIn : le premier poste actuel (dans l'ordre choisi) s'affiche sous le nom.
+  const currentPosition = experiences.find((exp) => exp.is_current);
 
   const links = [
     profile.website_url ? { label: "Site", href: profile.website_url, Icon: Globe } : null,
@@ -337,6 +339,11 @@ export function PublicProfileView({
               <h1 className="font-heading text-3xl font-normal tracking-tight text-foreground sm:text-4xl">
                 {displayName}
               </h1>
+              {currentPosition && (
+                <p className="text-lg font-medium text-foreground">
+                  {currentPosition.title} · {currentPosition.company}
+                </p>
+              )}
               {profile.headline && (
                 <p className="text-lg text-muted-foreground">{profile.headline}</p>
               )}

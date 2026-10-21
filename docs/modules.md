@@ -23,6 +23,7 @@ Vitrine de MyWork : c'est la première chose que voit un visiteur (recruteur, cl
 | Projets | Nom, début, fin, description, lien, compétences |
 
 - **E-mail de contact** : choisi par l'utilisateur, pas forcément l'adresse Google. Côté public, il n'est pas écrit dans la page : le bouton « Afficher l'e-mail » le demande au serveur, puis un bouton « Copier » apparaît. Cela gêne les robots qui collectent les adresses.
+- **Poste actuel en haut** : sur la page publique, le premier poste coché « Poste actuel » (dans l'ordre choisi) s'affiche sous le nom, au-dessus du titre, comme sur LinkedIn.
 - **Nom et prénom** : on garde pour l'instant le « nom affiché » existant ; la séparation prénom / nom viendra avec les paramètres du compte.
 - **Photo** : JPEG, PNG ou WebP, 2 Mo maximum, stockée dans Supabase Storage (D7).
 
