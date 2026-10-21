@@ -5,7 +5,7 @@ import { Check, Copy, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { revealContactEmail } from "./actions";
 
-export function ContactButton({ username, demoEmail }: { username: string; demoEmail?: string }) {
+export function ContactButton({ username }: { username: string }) {
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -13,8 +13,7 @@ export function ContactButton({ username, demoEmail }: { username: string; demoE
   async function handleReveal() {
     setLoading(true);
     try {
-      // Page de démonstration : pas de profil en base, l'adresse fictive est fournie directement.
-      const revealed = demoEmail ?? (await revealContactEmail(username));
+      const revealed = await revealContactEmail(username);
       if (revealed) setEmail(revealed);
     } finally {
       setLoading(false);

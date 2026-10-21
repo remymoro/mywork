@@ -37,8 +37,6 @@ export type PublicProfileData = {
   open_to_work: boolean;
   open_to_work_details: string | null;
   hasContact: boolean;
-  /** Page de démonstration uniquement : e-mail affiché au clic sans interroger la base. */
-  demoContactEmail?: string;
   website_url: string | null;
   linkedin_url: string | null;
   github_url: string | null;
@@ -365,7 +363,6 @@ export function ProjectSection({ items }: { items: ProjectRow[] }) {
               {proj.image_url && (
                 <Image
                   src={proj.image_url}
-                  unoptimized={proj.image_url.endsWith(".svg")}
                   alt={`Aperçu du projet ${proj.name}`}
                   width={640}
                   height={360}
@@ -455,8 +452,6 @@ export function PublicProfileView({
           {profile.avatar_url ? (
             <Image
               src={profile.avatar_url}
-              // Les SVG (images de démonstration) ne passent pas par l'optimiseur d'images.
-              unoptimized={profile.avatar_url.endsWith(".svg")}
               alt={displayName}
               width={96}
               height={96}
@@ -502,9 +497,7 @@ export function PublicProfileView({
             )}
 
             <div className="flex flex-wrap items-center gap-3 pt-1">
-              {profile.hasContact && (
-                <ContactButton username={profile.username} demoEmail={profile.demoContactEmail} />
-              )}
+              {profile.hasContact && <ContactButton username={profile.username} />}
 
               {links.map(({ label, href, Icon }) => (
                 <a

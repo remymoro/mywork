@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <!-- Portrait fictif de la page de démonstration /design/profil. -->
-  <rect width="200" height="200" fill="#e9dfd0"/>
-  <circle cx="100" cy="82" r="38" fill="#c79b7a"/>
-  <path d="M58 76c2-30 22-44 44-44s40 14 42 42c-10-14-24-20-42-20s-32 6-44 22z" fill="#3a2a22"/>
-  <path d="M30 200c6-44 36-66 70-66s64 22 70 66z" fill="#a3262a"/>
-</svg>
