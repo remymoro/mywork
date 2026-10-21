@@ -11,9 +11,11 @@ vi.mock("./actions", () => ({
   deleteSectionItem: (...args: unknown[]) => deleteSectionItem(...args),
   setSectionItemVisible: (...args: unknown[]) => setSectionItemVisible(...args),
   moveSectionItem: (...args: unknown[]) => moveSectionItem(...args),
+  updateFreelance: vi.fn(),
 }));
 
 import { ExperienceFields, type ExperienceRow } from "./experience-fields";
+import { FreelanceForm } from "./freelance-form";
 import { ProjectFields } from "./project-fields";
 import { SectionList } from "./section-list";
 
@@ -147,5 +149,28 @@ describe("ProjectFields", () => {
     );
     expect(screen.getByRole("img", { name: "Image actuelle de MyWork" })).toBeInTheDocument();
     expect(screen.getByLabelText("Retirer l'image")).toBeInTheDocument();
+  });
+});
+
+describe("FreelanceForm", () => {
+  it("cache les détails tant que la case freelance n'est pas cochée", () => {
+    render(
+      <FreelanceForm
+        enabled={false}
+        availableFrom={null}
+        daysPerWeek={null}
+        workModes={["hybride"]}
+        dailyRate={450}
+        travelZone=""
+      />,
+    );
+    const checkbox = screen.getByRole("checkbox", { name: "Je propose mes services en freelance" });
+    expect(checkbox).not.toBeChecked();
+    expect(screen.queryByLabelText("TJM (€ HT par jour)")).not.toBeVisible();
+
+    fireEvent.click(checkbox);
+    expect(screen.getByLabelText("TJM (€ HT par jour)")).toBeVisible();
+    expect(screen.getByLabelText("TJM (€ HT par jour)")).toHaveValue(450);
+    expect(screen.getByRole("checkbox", { name: "Hybride" })).toBeChecked();
   });
 });

@@ -31,6 +31,7 @@ import { EducationFields, formatEducationSummary, type EducationRow } from "./ed
 import { ExperienceFields, formatExperienceSummary, type ExperienceRow } from "./experience-fields";
 import { LanguageFields, formatLanguageSummary, type LanguageRow } from "./language-fields";
 import { ProjectFields, formatProjectSummary, type ProjectRow } from "./project-fields";
+import { ServiceFields, formatServiceSummary, type ServiceRow } from "./service-fields";
 
 export type BaseSectionItem = {
   id: string;
@@ -89,6 +90,8 @@ function defaultSummary(section: SectionName, item: BaseSectionItem): string {
       return formatCertificationSummary(item as CertificationRow);
     case "projects":
       return formatProjectSummary(item as ProjectRow);
+    case "services":
+      return formatServiceSummary(item as ServiceRow);
   }
 }
 
@@ -104,6 +107,8 @@ function defaultFields(section: SectionName, item?: BaseSectionItem): ReactNode 
       return <CertificationFields item={item as CertificationRow | undefined} />;
     case "projects":
       return <ProjectFields item={item as ProjectRow | undefined} />;
+    case "services":
+      return <ServiceFields item={item as ServiceRow | undefined} />;
   }
 }
 

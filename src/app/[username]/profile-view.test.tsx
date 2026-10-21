@@ -12,6 +12,7 @@ import {
   AboutSection,
   CertificationSection,
   ExperienceSection,
+  FreelanceSection,
   ProjectSection,
   PublicProfileView,
   SkillsSection,
@@ -250,5 +251,51 @@ describe("Sections publiques du profil", () => {
     );
     const headings = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
     expect(headings).toEqual(["COMPÉTENCES", "LANGUES", "À PROPOS"]);
+  });
+
+  it("affiche l'offre freelance avec TJM, modes, zone et prestations, ou rien si désactivée", () => {
+    const { container, rerender } = render(<FreelanceSection offer={null} services={[]} />);
+    expect(container).toBeEmptyDOMElement();
+
+    rerender(
+      <FreelanceSection
+        nowIso="2026-10-01"
+        offer={{
+          available_from: "2026-12-01",
+          days_per_week: 3,
+          work_modes: ["hybride", "teletravail"],
+          daily_rate: 450,
+          travel_zone: "Agen et 100 km",
+        }}
+        services={[
+          {
+            id: "s1",
+            position: 0,
+            is_visible: true,
+            title: "Site vitrine",
+            description: "Conception et mise en ligne",
+            starting_price: 1200,
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText("Disponible à partir de déc. 2026")).toBeInTheDocument();
+    expect(screen.getByText("3 jours par semaine")).toBeInTheDocument();
+    expect(screen.getByText("Hybride · Télétravail")).toBeInTheDocument();
+    expect(screen.getByText("450 € HT / jour")).toBeInTheDocument();
+    expect(screen.getByText("Agen et 100 km")).toBeInTheDocument();
+    expect(screen.getByText("Site vitrine")).toBeInTheDocument();
+    expect(screen.getByText("à partir de 1 200 € HT")).toBeInTheDocument();
+  });
+
+  it("indique « dès maintenant » sans date future", () => {
+    render(
+      <FreelanceSection
+        nowIso="2026-10-01"
+        offer={{ available_from: "2026-01-01", days_per_week: null, work_modes: [], daily_rate: null, travel_zone: null }}
+        services={[]}
+      />,
+    );
+    expect(screen.getByText("Disponible dès maintenant")).toBeInTheDocument();
   });
 });

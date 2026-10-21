@@ -8,6 +8,7 @@ import {
   isSectionName,
   normalizeSectionOrder,
   validateAbout,
+  validateFreelance,
   validateHeader,
   validateSkills,
   type Fields,
@@ -86,6 +87,10 @@ export async function updateHeader(_prev: FormState, formData: FormData): Promis
 
 export async function updateAbout(_prev: FormState, formData: FormData): Promise<FormState> {
   return updateProfileColumns(validateAbout, formData);
+}
+
+export async function updateFreelance(_prev: FormState, formData: FormData): Promise<FormState> {
+  return updateProfileColumns(validateFreelance, formData);
 }
 
 export async function updateSkills(_prev: FormState, formData: FormData): Promise<FormState> {

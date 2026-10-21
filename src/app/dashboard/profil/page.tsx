@@ -9,11 +9,13 @@ import { AvatarForm } from "./avatar-form";
 import type { CertificationRow } from "./certification-fields";
 import type { EducationRow } from "./education-fields";
 import type { ExperienceRow } from "./experience-fields";
+import { FreelanceForm } from "./freelance-form";
 import { HeaderForm } from "./header-form";
 import type { LanguageRow } from "./language-fields";
 import type { ProjectRow } from "./project-fields";
 import { ProfileSectionsNav } from "./profile-sections-nav";
 import { SectionList } from "./section-list";
+import type { ServiceRow } from "./service-fields";
 import { SectionOrderForm } from "./section-order-form";
 import { SkillsForm } from "./skills-form";
 
@@ -31,7 +33,7 @@ export default async function ProfilePage() {
   const { data: profile, error } = await supabase
     .from("profiles")
     .select(
-      "username, display_name, headline, is_online, avatar_url, location, open_to_work, open_to_work_details, contact_email, website_url, linkedin_url, github_url, other_url, about, top_skills, skills, section_order",
+      "username, display_name, headline, is_online, avatar_url, location, open_to_work, open_to_work_details, contact_email, website_url, linkedin_url, github_url, other_url, about, top_skills, skills, section_order, freelance_enabled, freelance_available_from, freelance_days_per_week, freelance_work_modes, freelance_daily_rate, freelance_travel_zone",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -39,7 +41,7 @@ export default async function ProfilePage() {
   if (error) throw new Error(`Lecture du profil impossible : ${error.message}`);
   if (!profile) redirect("/onboarding");
 
-  const [experiencesRes, educationsRes, languagesRes, certificationsRes, projectsRes] =
+  const [experiencesRes, educationsRes, languagesRes, certificationsRes, projectsRes, servicesRes] =
     await Promise.all([
       supabase
         .from("profile_experiences")
@@ -71,6 +73,12 @@ export default async function ProfilePage() {
         .eq("profile_id", user.id)
         .order("position")
         .order("created_at"),
+      supabase
+        .from("profile_services")
+        .select("*")
+        .eq("profile_id", user.id)
+        .order("position")
+        .order("created_at"),
     ]);
 
   const experiences = (experiencesRes.data ?? []) as ExperienceRow[];
@@ -78,6 +86,7 @@ export default async function ProfilePage() {
   const languages = (languagesRes.data ?? []) as LanguageRow[];
   const certifications = (certificationsRes.data ?? []) as CertificationRow[];
   const projects = (projectsRes.data ?? []) as ProjectRow[];
+  const services = (servicesRes.data ?? []) as ServiceRow[];
 
   return (
     <DashboardShell
@@ -127,6 +136,20 @@ export default async function ProfilePage() {
               githubUrl={profile.github_url ?? ""}
               otherUrl={profile.other_url ?? ""}
             />
+          ),
+          freelance: (
+            <div className="space-y-6">
+              <FreelanceForm
+                key={`${profile.freelance_enabled}|${profile.freelance_available_from}|${profile.freelance_days_per_week}|${(profile.freelance_work_modes ?? []).join(",")}|${profile.freelance_daily_rate}|${profile.freelance_travel_zone}`}
+                enabled={profile.freelance_enabled ?? false}
+                availableFrom={profile.freelance_available_from ?? null}
+                daysPerWeek={profile.freelance_days_per_week ?? null}
+                workModes={profile.freelance_work_modes ?? []}
+                dailyRate={profile.freelance_daily_rate ?? null}
+                travelZone={profile.freelance_travel_zone ?? ""}
+              />
+              <SectionList section="services" title="Prestations" items={services} />
+            </div>
           ),
           "a-propos": (
             <AboutForm

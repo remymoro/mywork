@@ -311,8 +311,58 @@ export function validateProject(fields: Fields): Result<ProjectInput> {
   });
 }
 
+export type FreelanceInput = {
+  freelance_enabled: boolean;
+  freelance_available_from: string | null;
+  freelance_days_per_week: number | null;
+  freelance_work_modes: (typeof WORK_MODES)[number]["value"][];
+  freelance_daily_rate: number | null;
+  freelance_travel_zone: string | null;
+};
+
+function integer(fields: Fields, name: string, label: string, min: number, max: number): number | null {
+  const value = (fields[name] ?? "").trim().replace(/\s/g, "");
+  if (!value) return null;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < min || n > max) fail(`${label} : nombre entier entre ${min} et ${max}.`);
+  return n;
+}
+
+/**
+ * Offre freelance. Case décochée : rien n'est affiché côté public, mais les champs remplis sont gardés.
+ * Modes de travail : une case par mode (« freelance_mode_<valeur> »).
+ */
+export function validateFreelance(fields: Fields): Result<FreelanceInput> {
+  return validate(() => ({
+    freelance_enabled: checkbox(fields, "freelance_enabled"),
+    freelance_available_from: month(fields, "freelance_available_from", "Disponible à partir de"),
+    freelance_days_per_week: integer(fields, "freelance_days_per_week", "Jours par semaine", 1, 5),
+    freelance_work_modes: WORK_MODES.map((m) => m.value).filter((v) =>
+      checkbox(fields, `freelance_mode_${v}`),
+    ),
+    freelance_daily_rate: integer(fields, "freelance_daily_rate", "TJM", 1, 10000),
+    freelance_travel_zone: text(fields, "freelance_travel_zone", "Zone de déplacement", 120),
+  }));
+}
+
+export type ServiceInput = { title: string; description: string | null; starting_price: number | null };
+
+export function validateService(fields: Fields): Result<ServiceInput> {
+  return validate(() => ({
+    title: required(fields, "title", "Le nom de la prestation", 100),
+    description: text(fields, "description", "La description", 1000),
+    starting_price: integer(fields, "starting_price", "Prix de départ", 1, 1000000),
+  }));
+}
+
+/** « 1 200 € » : montant en euros, espaces des milliers à la française. */
+export function formatEuros(amount: number): string {
+  return `${new Intl.NumberFormat("fr-FR").format(amount).replace(/\u202f|\u00a0/g, " ")} €`;
+}
+
 /** Sections de la page publique, dans l'ordre par défaut (l'en-tête reste toujours en haut). */
 export const PUBLIC_SECTIONS = [
+  { id: "freelance", label: "Freelance" },
   { id: "about", label: "À propos" },
   { id: "experiences", label: "Expérience" },
   { id: "educations", label: "Formation" },
@@ -352,6 +402,7 @@ export const SECTIONS = {
   languages: { table: "profile_languages", validate: validateLanguage },
   certifications: { table: "profile_certifications", validate: validateCertification },
   projects: { table: "profile_projects", validate: validateProject },
+  services: { table: "profile_services", validate: validateService },
 } as const;
 
 export type SectionName = keyof typeof SECTIONS;

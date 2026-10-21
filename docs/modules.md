@@ -14,6 +14,7 @@ Vitrine de MyWork : c'est la première chose que voit un visiteur (recruteur, cl
 | Section | Contenu |
 |---|---|
 | En-tête | Photo, nom affiché, titre, localisation (ville, pays), disponibilité (« Ouvert aux opportunités » + précision libre, ex. « freelance, CDI »), e-mail de contact, liens (site web, LinkedIn, GitHub, autre) |
+| Freelance | Case « Je propose mes services en freelance » (décochée : rien d'affiché, données gardées) ; disponibilité (à partir de, jours par semaine), modes de travail (sur site, hybride, télétravail), TJM (€ HT / jour), zone de déplacement ; prestations (nom, description, prix « à partir de »), en liste comme les autres sections |
 | À propos | Texte de présentation (2 600 caractères max), 5 compétences clés au plus |
 | Expérience | Poste, entreprise, type de contrat (CDI, CDD, freelance, stage, alternance, intérim, bénévole, autre), lieu, mode de travail (sur site, hybride, télétravail), début, fin ou « poste actuel », description, compétences |
 | Formation | École, diplôme, domaine, années de début et de fin, mention, description |

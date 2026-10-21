@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   formatDuration,
   formatMonth,
+  formatEuros,
   getInitials,
+  validateFreelance,
+  validateService,
   moveInList,
   normalizeSectionOrder,
   isSectionName,
@@ -168,10 +171,10 @@ describe("getInitials", () => {
 describe("ordre des sections", () => {
   it("complète l'ordre enregistré et ignore les inconnus ou doublons", () => {
     expect(normalizeSectionOrder([])).toEqual([
-      "about", "experiences", "educations", "skills", "languages", "certifications", "projects",
+      "freelance", "about", "experiences", "educations", "skills", "languages", "certifications", "projects",
     ]);
     expect(normalizeSectionOrder(["projects", "pirate", "experiences", "projects"])).toEqual([
-      "projects", "experiences", "about", "educations", "skills", "languages", "certifications",
+      "projects", "experiences", "freelance", "about", "educations", "skills", "languages", "certifications",
     ]);
   });
 
@@ -179,5 +182,44 @@ describe("ordre des sections", () => {
     expect(moveInList(["a", "b", "c", "d"], 3, 0)).toEqual(["d", "a", "b", "c"]);
     expect(moveInList(["a", "b", "c"], 0, 2)).toEqual(["b", "c", "a"]);
     expect(moveInList(["a", "b"], 0, 5)).toEqual(["a", "b"]);
+  });
+});
+
+describe("validateFreelance et validateService", () => {
+  it("lit la case, les modes cochés, le TJM et la disponibilité", () => {
+    expect(
+      validateFreelance({
+        freelance_enabled: "on",
+        freelance_available_from: "2026-11",
+        freelance_days_per_week: "3",
+        freelance_mode_hybride: "on",
+        freelance_mode_teletravail: "on",
+        freelance_daily_rate: "1 200",
+        freelance_travel_zone: " Agen et 100 km ",
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        freelance_enabled: true,
+        freelance_available_from: "2026-11-01",
+        freelance_days_per_week: 3,
+        freelance_work_modes: ["hybride", "teletravail"],
+        freelance_daily_rate: 1200,
+        freelance_travel_zone: "Agen et 100 km",
+      },
+    });
+    expect(validateFreelance({}).ok && validateFreelance({}).value.freelance_enabled).toBe(false);
+    expect(validateFreelance({ freelance_daily_rate: "abc" }).ok).toBe(false);
+    expect(validateFreelance({ freelance_days_per_week: "6" }).ok).toBe(false);
+  });
+
+  it("valide une prestation et formate les euros", () => {
+    expect(validateService({ title: "Site vitrine", starting_price: "800" })).toEqual({
+      ok: true,
+      value: { title: "Site vitrine", description: null, starting_price: 800 },
+    });
+    expect(validateService({ title: "" })).toEqual({ ok: false, error: "Le nom de la prestation est obligatoire." });
+    expect(formatEuros(1200)).toBe("1 200 €");
+    expect(formatEuros(450)).toBe("450 €");
   });
 });

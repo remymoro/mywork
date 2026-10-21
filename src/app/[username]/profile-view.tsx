@@ -10,11 +10,13 @@ import type { EducationRow } from "@/app/dashboard/profil/education-fields";
 import type { ExperienceRow } from "@/app/dashboard/profil/experience-fields";
 import type { LanguageRow } from "@/app/dashboard/profil/language-fields";
 import type { ProjectRow } from "@/app/dashboard/profil/project-fields";
+import type { ServiceRow } from "@/app/dashboard/profil/service-fields";
 import {
   EMPLOYMENT_TYPES,
   LANGUAGE_LEVELS,
   WORK_MODES,
   formatDuration,
+  formatEuros,
   formatMonth,
   getInitials,
   labelOf,
@@ -42,7 +44,90 @@ export type PublicProfileData = {
   skills: string[];
   /** Ordre choisi dans « Mon profil » (vide = ordre par défaut). */
   section_order?: string[];
+  /** Offre freelance ; null si la case « Je propose mes services en freelance » est décochée. */
+  freelance?: FreelanceOffer | null;
 };
+
+export type FreelanceOffer = {
+  available_from: string | null;
+  days_per_week: number | null;
+  work_modes: string[];
+  daily_rate: number | null;
+  travel_zone: string | null;
+};
+
+export function FreelanceSection({
+  offer,
+  services,
+  nowIso,
+}: {
+  offer: FreelanceOffer | null | undefined;
+  services: ServiceRow[];
+  nowIso?: string;
+}) {
+  if (!offer) return null;
+  const now = nowIso ?? currentMonthIso();
+  const availability =
+    offer.available_from && offer.available_from > now
+      ? `Disponible à partir de ${formatMonth(offer.available_from)}`
+      : "Disponible dès maintenant";
+  const days = offer.days_per_week
+    ? `${offer.days_per_week} jour${offer.days_per_week > 1 ? "s" : ""} par semaine`
+    : null;
+  const modes = offer.work_modes.map((m) => labelOf(WORK_MODES, m)).filter(Boolean).join(" · ");
+
+  const details = [
+    modes ? { label: "Mode de travail", value: modes } : null,
+    offer.daily_rate ? { label: "TJM", value: `${formatEuros(offer.daily_rate)} HT / jour` } : null,
+    offer.travel_zone ? { label: "Zone de déplacement", value: offer.travel_zone } : null,
+  ].filter((d): d is NonNullable<typeof d> => d !== null);
+
+  return (
+    <section className="space-y-4">
+      <SectionHeading>FREELANCE</SectionHeading>
+      <div className="space-y-4 rounded-xl border p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="success">{availability}</Badge>
+          {days && <span className="text-sm text-muted-foreground">{days}</span>}
+        </div>
+        {details.length > 0 && (
+          <dl className="grid gap-3 text-sm sm:grid-cols-3">
+            {details.map((d) => (
+              <div key={d.label} className="space-y-0.5">
+                <dt className="text-xs text-muted-foreground">{d.label}</dt>
+                <dd className="font-medium">{d.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        {services.length > 0 && (
+          <div className="space-y-3 border-t pt-4">
+            <h3 className="text-sm font-semibold">Prestations</h3>
+            <ul className="space-y-3">
+              {services.map((service) => (
+                <li key={service.id} className="space-y-1">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-medium">{service.title}</span>
+                    {service.starting_price && (
+                      <span className="text-sm text-muted-foreground">
+                        à partir de {formatEuros(service.starting_price)} HT
+                      </span>
+                    )}
+                  </div>
+                  {service.description && (
+                    <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                      {service.description}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -306,6 +391,7 @@ export function PublicProfileView({
   languages,
   certifications,
   projects,
+  services = [],
 }: {
   profile: PublicProfileData;
   experiences: ExperienceRow[];
@@ -313,6 +399,7 @@ export function PublicProfileView({
   languages: LanguageRow[];
   certifications: CertificationRow[];
   projects: ProjectRow[];
+  services?: ServiceRow[];
 }) {
   const displayName = profile.display_name ?? profile.username;
   const initials = getInitials(profile.display_name ?? "", profile.username);
@@ -327,6 +414,7 @@ export function PublicProfileView({
     languages: <LanguageSection items={languages} />,
     certifications: <CertificationSection items={certifications} />,
     projects: <ProjectSection items={projects} />,
+    freelance: <FreelanceSection offer={profile.freelance} services={services} />,
   };
 
   const links = [

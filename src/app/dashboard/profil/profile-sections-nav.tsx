@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import {
   Award,
+  BadgeEuro,
   Briefcase,
   Camera,
   FolderKanban,
@@ -20,6 +21,7 @@ export const PROFILE_SECTIONS = [
   { id: "identite", label: "Éditer mon profil", Icon: UserRound },
   { id: "photo", label: "Photo", Icon: Camera },
   { id: "en-tete", label: "En-tête", Icon: MapPin },
+  { id: "freelance", label: "Freelance", Icon: BadgeEuro },
   { id: "a-propos", label: "À propos", Icon: IdCard },
   { id: "experience", label: "Expérience", Icon: Briefcase },
   { id: "formation", label: "Formation", Icon: GraduationCap },
