@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MODE_STORAGE_KEY, THEME_STORAGE_KEY } from "@/lib/appearance";
+import { MODE_STORAGE_KEY } from "@/lib/appearance";
 
 const setProfileOnline = vi.fn().mockResolvedValue({});
 
@@ -69,15 +69,17 @@ describe("UserMenu", () => {
     expect(await screen.findByRole("menuitem", { name: "Adresse copiée" })).toBeInTheDocument();
   });
 
-  it("applique le thème choisi sur <html> et dans localStorage via le sous-menu Thème", () => {
+  it("ne propose que Clair et Sombre dans le sous-menu Thème", () => {
     render(<UserMenu {...defaultProps} />);
     fireEvent.click(screen.getByRole("button", { name: "remy@example.com" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Thème" }));
 
-    fireEvent.click(screen.getByRole("menuitemradio", { name: "Bleu Ardoise" }));
-
-    expect(document.documentElement).toHaveAttribute("data-theme", "blue");
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("blue");
+    const choices = screen.getAllByRole("menuitemradio").map((item) => item.textContent);
+    expect(choices).toEqual(["Clair", "Sombre"]);
+    expect(screen.getByRole("menuitemradio", { name: "Clair" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
   });
 
   it("bascule en mode sombre puis clair sur <html> et dans localStorage via le sous-menu Thème", () => {
@@ -92,5 +94,6 @@ describe("UserMenu", () => {
     fireEvent.click(screen.getByRole("menuitemradio", { name: "Clair" }));
     expect(document.documentElement).not.toHaveClass("dark");
     expect(localStorage.getItem(MODE_STORAGE_KEY)).toBe("light");
+    expect(document.documentElement).toHaveAttribute("data-theme", "editorial");
   });
 });

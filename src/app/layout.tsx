@@ -23,7 +23,9 @@ export const metadata: Metadata = {
     "Ton espace de travail personnel, en une seule adresse : CV, rendez-vous, boards et fichiers.",
 };
 
-const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("mywork-theme");if(t==="editorial"||t==="neutral"||t==="blue"||t==="warm"){document.documentElement.setAttribute("data-theme",t);}var m=localStorage.getItem("mywork-mode");if(m==="dark"||m==="light"){document.documentElement.classList.toggle("dark",m==="dark");}}catch(e){}})();`;
+// Applique le mode clair/sombre mémorisé avant l'affichage (sinon la page clignote).
+// L'ancien choix de couleur (« mywork-theme ») est effacé : le site reste en Éditorial.
+const THEME_INIT_SCRIPT = `(function(){try{localStorage.removeItem("mywork-theme");var m=localStorage.getItem("mywork-mode");if(m==="dark"||m==="light"){document.documentElement.classList.toggle("dark",m==="dark");}}catch(e){}})();`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

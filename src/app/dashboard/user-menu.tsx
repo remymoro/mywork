@@ -26,24 +26,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
-import {
-  DEFAULT_MODE,
-  DEFAULT_THEME,
-  MODE_STORAGE_KEY,
-  THEMES,
-  THEME_STORAGE_KEY,
-  parseMode,
-  parseTheme,
-  type Mode,
-  type ThemeId,
-} from "@/lib/appearance";
+import { DEFAULT_MODE, MODE_STORAGE_KEY, parseMode, type Mode } from "@/lib/appearance";
 import { signOut } from "./actions";
 import { setProfileOnline } from "./profile-actions";
-
-function readCurrentTheme(): ThemeId {
-  if (typeof document === "undefined") return DEFAULT_THEME;
-  return parseTheme(document.documentElement.getAttribute("data-theme"));
-}
 
 function readCurrentMode(): Mode {
   if (typeof document === "undefined") return DEFAULT_MODE;
@@ -59,22 +44,11 @@ export function UserMenu({
   username: string;
   isOnline: boolean;
 }) {
-  const [theme, setTheme] = useState<ThemeId>(readCurrentTheme);
   const [mode, setMode] = useState<Mode>(readCurrentMode);
   const [online, setOnline] = useState(isOnline);
   const [copied, setCopied] = useState(false);
 
   const initial = email.trim().charAt(0).toUpperCase() || "?";
-
-  function selectTheme(next: ThemeId) {
-    setTheme(next);
-    document.documentElement.setAttribute("data-theme", next);
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, next);
-    } catch {
-      // Stockage local indisponible.
-    }
-  }
 
   function selectMode(next: Mode) {
     setMode(next);
@@ -107,10 +81,7 @@ export function UserMenu({
   return (
     <DropdownMenu
       onOpenChange={(open) => {
-        if (open) {
-          setTheme(readCurrentTheme());
-          setMode(readCurrentMode());
-        }
+        if (open) setMode(readCurrentMode());
       }}
     >
       <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-sidebar-foreground hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
@@ -175,23 +146,6 @@ export function UserMenu({
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="min-w-44">
             <DropdownMenuGroup>
-              <DropdownMenuLabel>Thème de la page</DropdownMenuLabel>
-              <DropdownMenuRadioGroup
-                value={theme}
-                onValueChange={(value) => selectTheme(parseTheme(value))}
-              >
-                {THEMES.map((item) => (
-                  <DropdownMenuRadioItem key={item.id} value={item.id}>
-                    {item.label}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuGroup>
-
-            <DropdownMenuSeparator />
-
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Apparence</DropdownMenuLabel>
               <DropdownMenuRadioGroup
                 value={mode}
                 onValueChange={(value) => selectMode(parseMode(value))}
