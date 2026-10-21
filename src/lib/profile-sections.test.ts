@@ -208,7 +208,7 @@ describe("validateFreelance et validateService", () => {
         freelance_travel_zone: "Agen et 100 km",
       },
     });
-    expect(validateFreelance({}).ok && validateFreelance({}).value.freelance_enabled).toBe(false);
+    expect(validateFreelance({})).toMatchObject({ ok: true, value: { freelance_enabled: false, freelance_work_modes: [] } });
     expect(validateFreelance({ freelance_daily_rate: "abc" }).ok).toBe(false);
     expect(validateFreelance({ freelance_days_per_week: "6" }).ok).toBe(false);
   });
