@@ -6,7 +6,7 @@ Statut : **proposition du 2026-10-21**, à valider avec le porteur. Les points m
 
 ## Maquettes (2026-10-21)
 
-Dessinées dans un canvas Claude Design privé (lien à demander au porteur du projet), au thème Éditorial (D22) : fond crème, titres en Newsreader, carmin `#B00A1D` pour les actions.
+Dessinées dans un canvas Claude Design privé (lien à demander au porteur du projet), au thème Éditorial (D22) : fond crème, titres en Newsreader, carmin `#911128` pour les actions (palette du site, D22).
 
 | Maquette | Ce qu'elle montre |
 |---|---|
