@@ -1,6 +1,7 @@
 import Image from "next/image";
-import { Briefcase, CodeXml, Globe, Link2, MapPin } from "lucide-react";
+import { Briefcase, CodeXml, EyeOff, Globe, Link2, MapPin } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { CertificationRow } from "@/app/dashboard/profil/certification-fields";
@@ -21,6 +22,7 @@ import { ContactButton } from "./contact-button";
 
 export type PublicProfileData = {
   username: string;
+  is_online: boolean;
   display_name: string | null;
   headline: string | null;
   avatar_url: string | null;
@@ -315,6 +317,17 @@ export function PublicProfileView({
         <header className="flex items-center justify-between">
           <Logo />
         </header>
+
+        {/* Un profil hors ligne n'est lisible que par son propriétaire (RLS) : on le lui signale. */}
+        {!profile.is_online && (
+          <Alert role="status">
+            <EyeOff aria-hidden="true" />
+            <AlertDescription>
+              Ton profil est hors ligne : toi seul le vois. Les visiteurs voient « Page
+              introuvable ». Réactive « Profil en ligne » dans le menu de ton espace.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <section className="flex flex-col gap-6 sm:flex-row sm:items-start">
           {profile.avatar_url ? (

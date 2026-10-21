@@ -44,7 +44,7 @@ export default async function PublicProfilePage({
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "id, username, display_name, headline, avatar_url, location, open_to_work, open_to_work_details, contact_email, website_url, linkedin_url, github_url, other_url, about, top_skills, skills",
+      "id, username, is_online, display_name, headline, avatar_url, location, open_to_work, open_to_work_details, contact_email, website_url, linkedin_url, github_url, other_url, about, top_skills, skills",
     )
     .eq("username", username)
     .maybeSingle();
@@ -110,6 +110,7 @@ export default async function PublicProfilePage({
     <PublicProfileView
       profile={{
         username: profile.username,
+        is_online: profile.is_online,
         display_name: profile.display_name,
         headline: profile.headline,
         avatar_url: profile.avatar_url,

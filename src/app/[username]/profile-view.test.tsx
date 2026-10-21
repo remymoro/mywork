@@ -87,6 +87,7 @@ describe("Sections publiques du profil", () => {
       <PublicProfileView
         profile={{
           username: "remy",
+          is_online: true,
           display_name: "Rémy Moro",
           headline: "Consultant Produit",
           avatar_url: null,
@@ -156,5 +157,37 @@ describe("Sections publiques du profil", () => {
     expect(screen.getByRole("heading", { name: "LANGUES" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "FORMATION" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "COMPÉTENCES" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ton profil est hors ligne/)).not.toBeInTheDocument();
+  });
+
+  it("prévient le propriétaire quand son profil est hors ligne", () => {
+    render(
+      <PublicProfileView
+        profile={{
+          username: "remy",
+          is_online: false,
+          display_name: null,
+          headline: null,
+          avatar_url: null,
+          location: null,
+          open_to_work: false,
+          open_to_work_details: null,
+          hasContact: false,
+          website_url: null,
+          linkedin_url: null,
+          github_url: null,
+          other_url: null,
+          about: null,
+          top_skills: [],
+          skills: [],
+        }}
+        experiences={[]}
+        educations={[]}
+        languages={[]}
+        certifications={[]}
+        projects={[]}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Ton profil est hors ligne");
   });
 });
