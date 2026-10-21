@@ -13,9 +13,9 @@ export function OnboardingForm() {
     <form action={action} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="username">Pseudo (ton adresse publique)</Label>
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+        <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:items-center">
           <span>mywork.website/</span>
-          <Input id="username" name="username" required minLength={3} maxLength={30} />
+          <Input id="username" name="username" required minLength={3} maxLength={30} className="flex-1" />
         </div>
       </div>
       <div className="space-y-2">

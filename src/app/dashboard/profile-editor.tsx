@@ -29,7 +29,7 @@ export function ProfileEditor(initial: Props) {
             <form action={action} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Pseudo</Label>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:items-center">
                   <span>mywork.website/</span>
                   <Input
                     id="username"
@@ -37,6 +37,7 @@ export function ProfileEditor(initial: Props) {
                     required
                     minLength={3}
                     maxLength={30}
+                    className="flex-1"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                   />
