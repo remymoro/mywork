@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Award,
   BadgeEuro,
@@ -38,7 +38,10 @@ export const PROFILE_SECTIONS = [
 
 export type ProfileSectionId = (typeof PROFILE_SECTIONS)[number]["id"];
 
-// Menu des sections à gauche ; seuls les champs de la section choisie s'affichent à droite.
+const anchor = (id: ProfileSectionId) => `section-${id}`;
+
+// Menu des sections à gauche ; toutes les sections s'enchaînent à droite. Un clic fait défiler
+// jusqu'à la section, et la section visible est mise en avant dans le menu pendant le défilement.
 export function ProfileSectionsNav({
   sections,
   username,
@@ -47,7 +50,40 @@ export function ProfileSectionsNav({
   username: string;
 }) {
   const [active, setActive] = useState<ProfileSectionId>("identite");
-  const current = PROFILE_SECTIONS.find((s) => s.id === active)!;
+  // Pendant un défilement lancé par un clic, on ignore le suivi pour ne pas faire clignoter le menu.
+  const scrollingTo = useRef<ProfileSectionId | null>(null);
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (!visible) return;
+        const id = visible.target.id.replace("section-", "") as ProfileSectionId;
+        if (scrollingTo.current && scrollingTo.current !== id) return;
+        scrollingTo.current = null;
+        setActive(id);
+      },
+      // Une section est « active » quand elle occupe le haut de l'écran.
+      { rootMargin: "-10% 0px -70% 0px" },
+    );
+    for (const { id } of PROFILE_SECTIONS) {
+      const el = document.getElementById(anchor(id));
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, []);
+
+  function goTo(id: ProfileSectionId) {
+    setActive(id);
+    scrollingTo.current = id;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    document
+      .getElementById(anchor(id))
+      ?.scrollIntoView?.({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  }
 
   return (
     <div className="grid gap-6 md:grid-cols-[14rem_1fr]">
@@ -62,7 +98,8 @@ export function ProfileSectionsNav({
                 <button
                   type="button"
                   aria-current={isActive ? "true" : undefined}
-                  onClick={() => setActive(id)}
+                  aria-controls={anchor(id)}
+                  onClick={() => goTo(id)}
                   className={cn(
                     "flex w-full items-center gap-3 border-l-[3px] px-3 py-2 text-left text-sm whitespace-nowrap",
                     isActive
@@ -95,9 +132,15 @@ export function ProfileSectionsNav({
         </a>
       </nav>
 
-      <section aria-label={current.label} className="min-w-0">
-        {sections[active]}
-      </section>
+      <div className="min-w-0 space-y-10">
+        {PROFILE_SECTIONS.map(({ id, label }) => (
+          <section key={id} id={anchor(id)} aria-label={label} className="scroll-mt-6">
+            {sections[id]}
+          </section>
+        ))}
+        {/* Espace en bas : la dernière section peut remonter en haut de l'écran. */}
+        <div aria-hidden="true" className="h-[50vh]" />
+      </div>
     </div>
   );
 }
