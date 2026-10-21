@@ -5,9 +5,11 @@ import { Sidebar, type SidebarActive } from "./sidebar";
 
 export function DashboardShell({
   active,
+  userName,
   children,
 }: {
   active: SidebarActive;
+  userName: string;
   children: React.ReactNode;
 }) {
   return (
@@ -21,7 +23,7 @@ export function DashboardShell({
         </form>
       </header>
       <div className="flex flex-1">
-        <Sidebar active={active} />
+        <Sidebar active={active} userName={userName} />
         <main className="flex-1 space-y-6 p-6 sm:p-8">{children}</main>
       </div>
     </div>

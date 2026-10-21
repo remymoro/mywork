@@ -22,8 +22,10 @@ export default async function ProfilePage() {
     .maybeSingle();
   if (!profile) redirect("/onboarding");
 
+  const userName = profile.display_name ?? profile.username;
+
   return (
-    <DashboardShell active="profil">
+    <DashboardShell active="profil" userName={userName}>
       <div className="space-y-1.5">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
           ESPACE PRIVÉ

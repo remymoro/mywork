@@ -21,14 +21,16 @@ export default async function DashboardPage() {
     .maybeSingle();
   if (!profile) redirect("/onboarding");
 
+  const userName = profile.display_name ?? profile.username;
+
   return (
-    <DashboardShell active="accueil">
+    <DashboardShell active="accueil" userName={userName}>
       <div className="space-y-1.5">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
           ESPACE PRIVÉ
         </p>
         <h1 className="font-heading text-3xl font-normal tracking-tight text-foreground sm:text-4xl">
-          Bonjour {profile.display_name ?? profile.username}
+          Bonjour {userName}
         </h1>
       </div>
       <p className="text-sm text-muted-foreground">
