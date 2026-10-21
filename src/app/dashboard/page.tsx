@@ -29,6 +29,7 @@ export default async function DashboardPage() {
     <DashboardShell
       active="accueil"
       email={user.email ?? ""}
+      displayName={profile.display_name}
       username={profile.username}
       isOnline={profile.is_online}
     >

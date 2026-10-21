@@ -8,7 +8,7 @@ import { Sidebar } from "./sidebar";
 
 describe("Sidebar", () => {
   it("marque la page active, liste les modules à venir et affiche le menu utilisateur", () => {
-    render(<Sidebar active="accueil" email="remy@example.com" username="remy" isOnline />);
+    render(<Sidebar active="accueil" email="remy@example.com" displayName="Rémy Moro" username="remy" isOnline />);
     expect(screen.getByRole("link", { name: "Mon tableau de bord" })).toHaveAttribute(
       "aria-current",
       "page",
@@ -19,11 +19,11 @@ describe("Sidebar", () => {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
     expect(screen.getAllByText("Bientôt").length).toBeGreaterThanOrEqual(4);
-    expect(screen.getByRole("button", { name: "remy@example.com" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rémy Moro" })).toBeInTheDocument();
   });
 
   it("marque Mon profil comme actif sur sa page", () => {
-    render(<Sidebar active="profil" email="remy@example.com" username="remy" isOnline={false} />);
+    render(<Sidebar active="profil" email="remy@example.com" displayName="Rémy Moro" username="remy" isOnline={false} />);
     expect(screen.getByRole("link", { name: "Mon profil" })).toHaveAttribute(
       "aria-current",
       "page",
