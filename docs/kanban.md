@@ -28,8 +28,8 @@ Une expérience proche de Trello avec beaucoup moins de fonctions : plusieurs ta
 |---|---|
 | Listes par tableau | 5 |
 | Cartes par liste | 20 |
-| Tableaux par utilisateur | pas de limite en V1 |
-| Membres invités par tableau | 10 **(à valider)** |
+| Tableaux créés par utilisateur | 10 |
+| Membres invités par tableau | 10 |
 | Titre d'une carte | 150 caractères |
 | Description | 10 000 caractères |
 | Commentaire | 2 000 caractères |
@@ -58,7 +58,7 @@ Les limites sont appliquées côté serveur et dans la base : une 6ᵉ liste ou 
 
 - **Ajout rapide** : « + Carte » en bas de chaque liste ouvre un champ ; Entrée valide et laisse le champ ouvert, Échap ferme.
 - **Aperçu** : la première image en haut de la carte, le titre, puis seulement si présents : description (≡), nombre de commentaires (💬), d'images (🖼), et checklist « ☑ 2/5 » (verte quand tout est coché).
-- **Qui peut quoi** : le propriétaire et les membres créent, modifient, déplacent et suppriment toutes les cartes du tableau **(à valider : ou un membre seulement ses cartes)**.
+- **Qui peut quoi** : le propriétaire et les membres créent des cartes. Un membre fait **tout sur ses propres cartes** (modifier, déplacer, images, checklist, supprimer), mais ne peut **ni modifier, ni déplacer, ni supprimer les cartes des autres**. Le propriétaire peut tout, sur toutes les cartes.
 - **Déplacer** : glisser-déposer dans une liste et d'une liste à l'autre, à la souris, au doigt ou au clavier. Un déplacement vers une liste pleine est refusé (la carte revient à sa place avec un message).
 
 ### Fenêtre de détail
@@ -102,7 +102,7 @@ Texte en **Markdown limité**, affiché proprement quand on n'est pas en train d
 
 ### Commentaires
 
-- Gardés pour **travailler à plusieurs** : visibles par le propriétaire et les membres du tableau. Texte brut avec retours à la ligne, 2 000 caractères.
+- Gardés pour **travailler à plusieurs** : visibles par le propriétaire et les membres du tableau ; **chacun peut commenter toutes les cartes**, y compris celles des autres (un commentaire ne modifie pas la carte). Texte brut avec retours à la ligne, 2 000 caractères.
 - Chaque commentaire montre son auteur (nom affiché du compte) et la date.
 - **Suppression** : chacun supprime ses commentaires ; le propriétaire supprime tous les commentaires. Pas de modification en V1.
 
@@ -112,9 +112,11 @@ Texte en **Markdown limité**, affiché proprement quand on n'est pas en train d
 |---|---|---|---|
 | Voir le tableau | Oui | Oui | Non |
 | Créer, renommer, supprimer, déplacer une liste ; liste de fin | Oui | Non | Non |
-| Créer, modifier, déplacer, supprimer une carte | Oui | Oui **(à valider)** | Non |
-| Images, checklist | Oui | Oui | Non |
-| Commenter | Oui | Oui | Non |
+| Créer une carte | Oui | Oui | Non |
+| Modifier, déplacer, supprimer **ses** cartes | Oui | Oui | Non |
+| Modifier, déplacer, supprimer les cartes **des autres** | Oui | Non | Non |
+| Images, checklist | Toutes les cartes | Ses cartes | Non |
+| Commenter | Toutes les cartes | Toutes les cartes | Non |
 | Supprimer un commentaire | Tous | Les siens | Non |
 | Renommer, partager, supprimer le tableau | Oui | Non (peut le quitter) | Non |
 
@@ -144,18 +146,13 @@ Texte en **Markdown limité**, affiché proprement quand on n'est pas en train d
 4. **Description** : Entrée va à la ligne, Ctrl/⌘ + Entrée enregistre.
 5. **Checklist** : une seule par carte en V1.
 6. **Images** : 5 par carte, 2 Mo, stockage privé, adresses signées.
-7. **Tableaux** : pas de limite en V1.
+7. **Tableaux** : 10 tableaux créés par utilisateur, 10 membres par tableau.
 8. **Glisser-déposer** : `@dnd-kit`.
 9. **Suppression** d'une liste ou d'un tableau : définitive, avec confirmation (corbeille en V2).
 10. **Couleur d'une liste** : 6 pastels ; **icône d'un tableau** : 6 choix.
 11. **Menu principal** : entrée active en bloc plein carmin dans toute l'app.
 12. **Liste de fin** : avertissement (pas de blocage) si la checklist n'est pas finie.
-
-## Questions à valider
-
-1. **Cartes des membres** : un membre peut-il modifier, déplacer et supprimer **toutes** les cartes (proposé), ou seulement les siennes ?
-2. **Nombre de membres** par tableau : 10 (proposé) ?
-3. **Invitation** : par pseudo, sans acceptation de l'invité en V1 (proposé) ; ou une invitation à accepter ?
+13. **Membres** : ils créent leurs cartes et font tout dessus, mais ne touchent pas aux cartes des autres ; ils commentent toutes les cartes. Invitation directe par pseudo, sans acceptation.
 
 ## Livraison
 
