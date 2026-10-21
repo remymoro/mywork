@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const revealContactEmail = vi.fn();
@@ -304,5 +304,47 @@ describe("Sections publiques du profil", () => {
     rerender(<FreelanceSection offer={{ ...base, availability: "non_precisee" }} services={[]} />);
     expect(screen.queryByText(/Disponible|Indisponible/)).not.toBeInTheDocument();
     expect(screen.getByText("Je propose mes services en freelance")).toBeInTheDocument();
+  });
+
+  it("place l'offre freelance dans une carte à gauche, à part des autres sections", () => {
+    render(
+      <PublicProfileView
+        profile={{
+          username: "remy",
+          is_online: true,
+          display_name: "Rémy Moro",
+          headline: null,
+          avatar_url: null,
+          location: null,
+          open_to_work: false,
+          open_to_work_details: null,
+          hasContact: false,
+          website_url: null,
+          linkedin_url: null,
+          github_url: null,
+          other_url: null,
+          about: "Bonjour",
+          top_skills: [],
+          skills: [],
+          freelance: {
+            availability: "disponible",
+            available_from: null,
+            work_modes: ["hybride"],
+            daily_rate: 450,
+            travel_zone: null,
+          },
+        }}
+        experiences={[]}
+        educations={[]}
+        languages={[]}
+        certifications={[]}
+        projects={[]}
+      />,
+    );
+    const aside = screen.getByRole("complementary");
+    expect(within(aside).getByRole("heading", { name: "Freelance" })).toBeInTheDocument();
+    expect(within(aside).getByText("450 € HT / jour")).toBeInTheDocument();
+    expect(within(aside).queryByRole("heading", { name: "À PROPOS" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "À PROPOS" })).toBeInTheDocument();
   });
 });

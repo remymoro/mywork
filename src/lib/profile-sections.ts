@@ -389,9 +389,11 @@ export function formatEuros(amount: number): string {
   return `${new Intl.NumberFormat("fr-FR").format(amount).replace(/\u202f|\u00a0/g, " ")} €`;
 }
 
-/** Sections de la page publique, dans l'ordre par défaut (l'en-tête reste toujours en haut). */
+/**
+ * Sections de la page publique, dans l'ordre par défaut. L'en-tête reste toujours en haut,
+ * et l'offre freelance s'affiche à part, en carte à gauche.
+ */
 export const PUBLIC_SECTIONS = [
-  { id: "freelance", label: "Freelance" },
   { id: "about", label: "À propos" },
   { id: "experiences", label: "Expérience" },
   { id: "educations", label: "Formation" },

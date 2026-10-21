@@ -172,10 +172,10 @@ describe("getInitials", () => {
 describe("ordre des sections", () => {
   it("complète l'ordre enregistré et ignore les inconnus ou doublons", () => {
     expect(normalizeSectionOrder([])).toEqual([
-      "freelance", "about", "experiences", "educations", "skills", "languages", "certifications", "projects",
+      "about", "experiences", "educations", "skills", "languages", "certifications", "projects",
     ]);
     expect(normalizeSectionOrder(["projects", "pirate", "experiences", "projects"])).toEqual([
-      "projects", "experiences", "freelance", "about", "educations", "skills", "languages", "certifications",
+      "projects", "experiences", "about", "educations", "skills", "languages", "certifications",
     ]);
   });
 

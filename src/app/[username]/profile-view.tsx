@@ -88,15 +88,17 @@ export function FreelanceSection({
   ].filter((d): d is NonNullable<typeof d> => d !== null);
 
   return (
-    <section className="space-y-4">
-      <SectionHeading>FREELANCE</SectionHeading>
-      <div className="space-y-4 rounded-xl border p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium">Je propose mes services en freelance</span>
-          {availability && <Badge variant={availability.variant}>{availability.text}</Badge>}
-        </div>
-        {details.length > 0 && (
-          <dl className="grid gap-3 text-sm sm:grid-cols-3">
+    // Carte affichée dans la colonne de gauche de la page publique.
+    <section aria-labelledby="freelance-title" className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
+      <div className="space-y-2">
+        <h2 id="freelance-title" className="font-heading text-2xl font-normal tracking-tight">
+          Freelance
+        </h2>
+        <p className="text-sm text-muted-foreground">Je propose mes services en freelance</p>
+        {availability && <Badge variant={availability.variant}>{availability.text}</Badge>}
+      </div>
+      {details.length > 0 && (
+          <dl className="space-y-3 border-t pt-4 text-sm">
             {details.map((d) => (
               <div key={d.label} className="space-y-0.5">
                 <dt className="text-xs text-muted-foreground">{d.label}</dt>
@@ -104,8 +106,8 @@ export function FreelanceSection({
               </div>
             ))}
           </dl>
-        )}
-        {services.length > 0 && (
+      )}
+      {services.length > 0 && (
           <div className="space-y-3 border-t pt-4">
             <h3 className="text-sm font-semibold">Prestations</h3>
             <ul className="space-y-3">
@@ -128,8 +130,7 @@ export function FreelanceSection({
               ))}
             </ul>
           </div>
-        )}
-      </div>
+      )}
     </section>
   );
 }
@@ -411,6 +412,7 @@ export function PublicProfileView({
   // Comme LinkedIn : le premier poste actuel (dans l'ordre choisi) s'affiche au-dessus du nom.
   const currentPosition = experiences.find((exp) => exp.is_current);
 
+  const hasFreelance = Boolean(profile.freelance);
   const sections: Record<PublicSectionId, React.ReactNode> = {
     about: <AboutSection about={profile.about} topSkills={profile.top_skills} />,
     experiences: <ExperienceSection items={experiences} />,
@@ -419,7 +421,6 @@ export function PublicProfileView({
     languages: <LanguageSection items={languages} />,
     certifications: <CertificationSection items={certifications} />,
     projects: <ProjectSection items={projects} />,
-    freelance: <FreelanceSection offer={profile.freelance} services={services} />,
   };
 
   const links = [
@@ -431,7 +432,7 @@ export function PublicProfileView({
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="mx-auto max-w-3xl space-y-8 px-6 py-10">
+      <main className={`mx-auto space-y-8 px-6 py-10 ${hasFreelance ? "max-w-5xl" : "max-w-3xl"}`}>
         <header className="flex items-center justify-between">
           <Logo />
         </header>
@@ -516,10 +517,18 @@ export function PublicProfileView({
 
         <Separator />
 
-        <div className="space-y-8">
-          {normalizeSectionOrder(profile.section_order).map((id) => (
-            <Fragment key={id}>{sections[id]}</Fragment>
-          ))}
+        {/* Offre freelance : carte à gauche, les autres sections à droite. */}
+        <div className={hasFreelance ? "grid gap-10 md:grid-cols-[18rem_1fr]" : undefined}>
+          {hasFreelance && (
+            <aside className="md:sticky md:top-6 md:self-start">
+              <FreelanceSection offer={profile.freelance} services={services} />
+            </aside>
+          )}
+          <div className="min-w-0 space-y-8">
+            {normalizeSectionOrder(profile.section_order).map((id) => (
+              <Fragment key={id}>{sections[id]}</Fragment>
+            ))}
+          </div>
         </div>
       </main>
     </div>

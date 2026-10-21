@@ -24,6 +24,7 @@ Vitrine de MyWork : c'est la première chose que voit un visiteur (recruteur, cl
 | Projets | Nom, début, fin, description, lien, compétences, image (affichée sur la page publique) |
 
 - **E-mail de contact** : choisi par l'utilisateur, pas forcément l'adresse Google. Côté public, il n'est pas écrit dans la page : le bouton « Afficher l'e-mail » le demande au serveur, puis un bouton « Copier » apparaît. Cela gêne les robots qui collectent les adresses.
+- **Offre freelance côté public** : carte à gauche (colonne fixe pendant le défilement), les autres sections à droite ; elle ne fait pas partie de « Ordre des sections ».
 - **Poste actuel en haut** : sur la page publique, le premier poste coché « Poste actuel » (dans l'ordre choisi) s'affiche au-dessus du nom.
 - **Nom et prénom** : on garde pour l'instant le « nom affiché » existant ; la séparation prénom / nom viendra avec les paramètres du compte.
 - **Photo et images de projet** : JPEG, PNG ou WebP, 2 Mo maximum, stockées dans Supabase Storage (D7), dossiers publics `avatars` et `project-images`.

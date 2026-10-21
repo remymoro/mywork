@@ -27,14 +27,14 @@ describe("SectionOrderForm", () => {
     const items = within(screen.getByRole("list", { name: "Ordre des sections" })).getAllByRole("listitem");
     const dataTransfer = { setData: vi.fn(), effectAllowed: "" };
 
-    // « Projets » (dernier) glissé sur « Freelance » (premier).
-    fireEvent.dragStart(items[7], { dataTransfer });
+    // « Projets » (dernier) glissé sur « À propos » (premier).
+    fireEvent.dragStart(items[6], { dataTransfer });
     fireEvent.dragOver(items[0], { dataTransfer });
     fireEvent.drop(items[0], { dataTransfer });
 
     expect(labels()[0]).toBe("Projets");
     expect(updateSectionOrder).toHaveBeenCalledWith([
-      "projects", "freelance", "about", "experiences", "educations", "skills", "languages", "certifications",
+      "projects", "about", "experiences", "educations", "skills", "languages", "certifications",
     ]);
     expect(await screen.findByRole("status")).toHaveTextContent("Ordre enregistré.");
   });
@@ -42,11 +42,11 @@ describe("SectionOrderForm", () => {
   it("permet aussi de déplacer au clavier et revient en arrière en cas d'erreur", async () => {
     updateSectionOrder.mockResolvedValue({ error: "Impossible d'enregistrer l'ordre." });
     render(<SectionOrderForm initialOrder={normalizeSectionOrder([])} />);
-    expect(screen.getByRole("button", { name: "Monter Freelance" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Monter À propos" })).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Descendre Freelance" }));
-    expect(updateSectionOrder).toHaveBeenCalledWith(expect.arrayContaining(["freelance"]));
+    fireEvent.click(screen.getByRole("button", { name: "Descendre À propos" }));
+    expect(updateSectionOrder).toHaveBeenCalledWith(expect.arrayContaining(["about"]));
     expect(await screen.findByRole("alert")).toHaveTextContent("Impossible d'enregistrer l'ordre.");
-    await waitFor(() => expect(labels()[0]).toBe("Freelance"));
+    await waitFor(() => expect(labels()[0]).toBe("À propos"));
   });
 });
