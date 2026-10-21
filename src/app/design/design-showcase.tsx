@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { LayoutGrid, User } from "lucide-react";
 import { Logo } from "@/components/logo";
+import {
+  LogoMTypo,
+  LogoMonogramme,
+  LogoNomSeul,
+  LogoPages,
+} from "@/components/logo-variants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -129,6 +135,29 @@ const TOKENS = [
     label: "Barre latérale",
     swatchClass: "bg-sidebar border",
     textClass: "text-sidebar-foreground",
+  },
+] as const;
+
+const LOGO_VARIANTS = [
+  {
+    name: "Monogramme",
+    idea: "Un signe compact et une signature complète, pour une identité immédiatement reconnaissable.",
+    Component: LogoMonogramme,
+  },
+  {
+    name: "M typographique",
+    idea: "Une initiale forte donne du caractère au nom sans l’enfermer dans un cadre.",
+    Component: LogoMTypo,
+  },
+  {
+    name: "Pages",
+    idea: "Un livre ouvert évoque les parcours, les projets et les histoires professionnelles.",
+    Component: LogoPages,
+  },
+  {
+    name: "Nom seul",
+    idea: "Le contraste entre carmin et encre fait porter toute l’identité par le nom.",
+    Component: LogoNomSeul,
   },
 ] as const;
 
@@ -265,6 +294,56 @@ export function DesignShowcase() {
               >
                 Tableau de bord · Aa Bb Cc
               </p>
+            </div>
+          </section>
+
+          <Separator />
+
+          <section aria-labelledby="section-logos" className="space-y-4">
+            <div className="space-y-1">
+              <h2 id="section-logos" className="font-heading text-lg font-semibold">
+                Logos
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Quatre pistes à comparer avec le logo actuel. La petite taille
+                correspond à son usage dans la barre latérale.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {LOGO_VARIANTS.map(({ name, idea, Component }) => (
+                <Card key={name}>
+                  <CardHeader>
+                    <CardTitle>{name}</CardTitle>
+                    <CardDescription>{idea}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex min-h-24 items-center rounded-lg border bg-background px-5">
+                      <Component className="text-4xl" />
+                    </div>
+                    <div className="flex min-h-14 items-center justify-between gap-4 rounded-lg border bg-sidebar px-4 text-sidebar-foreground">
+                      <span className="text-xs text-muted-foreground">Barre latérale</span>
+                      <Component className="text-sm" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Logo actuel · référence</CardTitle>
+                  <CardDescription>
+                    Le M blanc dans son carré carmin, suivi du nom en graisse forte.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex min-h-24 items-center rounded-lg border bg-background px-5">
+                    <Logo />
+                  </div>
+                  <div className="flex min-h-14 items-center justify-between gap-4 rounded-lg border bg-sidebar px-4 text-sidebar-foreground">
+                    <span className="text-xs text-muted-foreground">Barre latérale</span>
+                    <div className="origin-right scale-75"><Logo /></div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </section>
 

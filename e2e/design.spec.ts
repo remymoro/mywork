@@ -17,6 +17,8 @@ test("la page /design permet de comparer les variantes et le mode sombre", async
   await expect(demo).toHaveAttribute("data-theme", "editorial");
   await expect(demo.getByText("ESPACE PRIVÉ").first()).toBeVisible();
 
+  await expect(page.getByRole("heading", { name: /Logos/ })).toBeVisible();
+
   await page.getByRole("switch", { name: "Basculer le conteneur de démo en mode sombre" }).click();
   await expect(demo).toHaveClass(/dark/);
 });
