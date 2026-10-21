@@ -513,7 +513,7 @@ export function ListColumn({
       aria-label={`Liste ${list.title}`}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "w-72 shrink-0 self-start rounded-xl border bg-muted/25",
+        "w-[min(18rem,100%)] shrink-0 self-start rounded-xl border bg-muted/25",
         isDragging && "opacity-35",
         insertion?.id === `list:${list.id}` && "ring-2 ring-primary",
       )}

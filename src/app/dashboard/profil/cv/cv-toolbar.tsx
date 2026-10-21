@@ -55,11 +55,11 @@ export function CvToolbar({
         >
           ← Retour à Mon profil
         </Link>
-        <div className="flex gap-2">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
           <button
             type="button"
             onClick={print}
-            className={cn(buttonVariants({ variant: "outline" }), "rounded-sm")}
+            className={cn(buttonVariants({ variant: "outline" }), "min-w-0 flex-1 rounded-sm sm:flex-none")}
           >
             Télécharger en PDF
           </button>
@@ -67,7 +67,7 @@ export function CvToolbar({
             type="button"
             onClick={() => void downloadPng()}
             disabled={preparing}
-            className={cn(buttonVariants(), "rounded-sm")}
+            className={cn(buttonVariants(), "min-w-0 flex-1 rounded-sm sm:flex-none")}
           >
             {preparing ? "Préparation…" : "Télécharger en PNG"}
           </button>

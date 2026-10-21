@@ -6,7 +6,7 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 
 | # | Sujet | Statut | Contenu |
 |---|---|---|---|
-| D1 | Plateforme | Acté | Application web, écran d'ordinateur d'abord. |
+| D1 | Plateforme | Acté | Application web, écran d'ordinateur d'abord. Adaptation aux écrans mobiles demandée le 2026-10-21 : navigation et contenus utilisables sur téléphone. |
 | D2 | Première fonctionnalité | Acté | Module Profil (anciennement « module CV », renommé le 2026-10-21) et profil public. Contenu de la version 1 détaillé dans `docs/modules.md` (validé le 2026-10-21). |
 | D3 | Multi-utilisateur | Proposé | Toutes les données sont rattachées à un utilisateur dès le premier jour, même si un seul compte existe au départ. Cela évite une migration lourde à l'ouverture publique. |
 | D4 | Authentification | Proposé | Authentification minimale dans le socle (le propriétaire doit se connecter pour éditer). L'inscription publique et l'abonnement viennent plus tard. |

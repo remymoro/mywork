@@ -18,9 +18,9 @@ const MODULE_ICONS = {
 } as const;
 
 const NAV = [
-  { id: "accueil", href: "/dashboard", label: "Mon tableau de bord", Icon: LayoutDashboard },
-  { id: "profil", href: "/dashboard/profil", label: "Mon profil", Icon: User },
-  { id: "kanban", href: "/dashboard/kanban", label: "Kanban", Icon: LayoutGrid },
+  { id: "accueil", href: "/dashboard", label: "Mon tableau de bord", shortLabel: "Accueil", Icon: LayoutDashboard },
+  { id: "profil", href: "/dashboard/profil", label: "Mon profil", shortLabel: "Profil", Icon: User },
+  { id: "kanban", href: "/dashboard/kanban", label: "Kanban", shortLabel: "Kanban", Icon: LayoutGrid },
 ] as const;
 
 export type SidebarActive = (typeof NAV)[number]["id"];
@@ -41,31 +41,39 @@ export function Sidebar({
   return (
     <nav
       aria-label="Modules"
-      className="flex w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground"
+      className="flex w-full min-w-0 shrink-0 flex-col gap-2 border-b border-sidebar-border bg-sidebar p-2 text-sidebar-foreground md:w-60 md:border-r md:border-b-0 md:p-4"
     >
-      <div className="space-y-6">
-        <ul className="space-y-1">
-          {NAV.map(({ id, href, label, Icon }) => {
+      <div className="min-w-0 space-y-6">
+        <ul className="grid grid-cols-3 gap-1 md:block md:space-y-1">
+          {NAV.map(({ id, href, label, shortLabel, Icon }) => {
             const isActive = id === active;
             return (
               <li key={id}>
                 <Link
                   href={href}
+                  aria-label={label}
                   aria-current={isActive ? "page" : undefined}
                   className={
                     isActive
-                      ? "flex items-center gap-3 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-                      : "flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent"
+                      ? "flex min-w-0 items-center justify-center gap-1.5 rounded-md bg-primary px-2 py-2.5 text-sm font-medium text-primary-foreground md:justify-start md:gap-3 md:px-3 md:py-2"
+                      : "flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2.5 text-sm text-sidebar-foreground hover:bg-sidebar-accent md:justify-start md:gap-3 md:px-3 md:py-2"
                   }
                 >
                   <Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />
-                  {label}
+                  {shortLabel === label ? (
+                    <span aria-hidden="true">{label}</span>
+                  ) : (
+                    <>
+                      <span aria-hidden="true" className="md:hidden">{shortLabel}</span>
+                      <span aria-hidden="true" className="hidden md:inline">{label}</span>
+                    </>
+                  )}
                 </Link>
               </li>
             );
           })}
         </ul>
-        <div className="space-y-2">
+        <div className="hidden space-y-2 md:block">
           <p className="px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Bientôt
           </p>
@@ -89,7 +97,7 @@ export function Sidebar({
         </div>
       </div>
 
-      <div className="mt-auto border-t border-sidebar-border pt-3">
+      <div className="order-first border-b border-sidebar-border pb-2 md:order-last md:mt-auto md:border-t md:border-b-0 md:pt-3 md:pb-0">
         <UserMenu email={email} displayName={displayName} username={username} isOnline={isOnline} />
       </div>
     </nav>

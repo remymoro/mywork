@@ -469,7 +469,7 @@ export function BoardSidebar({
   const full = ownedCount >= MAX_BOARDS;
 
   return (
-    <nav aria-label="Mes tableaux" className="space-y-4 md:border-r md:pr-5">
+    <nav aria-label="Mes tableaux" className="space-y-4 border-b pb-5 lg:border-r lg:border-b-0 lg:pr-5 lg:pb-0">
       <h2 className="text-xs font-semibold tracking-[0.16em] text-muted-foreground">
         MES TABLEAUX
       </h2>

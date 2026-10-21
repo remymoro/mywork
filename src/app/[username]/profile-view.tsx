@@ -432,7 +432,7 @@ export function PublicProfileView({
 
   return (
     <div className="min-h-screen bg-background">
-      <main className={`mx-auto space-y-8 px-6 py-10 ${hasFreelance ? "max-w-5xl" : "max-w-3xl"}`}>
+      <main className={`mx-auto space-y-8 px-4 py-6 sm:px-6 sm:py-10 ${hasFreelance ? "max-w-5xl" : "max-w-3xl"}`}>
         <header className="flex items-center justify-between">
           <Logo />
         </header>
