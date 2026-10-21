@@ -9,11 +9,11 @@ import { Sidebar } from "./sidebar";
 describe("Sidebar", () => {
   it("marque la page active, liste les modules à venir et affiche le menu utilisateur", () => {
     render(<Sidebar active="accueil" email="remy@example.com" username="remy" isOnline />);
-    expect(screen.getByRole("link", { name: "Tableau de bord" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Mon tableau de bord" })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    expect(screen.getByRole("link", { name: "Profil public" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "Mon profil" })).not.toHaveAttribute("aria-current");
     for (const name of ["CV", "Rendez-vous", "Boards", "Fichiers", "Visio"]) {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
@@ -21,9 +21,9 @@ describe("Sidebar", () => {
     expect(screen.getByRole("button", { name: "remy@example.com" })).toBeInTheDocument();
   });
 
-  it("marque le profil public comme actif sur sa page", () => {
+  it("marque Mon profil comme actif sur sa page", () => {
     render(<Sidebar active="profil" email="remy@example.com" username="remy" isOnline={false} />);
-    expect(screen.getByRole("link", { name: "Profil public" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Mon profil" })).toHaveAttribute(
       "aria-current",
       "page",
     );

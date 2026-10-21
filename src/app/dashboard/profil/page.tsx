@@ -36,7 +36,7 @@ export default async function ProfilePage() {
           ESPACE PRIVÉ
         </p>
         <h1 className="font-heading text-3xl font-normal tracking-tight text-foreground sm:text-4xl">
-          Profil public
+          Mon profil
         </h1>
         <p className="text-sm text-muted-foreground">
           Choisis ce que les visiteurs voient sur ta page.

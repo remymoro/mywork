@@ -37,13 +37,11 @@ export default async function DashboardPage() {
           ESPACE PRIVÉ
         </p>
         <h1 className="font-heading text-3xl font-normal tracking-tight text-foreground sm:text-4xl">
-          Bonjour {userName}
+          Mon tableau de bord
         </h1>
+        <p className="text-sm text-muted-foreground">Bonjour {userName}</p>
       </div>
-      <p className="text-sm text-muted-foreground">
-        Ton tableau de bord est vide pour le moment. Les modules s&apos;afficheront ici au fur et à
-        mesure.
-      </p>
+      <p className="text-sm text-muted-foreground">Futures informations sur mon espace</p>
     </DashboardShell>
   );
 }

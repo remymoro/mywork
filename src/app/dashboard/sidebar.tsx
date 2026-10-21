@@ -21,8 +21,8 @@ const MODULE_ICONS = {
 } as const;
 
 const NAV = [
-  { id: "accueil", href: "/dashboard", label: "Tableau de bord", Icon: LayoutDashboard },
-  { id: "profil", href: "/dashboard/profil", label: "Profil public", Icon: User },
+  { id: "accueil", href: "/dashboard", label: "Mon tableau de bord", Icon: LayoutDashboard },
+  { id: "profil", href: "/dashboard/profil", label: "Mon profil", Icon: User },
 ] as const;
 
 export type SidebarActive = (typeof NAV)[number]["id"];
