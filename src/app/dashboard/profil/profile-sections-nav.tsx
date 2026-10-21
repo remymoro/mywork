@@ -50,7 +50,7 @@ export function ProfileSectionsNav({
   const current = PROFILE_SECTIONS.find((s) => s.id === active)!;
 
   return (
-    <div className="grid gap-6 md:grid-cols-[13rem_1fr]">
+    <div className="grid gap-6 md:grid-cols-[14rem_1fr]">
       <nav aria-label="Sections du profil" className="md:sticky md:top-6 md:self-start">
         <ul className="flex gap-1 overflow-x-auto md:flex-col">
           {PROFILE_SECTIONS.map((section) => {
@@ -83,12 +83,12 @@ export function ProfileSectionsNav({
           href={`/${username}`}
           target="_blank"
           rel="noreferrer noopener"
-          className={buttonVariants({
-            variant: "outline",
-            size: "sm",
-            className:
-              "mt-4 rounded-sm text-xs font-medium tracking-[0.12em] uppercase shadow-sm transition-shadow hover:shadow-md",
-          })}
+          // cn() fusionne avec les classes du bouton (sinon text-xs / rounded-sm ne l'emportent pas toujours).
+          // Retour à la ligne autorisé : le texte en capitales espacées dépassait la colonne du menu.
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "mt-4 h-auto w-full rounded-sm py-2 text-center text-xs leading-snug tracking-[0.12em] whitespace-normal uppercase shadow-sm transition-shadow hover:shadow-md",
+          )}
         >
           Voir mon profil public
           <ExternalLink aria-hidden="true" />
