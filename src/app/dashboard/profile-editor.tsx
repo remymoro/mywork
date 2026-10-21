@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -93,14 +94,14 @@ export function ProfileEditor(initial: Props) {
                 />
               </div>
               {state.error && (
-                <p role="alert" className="text-sm text-red-600">
-                  {state.error}
-                </p>
+                <Alert variant="destructive" role="alert">
+                  <AlertDescription>{state.error}</AlertDescription>
+                </Alert>
               )}
               {state.saved && (
-                <p role="status" className="text-sm text-green-700">
-                  Profil enregistré.
-                </p>
+                <Alert variant="success" role="status">
+                  <AlertDescription>Profil enregistré.</AlertDescription>
+                </Alert>
               )}
               <Button type="submit" disabled={pending}>
                 Enregistrer

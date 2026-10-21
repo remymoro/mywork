@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { MODULES } from "./modules";
 
 export function Sidebar() {
@@ -22,7 +23,7 @@ export function Sidebar() {
               className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-muted-foreground"
             >
               <span>{m.label}</span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs">Bientôt</span>
+              <Badge variant="secondary">Bientôt</Badge>
             </li>
           ))}
         </ul>
