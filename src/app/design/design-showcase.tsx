@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LayoutGrid, User } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { MODULES } from "@/app/dashboard/modules";
 
-type ThemeVariant = "neutral" | "blue" | "warm";
+type ThemeVariant = "neutral" | "blue" | "warm" | "editorial";
 
 const THEME_OPTIONS: {
   id: ThemeVariant;
@@ -57,6 +58,13 @@ const THEME_OPTIONS: {
     subtitle: "Approche humaine et posée",
     description:
       "Fond papier légèrement crème et couleur principale vert sauge profond. Donne une identité singulière, calme et chaleureuse au profil public comme au tableau de bord.",
+  },
+  {
+    id: "editorial",
+    label: "D · Éditorial (Crème, Serif & Carmin)",
+    subtitle: "Caractère presse & édition",
+    description:
+      "Fond crème très clair, grands titres en serif éditorial (Newsreader), barre latérale séparée par un filet fin et accents rouge brique/carmin sobres (logo carré et liseré vertical actif).",
   },
 ];
 
@@ -136,14 +144,21 @@ export function DesignShowcase() {
   const [availableForRdv, setAvailableForRdv] = useState(true);
 
   function handleTabChange(value: unknown) {
-    if (value === "neutral" || value === "blue" || value === "warm") {
+    if (
+      value === "neutral" ||
+      value === "blue" ||
+      value === "warm" ||
+      value === "editorial"
+    ) {
       setTheme(value);
     }
   }
 
+  const isEditorial = theme === "editorial";
+
   return (
     <div className="space-y-8">
-      {/* Barre de contrôle : Tabs pour les 3 variantes + Switch clair/sombre */}
+      {/* Barre de contrôle : Tabs pour les 4 variantes + Switch clair/sombre */}
       <Tabs value={theme} onValueChange={handleTabChange} className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4">
           <div className="space-y-1.5">
@@ -205,8 +220,9 @@ export function DesignShowcase() {
                 1. Nuancier des jetons
               </h2>
               <p className="text-sm text-muted-foreground">
-                Couleurs sémantiques appliquées automatiquement aux composants
-                selon la variante et le mode choisis.
+                Couleurs sémantiques et typographie de titrage appliquées
+                automatiquement aux composants selon la variante et le mode
+                choisis.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
@@ -228,6 +244,26 @@ export function DesignShowcase() {
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4 text-card-foreground">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold">
+                  Typographie des titres (--font-heading)
+                </p>
+                <p className="font-mono text-[11px] text-muted-foreground">
+                  {isEditorial
+                    ? "var(--font-serif) · Newsreader (Éditorial)"
+                    : "var(--font-sans) · Geist Sans"}
+                </p>
+              </div>
+              <p
+                className="text-2xl tracking-tight text-foreground"
+                style={{
+                  fontFamily: "var(--font-heading, var(--font-sans))",
+                }}
+              >
+                Tableau de bord · Aa Bb Cc
+              </p>
             </div>
           </section>
 
@@ -398,31 +434,61 @@ export function DesignShowcase() {
             </div>
 
             <div className="overflow-hidden rounded-xl border bg-background shadow-xs">
-              <div className="flex items-center justify-between border-b bg-card px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="grid size-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-                    M
-                  </span>
-                  <span className="font-semibold tracking-tight">MyWork</span>
-                  <Badge variant="accent" className="ml-2">
-                    Aperçu {theme}
-                  </Badge>
-                </div>
-                <Button variant="outline" size="sm" type="button">
-                  Se déconnecter
-                </Button>
-              </div>
-
               <div className="flex flex-col md:flex-row">
-                <aside className="w-full shrink-0 space-y-5 border-b bg-sidebar p-4 text-sidebar-foreground md:w-52 md:border-r md:border-b-0">
+                <aside className="w-full shrink-0 space-y-6 border-b border-sidebar-border bg-sidebar p-5 text-sidebar-foreground md:w-60 md:border-r md:border-b-0">
+                  {/* Logo : carré rouge M + yWork en serif pour la variante éditoriale */}
+                  <div className="flex items-center justify-between">
+                    {isEditorial ? (
+                      <div
+                        className="inline-flex items-center gap-0.5"
+                        style={{
+                          fontFamily: "var(--font-heading, var(--font-serif))",
+                        }}
+                      >
+                        <span className="grid size-7 place-items-center bg-primary text-lg font-bold leading-none text-primary-foreground">
+                          M
+                        </span>
+                        <span className="text-xl font-bold tracking-tight text-sidebar-foreground">
+                          yWork
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="grid size-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+                          M
+                        </span>
+                        <span className="font-semibold tracking-tight">
+                          MyWork
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
                   <ul className="space-y-1">
                     <li>
-                      <span className="block rounded-md bg-sidebar-primary px-3 py-2 text-sm font-medium text-sidebar-primary-foreground">
-                        Profil public
+                      <span
+                        className={
+                          isEditorial
+                            ? "flex items-center gap-3 border-l-[3px] border-primary bg-sidebar-accent px-3 py-2 text-sm font-medium text-sidebar-accent-foreground"
+                            : "flex items-center gap-3 rounded-md bg-sidebar-primary px-3 py-2 text-sm font-medium text-sidebar-primary-foreground"
+                        }
+                      >
+                        <LayoutGrid
+                          className="size-4 shrink-0"
+                          strokeWidth={1.5}
+                        />
+                        <span>Tableau de bord</span>
+                      </span>
+                    </li>
+                    <li>
+                      <span className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground">
+                        <User className="size-4 shrink-0" strokeWidth={1.5} />
+                        <span>Mon profil</span>
                       </span>
                     </li>
                   </ul>
-                  <div className="space-y-2">
+
+                  <div className="space-y-2 pt-2">
                     <p className="px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Bientôt
                     </p>
@@ -440,7 +506,33 @@ export function DesignShowcase() {
                   </div>
                 </aside>
 
-                <div className="flex-1 space-y-6 p-5">
+                <div className="flex-1 space-y-6 p-6 sm:p-8">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                        ESPACE PRIVÉ
+                      </p>
+                      <h3
+                        className="text-3xl font-normal tracking-tight text-foreground sm:text-4xl"
+                        style={{
+                          fontFamily: "var(--font-heading, var(--font-sans))",
+                        }}
+                      >
+                        Tableau de bord
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Futures informations sur mon espace.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Badge variant="accent">Aperçu {theme}</Badge>
+                      <Button variant="outline" size="sm" type="button">
+                        Se déconnecter
+                      </Button>
+                    </div>
+                  </div>
+
                   <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3 text-sm">
                     <span>
                       Ton adresse publique :{" "}
@@ -502,7 +594,13 @@ export function DesignShowcase() {
                             <p className="text-xs text-muted-foreground">
                               mywork.website/remy
                             </p>
-                            <p className="text-xl font-semibold">
+                            <p
+                              className="text-xl font-semibold"
+                              style={{
+                                fontFamily:
+                                  "var(--font-heading, var(--font-sans))",
+                              }}
+                            >
                               {demoName.trim() || "remy"}
                             </p>
                           </div>

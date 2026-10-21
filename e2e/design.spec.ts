@@ -13,6 +13,10 @@ test("la page /design permet de comparer les variantes et le mode sombre", async
   await page.getByRole("tab", { name: /Sauge/ }).click();
   await expect(demo).toHaveAttribute("data-theme", "warm");
 
+  await page.getByRole("tab", { name: /Éditorial/ }).click();
+  await expect(demo).toHaveAttribute("data-theme", "editorial");
+  await expect(demo.getByText("ESPACE PRIVÉ").first()).toBeVisible();
+
   await page.getByRole("switch", { name: "Basculer le conteneur de démo en mode sombre" }).click();
   await expect(demo).toHaveClass(/dark/);
 });
