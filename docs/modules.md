@@ -41,4 +41,4 @@ Recommandations (témoignages d'autres utilisateurs : nécessite l'ouverture aux
 
 ## Module Kanban
 
-Trello simplifié : plusieurs tableaux publics ou privés, 5 listes par tableau, 20 cartes par liste, glisser-déposer. Le détail fonctionnel est dans `docs/kanban.md`.
+Trello simplifié : plusieurs tableaux toujours privés, partageables avec d'autres utilisateurs de MyWork, 5 listes par tableau, 20 cartes par liste, glisser-déposer. Le détail fonctionnel est dans `docs/kanban.md`.
