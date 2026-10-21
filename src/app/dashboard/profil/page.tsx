@@ -11,6 +11,7 @@ import type { ExperienceRow } from "./experience-fields";
 import { HeaderForm } from "./header-form";
 import type { LanguageRow } from "./language-fields";
 import type { ProjectRow } from "./project-fields";
+import { ProfileSectionsNav } from "./profile-sections-nav";
 import { SectionList } from "./section-list";
 import { SkillsForm } from "./skills-form";
 
@@ -94,53 +95,55 @@ export default async function ProfilePage() {
           Choisis ce que les visiteurs voient sur ta page.
         </p>
       </div>
-      <ProfileEditor
-        key={`${profile.username}|${profile.display_name}|${profile.headline}`}
-        username={profile.username}
-        displayName={profile.display_name ?? ""}
-        headline={profile.headline ?? ""}
+      <ProfileSectionsNav
+        sections={{
+          identite: (
+            <ProfileEditor
+              key={`${profile.username}|${profile.display_name}|${profile.headline}`}
+              username={profile.username}
+              displayName={profile.display_name ?? ""}
+              headline={profile.headline ?? ""}
+            />
+          ),
+          photo: (
+            <AvatarForm
+              avatarUrl={profile.avatar_url ?? null}
+              displayName={profile.display_name ?? ""}
+              username={profile.username}
+            />
+          ),
+          "en-tete": (
+            <HeaderForm
+              key={`${profile.location}|${profile.open_to_work}|${profile.open_to_work_details}|${profile.contact_email}|${profile.website_url}|${profile.linkedin_url}|${profile.github_url}|${profile.other_url}`}
+              location={profile.location ?? ""}
+              openToWork={profile.open_to_work ?? false}
+              openToWorkDetails={profile.open_to_work_details ?? ""}
+              contactEmail={profile.contact_email ?? ""}
+              websiteUrl={profile.website_url ?? ""}
+              linkedinUrl={profile.linkedin_url ?? ""}
+              githubUrl={profile.github_url ?? ""}
+              otherUrl={profile.other_url ?? ""}
+            />
+          ),
+          "a-propos": (
+            <AboutForm
+              key={`${profile.about}|${(profile.top_skills ?? []).join(",")}`}
+              about={profile.about ?? ""}
+              topSkills={profile.top_skills ?? []}
+            />
+          ),
+          experience: <SectionList section="experiences" title="Expérience" items={experiences} />,
+          formation: <SectionList section="educations" title="Formation" items={educations} />,
+          competences: (
+            <SkillsForm key={(profile.skills ?? []).join(",")} skills={profile.skills ?? []} />
+          ),
+          langues: <SectionList section="languages" title="Langues" items={languages} />,
+          certifications: (
+            <SectionList section="certifications" title="Certifications" items={certifications} />
+          ),
+          projets: <SectionList section="projects" title="Projets" items={projects} />,
+        }}
       />
-
-      <div className="space-y-6">
-        <AvatarForm
-          avatarUrl={profile.avatar_url ?? null}
-          displayName={profile.display_name ?? ""}
-          username={profile.username}
-        />
-
-        <HeaderForm
-          key={`${profile.location}|${profile.open_to_work}|${profile.open_to_work_details}|${profile.contact_email}|${profile.website_url}|${profile.linkedin_url}|${profile.github_url}|${profile.other_url}`}
-          location={profile.location ?? ""}
-          openToWork={profile.open_to_work ?? false}
-          openToWorkDetails={profile.open_to_work_details ?? ""}
-          contactEmail={profile.contact_email ?? ""}
-          websiteUrl={profile.website_url ?? ""}
-          linkedinUrl={profile.linkedin_url ?? ""}
-          githubUrl={profile.github_url ?? ""}
-          otherUrl={profile.other_url ?? ""}
-        />
-
-        <AboutForm
-          key={`${profile.about}|${(profile.top_skills ?? []).join(",")}`}
-          about={profile.about ?? ""}
-          topSkills={profile.top_skills ?? []}
-        />
-
-        <SectionList section="experiences" title="Expérience" items={experiences} />
-
-        <SectionList section="educations" title="Formation" items={educations} />
-
-        <SkillsForm
-          key={(profile.skills ?? []).join(",")}
-          skills={profile.skills ?? []}
-        />
-
-        <SectionList section="languages" title="Langues" items={languages} />
-
-        <SectionList section="certifications" title="Certifications" items={certifications} />
-
-        <SectionList section="projects" title="Projets" items={projects} />
-      </div>
     </DashboardShell>
   );
 }
