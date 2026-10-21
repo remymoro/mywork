@@ -12,7 +12,7 @@ describe("ProfileSectionsNav", () => {
     const nav = screen.getByRole("navigation", { name: "Sections du profil" });
     expect(nav).toBeInTheDocument();
     expect(screen.getAllByRole("button")).toHaveLength(PROFILE_SECTIONS.length);
-    const publicLink = screen.getByRole("link", { name: "Mon profil public" });
+    const publicLink = screen.getByRole("link", { name: "Voir mon profil public" });
     expect(publicLink).toHaveAttribute("href", "/remy");
     expect(publicLink).toHaveAttribute("target", "_blank");
 

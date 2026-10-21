@@ -17,6 +17,7 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 
 export const PROFILE_SECTIONS = [
   { id: "identite", label: "Éditer mon profil", Icon: UserRound },
@@ -76,10 +77,10 @@ export function ProfileSectionsNav({
           href={`/${username}`}
           target="_blank"
           rel="noreferrer noopener"
-          className="mt-3 flex items-center gap-3 border-t border-l-[3px] border-l-transparent px-3 pt-3 pb-2 text-sm whitespace-nowrap text-primary hover:underline"
+          className={buttonVariants({ variant: "outline", className: "mt-4 w-full" })}
         >
-          <ExternalLink aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />
-          Mon profil public
+          <ExternalLink aria-hidden="true" />
+          Voir mon profil public
         </a>
       </nav>
 
