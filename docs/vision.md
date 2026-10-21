@@ -11,16 +11,16 @@ Tout s'articule autour d'une page publique par utilisateur (ex. `mywork.website/
 | Module | Partie privée (propriétaire) | Partie publique (visiteur) |
 |---|---|---|
 | Profil (anciennement « CV ») | Édition simple des sections | Profil professionnel consultable par URL, export PDF ou image |
+| Kanban (anciennement « Boards ») | Plusieurs tableaux type Trello | Un tableau marqué public |
 | Rendez-vous | Disponibilités, liste des réservations | Réservation d'un créneau |
-| Boards | Plusieurs boards type Trello | Un board marqué public |
 | Fichiers | Dossiers et fichiers privés | Dossier public téléchargeable |
 | Visio (plus tard) | Rejoindre l'appel | Rejoindre l'appel lié au RDV |
 
 ## Modules et ordre prévu
 1. **Socle** : authentification (compte propriétaire), profil public, modèle de données multi-utilisateur.
 2. **Profil** (anciennement « CV ») : première fonctionnalité livrée.
-3. **Rendez-vous** (Calendly simplifié).
-4. **Boards** (Trello simplifié).
+3. **Kanban** (Trello simplifié) : prochain module, choisi le 2026-10-21 (avant Rendez-vous).
+4. **Rendez-vous** (Calendly simplifié).
 5. **Fichiers** (Drive simplifié).
 6. **Abonnement** : offre unique avec quota de données, inscription ouverte au public.
 7. **Visio** liée aux rendez-vous.

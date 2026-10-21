@@ -15,7 +15,7 @@ describe("Sidebar", () => {
     );
     expect(screen.getByRole("link", { name: "Mon profil" })).not.toHaveAttribute("aria-current");
     expect(screen.queryByText("CV")).not.toBeInTheDocument();
-    for (const name of ["Rendez-vous", "Boards", "Fichiers", "Visio"]) {
+    for (const name of ["Kanban", "Rendez-vous", "Fichiers", "Visio"]) {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
     expect(screen.getAllByText("Bientôt").length).toBeGreaterThanOrEqual(4);

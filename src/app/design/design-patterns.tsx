@@ -51,7 +51,7 @@ export function DesignPatterns() {
         <PrivateProfilePreview />
         <p className="text-sm text-muted-foreground">
           La barre des modules entoure cette page : Mon tableau de bord, Mon profil,
-          puis Rendez-vous, Boards, Fichiers et Visio en « Bientôt ». Le tableau de
+          puis Kanban, Rendez-vous, Fichiers et Visio en « Bientôt ». Le tableau de
           bord central affiche pour l’instant « Futures informations sur mon espace ».
           L’en-tête du profil conserve un petit aperçu du nom et du titre à côté du formulaire.
         </p>

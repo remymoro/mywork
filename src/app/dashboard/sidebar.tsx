@@ -13,7 +13,7 @@ import { UserMenu } from "./user-menu";
 
 const MODULE_ICONS = {
   rdv: Calendar,
-  boards: LayoutGrid,
+  kanban: LayoutGrid,
   fichiers: FolderOpen,
   visio: Video,
 } as const;

@@ -20,7 +20,7 @@ const newsreader = Newsreader({
 export const metadata: Metadata = {
   title: "MyWork",
   description:
-    "Ton espace de travail personnel, en une seule adresse : CV, rendez-vous, boards et fichiers.",
+    "Ton espace de travail personnel, en une seule adresse : profil, kanban, rendez-vous et fichiers.",
 };
 
 // Applique le mode clair/sombre mémorisé avant l'affichage (sinon la page clignote).
