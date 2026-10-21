@@ -6,8 +6,10 @@ test("la page de connexion propose Google", async ({ page }) => {
 });
 
 test("les pages privées renvoient vers la connexion", async ({ page }) => {
-  await page.goto("/dashboard");
-  await expect(page).toHaveURL(/\/login$/);
+  for (const path of ["/dashboard", "/dashboard/profil"]) {
+    await page.goto(path);
+    await expect(page).toHaveURL(/\/login$/);
+  }
 });
 
 test("un pseudo inconnu affiche une page 404", async ({ page }) => {

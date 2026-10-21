@@ -1,8 +1,10 @@
+import Link from "next/link";
 import {
   Calendar,
   FileText,
   FolderOpen,
   LayoutGrid,
+  LayoutDashboard,
   User,
   Video,
 } from "lucide-react";
@@ -17,22 +19,39 @@ const MODULE_ICONS = {
   visio: Video,
 } as const;
 
-export function Sidebar() {
+const NAV = [
+  { id: "accueil", href: "/dashboard", label: "Tableau de bord", Icon: LayoutDashboard },
+  { id: "profil", href: "/dashboard/profil", label: "Profil public", Icon: User },
+] as const;
+
+export type SidebarActive = (typeof NAV)[number]["id"];
+
+export function Sidebar({ active }: { active: SidebarActive }) {
   return (
     <nav
       aria-label="Modules"
       className="w-60 shrink-0 space-y-6 border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground"
     >
-      <ul>
-        <li>
-          <span
-            aria-current="page"
-            className="flex items-center gap-3 border-l-[3px] border-primary bg-sidebar-accent px-3 py-2 text-sm font-medium text-sidebar-accent-foreground"
-          >
-            <User aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />
-            Profil public
-          </span>
-        </li>
+      <ul className="space-y-1">
+        {NAV.map(({ id, href, label, Icon }) => {
+          const isActive = id === active;
+          return (
+            <li key={id}>
+              <Link
+                href={href}
+                aria-current={isActive ? "page" : undefined}
+                className={
+                  isActive
+                    ? "flex items-center gap-3 border-l-[3px] border-primary bg-sidebar-accent px-3 py-2 text-sm font-medium text-sidebar-accent-foreground"
+                    : "flex items-center gap-3 border-l-[3px] border-transparent px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent"
+                }
+              >
+                <Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />
+                {label}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
       <div className="space-y-2">
         <p className="px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
