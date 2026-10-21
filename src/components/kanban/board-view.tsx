@@ -286,6 +286,7 @@ function CardTile({
   checklist,
   commentCount,
   imageCount = 0,
+  coverUrl,
   readOnly,
   disabled,
   insertion,
@@ -296,6 +297,8 @@ function CardTile({
   checklist: ChecklistItem[];
   commentCount: number;
   imageCount?: number;
+  /** Aperçu affiché en haut de la carte : la première image (adresse signée). */
+  coverUrl?: string;
   readOnly: boolean;
   disabled: boolean;
   insertion: Insertion;
@@ -333,76 +336,100 @@ function CardTile({
           )}
         />
       )}
-      <article className="rounded-lg border border-border/70 bg-card p-3 shadow-xs hover:border-primary/30">
-        <div className="flex items-start gap-1">
+      <article className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-xs hover:border-primary/30">
+        {coverUrl && (
+          // Clic sur l'aperçu : ouvre la carte, comme sur son titre.
           <button
             type="button"
-            className="min-w-0 flex-1 rounded text-left text-sm leading-relaxed break-words focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            tabIndex={-1}
+            aria-hidden="true"
             onClick={() => onOpen(card.id)}
+            className="block w-full"
           >
-            {card.title}
+            {/* eslint-disable-next-line @next/next/no-img-element -- adresse signée temporaire */}
+            <img
+              src={coverUrl}
+              alt=""
+              loading="lazy"
+              draggable={false}
+              className="aspect-video w-full border-b object-cover"
+            />
           </button>
-          {!readOnly && (
-            <>
-              <button
-                ref={setActivatorNodeRef}
-                type="button"
-                {...attributes}
-                {...listeners}
-                aria-label={`Déplacer la carte ${card.title}`}
-                title="Espace pour attraper, flèches pour déplacer, Espace pour poser"
-                className="touch-none rounded p-1 text-muted-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                <GripVertical aria-hidden="true" className="size-3.5" />
-              </button>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={<Button variant="ghost" size="icon-xs" />}
-                  aria-label={`Menu de la carte ${card.title}`}
+        )}
+        <div className="p-3">
+          <div className="flex items-start gap-1">
+            <button
+              type="button"
+              className="min-w-0 flex-1 rounded text-left text-sm leading-relaxed break-words focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={() => onOpen(card.id)}
+            >
+              {card.title}
+            </button>
+            {!readOnly && (
+              <>
+                <button
+                  ref={setActivatorNodeRef}
+                  type="button"
+                  {...attributes}
+                  {...listeners}
+                  aria-label={`Déplacer la carte ${card.title}`}
+                  title="Espace pour attraper, flèches pour déplacer, Espace pour poser"
+                  className="touch-none rounded p-1 text-muted-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <MoreHorizontal aria-hidden="true" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-36">
-                  <DropdownMenuItem onClick={() => onOpen(card.id)}>Ouvrir</DropdownMenuItem>
-                  <DropdownMenuItem variant="destructive" onClick={() => onDelete(card)}>
-                    <Trash2 aria-hidden="true" />
-                    Supprimer
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          )}
-        </div>
-        {(card.description || commentCount > 0 || imageCount > 0 || progress.total > 0) && (
-          <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-            {card.description && (
-              <span title="Description" aria-label="Avec une description">
-                <AlignLeft aria-hidden="true" className="size-3.5" />
-              </span>
-            )}
-            {commentCount > 0 && (
-              <span className="flex items-center gap-1" aria-label={`${commentCount} commentaires`}>
-                <MessageSquare aria-hidden="true" className="size-3.5" />
-                {commentCount}
-              </span>
-            )}
-            {imageCount > 0 && (
-              <span className="flex items-center gap-1" aria-label={`${imageCount} images`}>
-                <ImageIcon aria-hidden="true" className="size-3.5" />
-                {imageCount}
-              </span>
-            )}
-            {progress.total > 0 && (
-              <span
-                className={cn("flex items-center gap-1", progress.complete && "text-success")}
-                aria-label={`${progress.done} éléments cochés sur ${progress.total}`}
-              >
-                <CheckSquare aria-hidden="true" className="size-3.5" />
-                {progress.done}/{progress.total}
-              </span>
+                  <GripVertical aria-hidden="true" className="size-3.5" />
+                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={<Button variant="ghost" size="icon-xs" />}
+                    aria-label={`Menu de la carte ${card.title}`}
+                  >
+                    <MoreHorizontal aria-hidden="true" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-36">
+                    <DropdownMenuItem onClick={() => onOpen(card.id)}>Ouvrir</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onClick={() => onDelete(card)}>
+                      <Trash2 aria-hidden="true" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             )}
           </div>
-        )}
+          {(card.description || commentCount > 0 || imageCount > 0 || progress.total > 0) && (
+            <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+              {card.description && (
+                <span title="Description" aria-label="Avec une description">
+                  <AlignLeft aria-hidden="true" className="size-3.5" />
+                </span>
+              )}
+              {commentCount > 0 && (
+                <span
+                  className="flex items-center gap-1"
+                  aria-label={`${commentCount} commentaires`}
+                >
+                  <MessageSquare aria-hidden="true" className="size-3.5" />
+                  {commentCount}
+                </span>
+              )}
+              {imageCount > 0 && (
+                <span className="flex items-center gap-1" aria-label={`${imageCount} images`}>
+                  <ImageIcon aria-hidden="true" className="size-3.5" />
+                  {imageCount}
+                </span>
+              )}
+              {progress.total > 0 && (
+                <span
+                  className={cn("flex items-center gap-1", progress.complete && "text-success")}
+                  aria-label={`${progress.done} éléments cochés sur ${progress.total}`}
+                >
+                  <CheckSquare aria-hidden="true" className="size-3.5" />
+                  {progress.done}/{progress.total}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </article>
     </li>
   );
@@ -566,6 +593,11 @@ export function ListColumn({
                 checklist={checklist.filter((item) => item.card_id === card.id)}
                 commentCount={comments.filter((comment) => comment.card_id === card.id).length}
                 imageCount={images.filter((image) => image.card_id === card.id).length}
+                coverUrl={
+                  images
+                    .filter((image) => image.card_id === card.id)
+                    .sort((a, b) => a.position - b.position)[0]?.url
+                }
                 readOnly={readOnly}
                 disabled={disabled}
                 insertion={insertion}
