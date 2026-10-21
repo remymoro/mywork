@@ -18,6 +18,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const PROFILE_SECTIONS = [
   { id: "identite", label: "Éditer mon profil", Icon: UserRound },
@@ -31,8 +32,9 @@ export const PROFILE_SECTIONS = [
   { id: "langues", label: "Langues", Icon: Languages },
   { id: "certifications", label: "Certifications", Icon: Award },
   { id: "projets", label: "Projets", Icon: FolderKanban },
-  { id: "ordre", label: "Ordre des sections", Icon: ListOrdered },
-] as const satisfies readonly { id: string; label: string; Icon: LucideIcon }[];
+  // En gras : réglage de toute la page, pas une section à remplir.
+  { id: "ordre", label: "Ordre des sections", Icon: ListOrdered, bold: true },
+] as const satisfies readonly { id: string; label: string; Icon: LucideIcon; bold?: boolean }[];
 
 export type ProfileSectionId = (typeof PROFILE_SECTIONS)[number]["id"];
 
@@ -51,19 +53,23 @@ export function ProfileSectionsNav({
     <div className="grid gap-6 md:grid-cols-[13rem_1fr]">
       <nav aria-label="Sections du profil" className="md:sticky md:top-6 md:self-start">
         <ul className="flex gap-1 overflow-x-auto md:flex-col">
-          {PROFILE_SECTIONS.map(({ id, label, Icon }) => {
+          {PROFILE_SECTIONS.map((section) => {
+            const { id, label, Icon } = section;
             const isActive = id === active;
+            const bold = "bold" in section && section.bold;
             return (
               <li key={id}>
                 <button
                   type="button"
                   aria-current={isActive ? "true" : undefined}
                   onClick={() => setActive(id)}
-                  className={
+                  className={cn(
+                    "flex w-full items-center gap-3 border-l-[3px] px-3 py-2 text-left text-sm whitespace-nowrap",
                     isActive
-                      ? "flex w-full items-center gap-3 border-l-[3px] border-primary bg-accent px-3 py-2 text-left text-sm font-medium whitespace-nowrap text-accent-foreground"
-                      : "flex w-full items-center gap-3 border-l-[3px] border-transparent px-3 py-2 text-left text-sm whitespace-nowrap text-muted-foreground hover:bg-accent hover:text-foreground"
-                  }
+                      ? "border-primary bg-accent font-medium text-accent-foreground"
+                      : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
+                    bold && "font-bold text-foreground",
+                  )}
                 >
                   <Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />
                   {label}

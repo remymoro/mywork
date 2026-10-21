@@ -25,3 +25,11 @@ describe("ProfileSectionsNav", () => {
     expect(screen.getByRole("button", { name: "Expérience" })).toHaveAttribute("aria-current", "true");
   });
 });
+
+describe("ProfileSectionsNav — mise en forme", () => {
+  it("met « Ordre des sections » en gras", () => {
+    render(<ProfileSectionsNav sections={sections} username="remy" />);
+    expect(screen.getByRole("button", { name: "Ordre des sections" })).toHaveClass("font-bold");
+    expect(screen.getByRole("button", { name: "Photo" })).not.toHaveClass("font-bold");
+  });
+});
