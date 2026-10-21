@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatDuration,
   formatMonth,
+  getInitials,
   isSectionName,
   normalizeUrl,
   parseSkills,
@@ -149,5 +150,15 @@ describe("affichage", () => {
   it("reconnaît les noms de section", () => {
     expect(isSectionName("experiences")).toBe(true);
     expect(isSectionName("profiles")).toBe(false);
+  });
+});
+
+describe("getInitials", () => {
+  it("prend la 1re lettre du prénom et du nom, sinon une seule lettre", () => {
+    expect(getInitials("Rémy Moro", "remy")).toBe("RM");
+    expect(getInitials("Jean Luc Picard", "jl")).toBe("JP");
+    expect(getInitials("  ", "remy")).toBe("R");
+    expect(getInitials("remy", "remy")).toBe("R");
+    expect(getInitials("", "")).toBe("?");
   });
 });

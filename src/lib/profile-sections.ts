@@ -353,15 +353,17 @@ export function toMonthInput(date: string | null): string {
   return date ? date.slice(0, 7) : "";
 }
 
-/** Initiales affichées à la place de la photo : nom affiché, sinon pseudo. */
+/**
+ * Initiales affichées à la place de la photo : 1re lettre du prénom + 1re lettre du nom
+ * (premier et dernier mot du nom affiché, ex. « Jean Luc Picard » → « JP »).
+ * Un seul mot (ou pas de nom affiché, donc le pseudo) : sa première lettre.
+ */
 export function getInitials(displayName: string, username: string): string {
-  const source = displayName.trim() || username.trim();
-  if (!source) return "?";
-  const parts = source.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  }
-  return source.slice(0, 2).toUpperCase();
+  const parts = (displayName.trim() || username.trim()).split(/[\s-]+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  const first = parts[0][0];
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return `${first}${last}`.toUpperCase();
 }
 
 export function labelOf(options: readonly { value: string; label: string }[], value: string | null) {
