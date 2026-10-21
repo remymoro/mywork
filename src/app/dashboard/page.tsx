@@ -27,7 +27,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b px-6 py-3">
+      <header className="flex items-center justify-between border-b bg-sidebar px-6 py-3">
         <Logo />
         <form action={signOut}>
           <Button type="submit" variant="outline" size="sm">
@@ -37,8 +37,18 @@ export default async function DashboardPage() {
       </header>
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 space-y-6 p-6">
-          <h1 className="text-2xl font-semibold">Bonjour {profile.display_name ?? profile.username}</h1>
+        <main className="flex-1 space-y-6 p-6 sm:p-8">
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+              ESPACE PRIVÉ
+            </p>
+            <h1 className="font-heading text-3xl font-normal tracking-tight text-foreground sm:text-4xl">
+              Bonjour {profile.display_name ?? profile.username}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Gère ton profil public et prépare tes prochains modules.
+            </p>
+          </div>
           <ProfileEditor
             key={`${profile.username}|${profile.display_name}|${profile.headline}`}
             username={profile.username}

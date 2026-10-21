@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LayoutGrid, User } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -436,32 +437,9 @@ export function DesignShowcase() {
             <div className="overflow-hidden rounded-xl border bg-background shadow-xs">
               <div className="flex flex-col md:flex-row">
                 <aside className="w-full shrink-0 space-y-6 border-b border-sidebar-border bg-sidebar p-5 text-sidebar-foreground md:w-60 md:border-r md:border-b-0">
-                  {/* Logo : carré rouge M + yWork en serif pour la variante éditoriale */}
+                  {/* Logo : carré primary M + yWork (via composant partagé Logo) */}
                   <div className="flex items-center justify-between">
-                    {isEditorial ? (
-                      <div
-                        className="inline-flex items-center gap-0.5"
-                        style={{
-                          fontFamily: "var(--font-heading, var(--font-serif))",
-                        }}
-                      >
-                        <span className="grid size-7 place-items-center bg-primary text-lg font-bold leading-none text-primary-foreground">
-                          M
-                        </span>
-                        <span className="text-xl font-bold tracking-tight text-sidebar-foreground">
-                          yWork
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="grid size-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-                          M
-                        </span>
-                        <span className="font-semibold tracking-tight">
-                          MyWork
-                        </span>
-                      </div>
-                    )}
+                    <Logo />
                   </div>
 
                   <ul className="space-y-1">

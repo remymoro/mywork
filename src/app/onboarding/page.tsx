@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
+import { Logo } from "@/components/logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { OnboardingForm } from "./onboarding-form";
@@ -19,10 +20,11 @@ export default async function OnboardingPage() {
   if (profile) redirect("/dashboard");
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background p-6 text-foreground">
+      <Logo />
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Bienvenue sur MyWork</CardTitle>
+          <CardTitle className="font-heading text-2xl">Bienvenue sur MyWork</CardTitle>
           <CardDescription>Choisis ton pseudo : tu pourras le changer plus tard.</CardDescription>
         </CardHeader>
         <CardContent>

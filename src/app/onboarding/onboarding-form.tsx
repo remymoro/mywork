@@ -23,7 +23,7 @@ export function OnboardingForm() {
         <Input id="display_name" name="display_name" maxLength={80} />
       </div>
       {state.error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-destructive">
           {state.error}
         </p>
       )}

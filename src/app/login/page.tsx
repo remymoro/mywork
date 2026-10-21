@@ -7,7 +7,7 @@ async function LoginError({ searchParams }: { searchParams: Promise<{ error?: st
   const { error } = await searchParams;
   if (!error) return null;
   return (
-    <p role="alert" className="text-sm text-red-600">
+    <p role="alert" className="text-sm text-destructive">
       La connexion a échoué. Réessaie.
     </p>
   );
@@ -22,11 +22,11 @@ export default function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background p-6 text-foreground">
       <Logo />
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Se connecter</CardTitle>
+          <CardTitle className="font-heading text-2xl">Se connecter</CardTitle>
           <CardDescription>Un seul clic avec ton compte Google.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
