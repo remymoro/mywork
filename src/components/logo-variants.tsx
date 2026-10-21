@@ -61,3 +61,15 @@ export function LogoNomSeul({ className }: LogoVariantProps) {
     </LogoWordmark>
   );
 }
+
+/** Ancien logo (carré rouge), gardé pour comparaison sur /design. */
+export function LogoCarre({ className }: LogoVariantProps) {
+  return (
+    <LogoWordmark className={`${className ?? ""} gap-0.5 font-bold`}>
+      <span className="grid size-[1.4em] place-items-center bg-primary text-[0.9em] leading-none text-primary-foreground">
+        M
+      </span>
+      <span>yWork</span>
+    </LogoWordmark>
+  );
+}

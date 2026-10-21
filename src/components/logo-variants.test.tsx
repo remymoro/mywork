@@ -13,3 +13,12 @@ describe("pistes de logo", () => {
     expect(container.textContent).toContain(texte);
   });
 });
+
+describe("logo du site", () => {
+  it("affiche le livre ouvert et le nom MyWork", async () => {
+    const { Logo } = await import("./logo");
+    const { container } = render(<Logo />);
+    expect(container.querySelector("svg")).not.toBeNull();
+    expect(container.textContent).toContain("MyWork");
+  });
+});

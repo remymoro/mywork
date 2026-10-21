@@ -10,3 +10,8 @@ test("la page d'accueil propose de se connecter", async ({ page }) => {
   await page.getByRole("link", { name: "Se connecter" }).click();
   await expect(page).toHaveURL(/\/login$/);
 });
+
+test("la page d'accueil affiche le logo MyWork", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("MyWork").first()).toBeVisible();
+});

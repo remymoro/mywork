@@ -8,6 +8,7 @@ import {
   LogoMonogramme,
   LogoNomSeul,
   LogoPages,
+  LogoCarre,
 } from "@/components/logo-variants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -329,18 +330,18 @@ export function DesignShowcase() {
               ))}
               <Card>
                 <CardHeader>
-                  <CardTitle>Logo actuel · référence</CardTitle>
+                  <CardTitle>Ancien logo (carré) · référence</CardTitle>
                   <CardDescription>
                     Le M blanc dans son carré carmin, suivi du nom en graisse forte.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex min-h-24 items-center rounded-lg border bg-background px-5">
-                    <Logo />
+                    <LogoCarre />
                   </div>
                   <div className="flex min-h-14 items-center justify-between gap-4 rounded-lg border bg-sidebar px-4 text-sidebar-foreground">
                     <span className="text-xs text-muted-foreground">Barre latérale</span>
-                    <div className="origin-right scale-75"><Logo /></div>
+                    <div className="origin-right scale-75"><LogoCarre /></div>
                   </div>
                 </CardContent>
               </Card>
