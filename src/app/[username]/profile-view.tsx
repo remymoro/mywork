@@ -299,7 +299,7 @@ export function PublicProfileView({
 }) {
   const displayName = profile.display_name ?? profile.username;
   const initials = getInitials(profile.display_name ?? "", profile.username);
-  // Comme LinkedIn : le premier poste actuel (dans l'ordre choisi) s'affiche sous le nom.
+  // Comme LinkedIn : le premier poste actuel (dans l'ordre choisi) s'affiche au-dessus du nom.
   const currentPosition = experiences.find((exp) => exp.is_current);
 
   const links = [
@@ -336,14 +336,14 @@ export function PublicProfileView({
 
           <div className="flex-1 space-y-3">
             <div className="space-y-1">
-              <h1 className="font-heading text-3xl font-normal tracking-tight text-foreground sm:text-4xl">
-                {displayName}
-              </h1>
               {currentPosition && (
                 <p className="text-lg font-medium text-foreground">
                   {currentPosition.title} · {currentPosition.company}
                 </p>
               )}
+              <h1 className="font-heading text-3xl font-normal tracking-tight text-foreground sm:text-4xl">
+                {displayName}
+              </h1>
               {profile.headline && (
                 <p className="text-lg text-muted-foreground">{profile.headline}</p>
               )}

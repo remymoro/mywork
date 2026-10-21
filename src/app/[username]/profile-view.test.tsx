@@ -142,7 +142,12 @@ describe("Sections publiques du profil", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Rémy Moro" })).toBeInTheDocument();
-    expect(screen.getByText("Développeur full-stack · MyWork")).toBeInTheDocument();
+    const position = screen.getByText("Développeur full-stack · MyWork");
+    // Le poste actuel est placé au-dessus du nom.
+    expect(
+      position.compareDocumentPosition(screen.getByRole("heading", { name: "Rémy Moro" })) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.queryByText("Développeur web · Ancienne boîte")).not.toBeInTheDocument();
     expect(screen.getByText("Lyon, France")).toBeInTheDocument();
     expect(screen.getByText("Ouvert aux opportunités : Freelance, CDI")).toBeInTheDocument();
