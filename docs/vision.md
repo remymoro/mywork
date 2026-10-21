@@ -14,6 +14,7 @@ Tout s'articule autour d'une page publique par utilisateur (ex. `mywork.website/
 | Rendez-vous | Disponibilités, liste des réservations | Réservation d'un créneau |
 | Boards | Plusieurs boards type Trello | Un board marqué public |
 | Fichiers | Dossiers et fichiers privés | Dossier public téléchargeable |
+| Sport : suivi du poids | Saisie du poids (date, kg) et courbe d'évolution dans le tableau de bord | Aucune : privé, jamais affiché sur le profil public |
 | Visio (plus tard) | Rejoindre l'appel | Rejoindre l'appel lié au RDV |
 
 ## Modules et ordre prévu
@@ -22,6 +23,7 @@ Tout s'articule autour d'une page publique par utilisateur (ex. `mywork.website/
 3. **Rendez-vous** (Calendly simplifié).
 4. **Boards** (Trello simplifié).
 5. **Fichiers** (Drive simplifié).
+5 bis. **Sport** : suivi du poids avec courbe dans le tableau de bord (ordre à confirmer, module simple qui peut passer plus tôt).
 6. **Abonnement** : offre unique avec quota de données, inscription ouverte au public.
 7. **Visio** liée aux rendez-vous.
 
