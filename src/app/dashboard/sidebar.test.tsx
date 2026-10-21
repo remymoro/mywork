@@ -14,10 +14,11 @@ describe("Sidebar", () => {
       "page",
     );
     expect(screen.getByRole("link", { name: "Mon profil" })).not.toHaveAttribute("aria-current");
-    for (const name of ["CV", "Rendez-vous", "Boards", "Fichiers", "Visio"]) {
+    expect(screen.queryByText("CV")).not.toBeInTheDocument();
+    for (const name of ["Rendez-vous", "Boards", "Fichiers", "Visio"]) {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
-    expect(screen.getAllByText("Bientôt").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getAllByText("Bientôt").length).toBeGreaterThanOrEqual(4);
     expect(screen.getByRole("button", { name: "remy@example.com" })).toBeInTheDocument();
   });
 

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   Calendar,
-  FileText,
   FolderOpen,
   LayoutGrid,
   LayoutDashboard,
@@ -13,7 +12,6 @@ import { MODULES } from "./modules";
 import { UserMenu } from "./user-menu";
 
 const MODULE_ICONS = {
-  cv: FileText,
   rdv: Calendar,
   boards: LayoutGrid,
   fichiers: FolderOpen,
