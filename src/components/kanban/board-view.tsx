@@ -29,6 +29,7 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   AlignLeft,
   CheckSquare,
+  CircleCheck,
   GripVertical,
   Image as ImageIcon,
   MessageSquare,
@@ -44,6 +45,7 @@ import {
   deleteList,
   moveCard,
   moveList,
+  setDoneList,
   updateList,
 } from "@/app/dashboard/kanban/actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -72,6 +74,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   checklistProgress,
+  doneListWarning,
   LIST_COLORS,
   MAX_CARDS,
   MAX_LISTS,
@@ -514,8 +517,17 @@ export function ListColumn({
         <span aria-hidden="true" className={cn("size-2 shrink-0 rounded-full", color.dotClass)} />
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-heading text-lg font-medium">{list.title}</h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
             {cards.length} carte{cards.length === 1 ? "" : "s"}
+            {list.is_done_list && (
+              <span
+                className="flex items-center gap-1 font-medium text-success"
+                title="Liste de fin"
+              >
+                <CircleCheck aria-hidden="true" className="size-3.5" />
+                Liste de fin
+              </span>
+            )}
           </p>
         </div>
         {!readOnly && (
@@ -563,6 +575,14 @@ export function ListColumn({
                     </DropdownMenuRadioGroup>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
+                <DropdownMenuItem
+                  onClick={() =>
+                    void run(() => setDoneList(list.board_id, list.id, !list.is_done_list))
+                  }
+                >
+                  <CircleCheck aria-hidden="true" />
+                  {list.is_done_list ? "Ne plus être la liste de fin" : "En faire la liste de fin"}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" onClick={() => setDeleting(true)}>
                   <Trash2 aria-hidden="true" />
@@ -719,6 +739,11 @@ export function BoardView({
   const [error, setError] = useState("");
   const [activeLabel, setActiveLabel] = useState<string | null>(null);
   const [insertion, setInsertion] = useState<Insertion>(null);
+  const [confirmMove, setConfirmMove] = useState<{
+    title: string;
+    message: string;
+    commit: () => void;
+  } | null>(null);
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 5 } }),
@@ -793,16 +818,31 @@ export function BoardView({
         : sourceCards.map((item, position) => ({ ...item, position }))),
       ...targetCards.map((item, position) => ({ ...item, position })),
     ];
-    startTransition(async () => {
-      setOptimisticCards(nextCards);
-      try {
-        const result = await moveCard(board.id, card.id, targetListId, targetIndex);
-        if (result.error) setError(result.error);
-        else router.refresh();
-      } catch {
-        setError(NETWORK_ERROR);
-      }
-    });
+    const commit = () =>
+      startTransition(async () => {
+        setOptimisticCards(nextCards);
+        try {
+          const result = await moveCard(board.id, card.id, targetListId, targetIndex);
+          if (result.error) setError(result.error);
+          else router.refresh();
+        } catch {
+          setError(NETWORK_ERROR);
+        }
+      });
+
+    // Liste de fin et checklist inachevée : on demande confirmation (avertir, pas bloquer).
+    const source = visibleLists.find((list) => list.id === card.list_id);
+    const target = visibleLists.find((list) => list.id === targetListId);
+    const warning =
+      source && target
+        ? doneListWarning(
+            checklist.filter((item) => item.card_id === card.id),
+            source,
+            target,
+          )
+        : null;
+    if (warning) setConfirmMove({ title: card.title, message: warning, commit });
+    else commit();
   }
 
   const columns = (
@@ -942,6 +982,27 @@ export function BoardView({
         </div>
       )}
       {addingList && <ListEditor boardId={board.id} onClose={() => setAddingList(false)} />}
+      <Dialog open={confirmMove !== null} onOpenChange={(open) => !open && setConfirmMove(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Déplacer « {confirmMove?.title} » dans la liste de fin ?</DialogTitle>
+            <DialogDescription>{confirmMove?.message}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmMove(null)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => {
+                confirmMove?.commit();
+                setConfirmMove(null);
+              }}
+            >
+              Déplacer quand même
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

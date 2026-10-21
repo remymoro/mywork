@@ -263,6 +263,35 @@ export async function updateList(
   return saved(data.id);
 }
 
+/** Une seule liste de fin par tableau : en choisir une retire ce rôle à l'ancienne. */
+export async function setDoneList(
+  boardId: string,
+  listId: string,
+  isDone: boolean,
+): Promise<KanbanActionResult> {
+  const session = await currentUser();
+  const access = await ownedBoard(session, boardId);
+  if (access.error) return { error: access.error };
+  if (isDone) {
+    const { error } = await session.supabase
+      .from("kanban_lists")
+      .update({ is_done_list: false })
+      .eq("board_id", boardId)
+      .eq("is_done_list", true)
+      .neq("id", listId);
+    if (error) return { error: databaseMessage(error) };
+  }
+  const { data, error } = await session.supabase
+    .from("kanban_lists")
+    .update({ is_done_list: isDone })
+    .eq("id", listId)
+    .eq("board_id", boardId)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return { error: databaseMessage(error) };
+  return saved(data.id);
+}
+
 export async function deleteList(boardId: string, listId: string): Promise<KanbanActionResult> {
   const session = await currentUser();
   const access = await ownedBoard(session, boardId);

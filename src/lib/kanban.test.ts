@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  doneListWarning,
   validateCardImage,
   BOARD_ICONS,
   LIST_COLORS,
@@ -172,5 +173,22 @@ describe("validateCardImage", () => {
       error: "L'image dépasse 2 Mo.",
     });
     expect(validateCardImage({ type: "image/jpeg", size: 0 }).ok).toBe(false);
+  });
+});
+
+describe("doneListWarning", () => {
+  const done = { id: "fin", is_done_list: true };
+  const doing = { id: "cours" };
+  const items = [{ done: true }, { done: false }];
+
+  it("avertit seulement vers la liste de fin, avec une checklist inachevée", () => {
+    expect(doneListWarning(items, doing, done)).toBe(
+      "La checklist n'est pas finie (1/2). La déplacer quand même ?",
+    );
+    expect(doneListWarning(items, doing, { id: "revue" })).toBeNull();
+    expect(doneListWarning([{ done: true }], doing, done)).toBeNull();
+    expect(doneListWarning([], doing, done)).toBeNull();
+    // Réordonner à l'intérieur de la liste de fin ne redemande rien.
+    expect(doneListWarning(items, done, done)).toBeNull();
   });
 });

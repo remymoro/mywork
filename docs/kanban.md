@@ -187,6 +187,8 @@ Collaboration à plusieurs sur un tableau (membres, rôles), pièces jointes aut
 11. **Icône d'un tableau** : choisie dans une petite liste (document, graphique, personne, dossier, étoile, cible).
 12. **Menu principal** : entrée active en bloc plein carmin dans toute l'application.
 
+13. **Liste de fin** (2026-10-21) : une liste par tableau peut être marquée « liste de fin » (menu ⋮ de la liste, mention « Liste de fin » dans son en-tête). Y déposer une carte dont la checklist n'est pas finie **avertit** (« La checklist n'est pas finie (2/5). La déplacer quand même ? ») sans bloquer : on peut classer une tâche abandonnée. Règle dans `doneListWarning` (`src/lib/kanban.ts`), colonne `is_done_list` (migration `20261021210000_kanban_done_list.sql`).
+
 ## Livraison par étapes
 
 1. **Étape 1** (code livré le 2026-10-21, migration à appliquer par Claude) : tableaux (création, icône, couleur des listes, public / privé, renommer, supprimer), listes et cartes, glisser-déposer souris/tactile/clavier, fenêtre de carte avec description (Markdown limité sans HTML), checklist et commentaires **du propriétaire** ; page publique **en lecture seule**. Dernier tableau mémorisé, liens de cartes partageables, confirmations de suppression, limites et erreurs affichées. Menu Kanban actif et sélection carmin dans tout le menu principal.

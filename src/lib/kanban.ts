@@ -97,6 +97,8 @@ export type KanbanList = {
   color: ListColor;
   position: number;
   created_at: string;
+  /** « Liste de fin » : y déposer une carte à la checklist inachevée demande confirmation. */
+  is_done_list?: boolean;
 };
 
 export type KanbanCard = {
@@ -217,6 +219,21 @@ export function checklistProgress(items: readonly { done: boolean }[]) {
     percent: total ? Math.round((done / total) * 100) : 0,
     complete: total > 0 && done === total,
   };
+}
+
+/**
+ * Avertir avant de déposer une carte dans la liste de fin alors que sa checklist n'est pas finie.
+ * Rien à signaler sans checklist, ni pour un déplacement à l'intérieur de la liste de fin.
+ */
+export function doneListWarning(
+  items: readonly { done: boolean }[],
+  from: { id: string },
+  to: { id: string; is_done_list?: boolean },
+): string | null {
+  if (!to.is_done_list || from.id === to.id) return null;
+  const progress = checklistProgress(items);
+  if (progress.total === 0 || progress.complete) return null;
+  return `La checklist n'est pas finie (${progress.done}/${progress.total}). La déplacer quand même ?`;
 }
 
 export type MarkdownInline =

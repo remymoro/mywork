@@ -67,4 +67,21 @@ describe("BoardView — aperçu des images", () => {
     const first = screen.getByText("Maquette").closest("article")!;
     expect(within(first).getByLabelText("2 images")).toBeInTheDocument();
   });
+
+  it("signale la liste de fin dans son en-tête", () => {
+    render(
+      <BoardView
+        board={{ ...board }}
+        lists={[{ ...list, is_done_list: true }]}
+        cards={[]}
+        checklist={[]}
+        comments={[]}
+        username="remy"
+        readOnly
+        onOpen={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Liste de fin")).toBeInTheDocument();
+  });
 });
