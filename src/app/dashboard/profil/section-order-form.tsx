@@ -42,7 +42,7 @@ export function SectionOrderForm({ initialOrder }: { initialOrder: PublicSection
         <CardDescription>
           Fais glisser les sections pour choisir leur ordre sur ta page publique. L&apos;en-tête
           (photo, nom, contact) reste toujours en haut, et l&apos;offre freelance s&apos;affiche en
-          carte à gauche ; une section vide n&apos;est pas affichée.
+          carte à droite ; une section vide n&apos;est pas affichée.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">

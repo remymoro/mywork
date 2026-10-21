@@ -306,7 +306,7 @@ describe("Sections publiques du profil", () => {
     expect(screen.getByText("Je propose mes services en freelance")).toBeInTheDocument();
   });
 
-  it("place l'offre freelance dans une carte à gauche, à part des autres sections", () => {
+  it("place l'offre freelance dans une carte à droite, à part des autres sections", () => {
     render(
       <PublicProfileView
         profile={{

@@ -88,7 +88,7 @@ export function FreelanceSection({
   ].filter((d): d is NonNullable<typeof d> => d !== null);
 
   return (
-    // Carte affichée dans la colonne de gauche de la page publique.
+    // Carte affichée dans la colonne de droite de la page publique.
     <section aria-labelledby="freelance-title" className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
       <div className="space-y-2">
         <h2 id="freelance-title" className="font-heading text-2xl font-normal tracking-tight">
@@ -517,18 +517,18 @@ export function PublicProfileView({
 
         <Separator />
 
-        {/* Offre freelance : carte à gauche, les autres sections à droite. */}
-        <div className={hasFreelance ? "grid gap-10 md:grid-cols-[18rem_1fr]" : undefined}>
-          {hasFreelance && (
-            <aside className="md:sticky md:top-6 md:self-start">
-              <FreelanceSection offer={profile.freelance} services={services} />
-            </aside>
-          )}
+        {/* Offre freelance : carte à droite, les autres sections à gauche. */}
+        <div className={hasFreelance ? "grid gap-10 md:grid-cols-[1fr_18rem]" : undefined}>
           <div className="min-w-0 space-y-8">
             {normalizeSectionOrder(profile.section_order).map((id) => (
               <Fragment key={id}>{sections[id]}</Fragment>
             ))}
           </div>
+          {hasFreelance && (
+            <aside className="md:sticky md:top-6 md:self-start">
+              <FreelanceSection offer={profile.freelance} services={services} />
+            </aside>
+          )}
         </div>
       </main>
     </div>
