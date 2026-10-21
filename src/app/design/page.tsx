@@ -3,11 +3,12 @@ import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { Badge } from "@/components/ui/badge";
 import { DesignShowcase } from "./design-showcase";
+import { DesignPatterns } from "./design-patterns";
 
 export const metadata: Metadata = {
   title: "Système de design — MyWork",
   description:
-    "Comparateur des variantes visuelles, nuancier des jetons et composants d’interface de MyWork.",
+    "Le système Éditorial utilisé dans MyWork : couleurs, typographie, composants et archives des pistes visuelles.",
 };
 
 export default function DesignPage() {
@@ -34,17 +35,17 @@ export default function DesignPage() {
 
       <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <h1 className="font-heading text-3xl font-normal tracking-tight sm:text-4xl">
             Système de design MyWork
           </h1>
           <p className="max-w-3xl text-muted-foreground">
-            Compare les trois propositions de palette (Neutre, Bleu Ardoise,
-            Sauge &amp; Argile) en mode clair ou sombre, explore le nuancier de
-            jetons et teste les composants avant de choisir l’identité visuelle.
+            Les couleurs, les textes et les composants réellement utilisés dans
+            l’application aujourd’hui. Les pistes comparées avant le choix
+            d’Éditorial sont conservées dans les archives en bas de page.
           </p>
         </div>
 
-        <DesignShowcase />
+        <DesignShowcase patterns={<DesignPatterns />} />
       </main>
     </div>
   );

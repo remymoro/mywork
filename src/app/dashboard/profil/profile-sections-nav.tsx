@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronRight, Download, ExternalLink, Eye, ListOrdered, Minus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -47,9 +46,9 @@ export type ProfileSectionId = (typeof PROFILE_SECTIONS)[number]["id"];
 const anchor = (id: ProfileSectionId) => `section-${id}`;
 const MAIN_SECTIONS = PROFILE_SECTIONS.filter((s) => s.id !== "ordre");
 const CV_ACTIONS = [
-  { label: "Aperçu du CV", Icon: Eye },
-  { label: "Télécharger en PDF", Icon: Download },
-  { label: "Télécharger en PNG", Icon: Download },
+  { label: "Aperçu du CV", href: "/dashboard/profil/cv", Icon: Eye },
+  { label: "Télécharger en PDF", href: "/dashboard/profil/cv?action=pdf", Icon: Download },
+  { label: "Télécharger en PNG", href: "/dashboard/profil/cv?action=png", Icon: Download },
 ];
 
 // Menu des sections à gauche ; toutes les sections s'enchaînent à droite. Un clic fait défiler
@@ -163,20 +162,21 @@ export function ProfileSectionsNav({
           </a>
         </div>
 
-        {/* Export du CV : prévu en version 2 (D5), affiché grisé en attendant. */}
+        {/* Aperçu et export du CV. */}
         <div className="mt-4 space-y-2 border-t pt-4">
           <p className="px-3 text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">CV</p>
           <ul className="space-y-1">
-            {CV_ACTIONS.map(({ label, Icon }) => (
-              <li
-                key={label}
-                className="flex items-center justify-between gap-3 px-3 py-1.5 text-sm text-muted-foreground"
-              >
-                <span className="flex items-center gap-3">
+            {CV_ACTIONS.map(({ label, href, Icon }) => (
+              <li key={label}>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="flex items-center gap-3 px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-accent hover:text-primary"
+                >
                   <Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />
                   {label}
-                </span>
-                <Badge variant="secondary">Bientôt</Badge>
+                </a>
               </li>
             ))}
           </ul>

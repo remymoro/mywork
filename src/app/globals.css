@@ -4,6 +4,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff !important; }
+  body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  body { margin: 0 !important; }
+  main { padding: 0 !important; background: #fff !important; }
+  .cv-sheet-wrap { width: 100% !important; max-width: none !important; padding: 0 !important; overflow: visible !important; }
+  #cv-document { margin: 0 !important; box-shadow: none !important; }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
