@@ -20,12 +20,12 @@ Vitrine de MyWork : c'est la première chose que voit un visiteur (recruteur, cl
 | Compétences | Liste libre |
 | Langues | Langue et niveau (notions, intermédiaire, professionnel, courant, bilingue, langue maternelle) |
 | Certifications | Nom, organisme, date d'obtention, date d'expiration, lien de vérification |
-| Projets | Nom, début, fin, description, lien, compétences |
+| Projets | Nom, début, fin, description, lien, compétences, image (affichée sur la page publique) |
 
 - **E-mail de contact** : choisi par l'utilisateur, pas forcément l'adresse Google. Côté public, il n'est pas écrit dans la page : le bouton « Afficher l'e-mail » le demande au serveur, puis un bouton « Copier » apparaît. Cela gêne les robots qui collectent les adresses.
 - **Poste actuel en haut** : sur la page publique, le premier poste coché « Poste actuel » (dans l'ordre choisi) s'affiche au-dessus du nom.
 - **Nom et prénom** : on garde pour l'instant le « nom affiché » existant ; la séparation prénom / nom viendra avec les paramètres du compte.
-- **Photo** : JPEG, PNG ou WebP, 2 Mo maximum, stockée dans Supabase Storage (D7).
+- **Photo et images de projet** : JPEG, PNG ou WebP, 2 Mo maximum, stockées dans Supabase Storage (D7), dossiers publics `avatars` et `project-images`.
 
 ### Version 2
 

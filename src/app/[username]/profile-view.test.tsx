@@ -12,6 +12,7 @@ import {
   AboutSection,
   CertificationSection,
   ExperienceSection,
+  ProjectSection,
   PublicProfileView,
   SkillsSection,
 } from "./profile-view";
@@ -189,5 +190,32 @@ describe("Sections publiques du profil", () => {
       />,
     );
     expect(screen.getByRole("status")).toHaveTextContent("Ton profil est hors ligne");
+  });
+
+  it("affiche l'image d'un projet quand il en a une", () => {
+    const base = {
+      position: 0,
+      is_visible: true,
+      start_date: null,
+      end_date: null,
+      description: null,
+      url: null,
+      skills: [],
+    };
+    render(
+      <ProjectSection
+        items={[
+          {
+            ...base,
+            id: "p1",
+            name: "MyWork",
+            image_url: "https://exemple.supabase.co/storage/v1/object/public/project-images/u/p1/1.png",
+          },
+          { ...base, id: "p2", name: "Sans image", image_url: null },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("img", { name: "Aperçu du projet MyWork" })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "Aperçu du projet Sans image" })).not.toBeInTheDocument();
   });
 });

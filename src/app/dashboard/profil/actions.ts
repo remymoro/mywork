@@ -16,8 +16,35 @@ import {
 
 export type FormState = { error?: string; saved?: boolean };
 
-const AVATAR_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+const IMAGE_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/** Fichier image envoyé par le formulaire : absent (null), valide, ou message d'erreur. */
+function readImage(formData: FormData, name: string): File | null | { error: string } {
+  const file = formData.get(name);
+  if (!(file instanceof File) || file.size === 0) return null;
+  if (!IMAGE_TYPES[file.type]) return { error: "Formats acceptés : JPEG, PNG ou WebP." };
+  if (file.size > IMAGE_MAX_BYTES) return { error: "L'image dépasse 2 Mo." };
+  return file;
+}
+
+/** Envoie l'image dans « bucket/folder/ » et renvoie son adresse publique. */
+async function storeImage(supabase: Supabase, bucket: string, folder: string, file: File) {
+  // Nom unique à chaque envoi : évite qu'une ancienne image reste en cache.
+  const path = `${folder}/${Date.now()}.${IMAGE_TYPES[file.type]}`;
+  const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type });
+  if (error) return null;
+  return { path, url: supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl };
+}
+
+// Supprime les fichiers d'un dossier, sauf celui à garder.
+async function removeFiles(supabase: Supabase, bucket: string, folder: string, keep?: string) {
+  const { data: files } = await supabase.storage.from(bucket).list(folder);
+  const old = (files ?? []).map((f) => `${folder}/${f.name}`).filter((p) => p !== keep);
+  if (old.length) await supabase.storage.from(bucket).remove(old);
+}
 
 function toFields(formData: FormData): Fields {
   const fields: Fields = {};
@@ -74,12 +101,17 @@ export async function saveSectionItem(
   const { table, validate } = SECTIONS[section];
   const parsed = validate(toFields(formData));
   if (!parsed.ok) return { error: parsed.error };
+  // Seuls les projets ont une image.
+  const image = section === "projects" ? readImage(formData, "image") : null;
+  if (image && "error" in image) return { error: image.error };
 
   const { supabase, userId } = await currentUser();
   const id = formData.get("id");
+  let savedId: string | undefined;
   let error;
   if (typeof id === "string" && id) {
     ({ error } = await supabase.from(table).update(parsed.value).eq("id", id).eq("profile_id", userId));
+    savedId = id;
   } else {
     // Nouvel élément : placé en fin de liste.
     const { data: last } = await supabase
@@ -89,13 +121,53 @@ export async function saveSectionItem(
       .order("position", { ascending: false })
       .limit(1)
       .maybeSingle();
-    ({ error } = await supabase
+    let inserted;
+    ({ data: inserted, error } = await supabase
       .from(table)
-      .insert({ ...parsed.value, profile_id: userId, position: (last?.position ?? -1) + 1 }));
+      .insert({ ...parsed.value, profile_id: userId, position: (last?.position ?? -1) + 1 })
+      .select("id")
+      .single());
+    savedId = inserted?.id;
   }
-  if (error) return { error: "Impossible d'enregistrer." };
+  if (error || !savedId) return { error: "Impossible d'enregistrer." };
+
+  if (section === "projects") {
+    const imageError = await updateProjectImage(supabase, userId, savedId, image, formData.get("remove_image") === "on");
+    if (imageError) return { error: imageError };
+  }
   refresh();
   return { saved: true };
+}
+
+// Nouvelle image (remplace l'ancienne) ou case « Retirer l'image » cochée.
+async function updateProjectImage(
+  supabase: Supabase,
+  userId: string,
+  projectId: string,
+  image: File | null,
+  remove: boolean,
+): Promise<string | null> {
+  const folder = `${userId}/${projectId}`;
+  if (image) {
+    const stored = await storeImage(supabase, "project-images", folder, image);
+    if (!stored) return "Projet enregistré, mais impossible d'envoyer l'image.";
+    const { error } = await supabase
+      .from("profile_projects")
+      .update({ image_url: stored.url })
+      .eq("id", projectId)
+      .eq("profile_id", userId);
+    if (error) return "Projet enregistré, mais impossible d'enregistrer l'image.";
+    await removeFiles(supabase, "project-images", folder, stored.path);
+  } else if (remove) {
+    const { error } = await supabase
+      .from("profile_projects")
+      .update({ image_url: null })
+      .eq("id", projectId)
+      .eq("profile_id", userId);
+    if (error) return "Impossible de retirer l'image.";
+    await removeFiles(supabase, "project-images", folder);
+  }
+  return null;
 }
 
 export async function deleteSectionItem(section: SectionName, id: string): Promise<FormState> {
@@ -103,6 +175,7 @@ export async function deleteSectionItem(section: SectionName, id: string): Promi
   const { supabase, userId } = await currentUser();
   const { error } = await supabase.from(SECTIONS[section].table).delete().eq("id", id).eq("profile_id", userId);
   if (error) return { error: "Impossible de supprimer." };
+  if (section === "projects") await removeFiles(supabase, "project-images", `${userId}/${id}`);
   refresh();
   return {};
 }
@@ -156,25 +229,18 @@ export async function moveSectionItem(
 }
 
 export async function uploadAvatar(_prev: FormState, formData: FormData): Promise<FormState> {
-  const file = formData.get("avatar");
-  if (!(file instanceof File) || file.size === 0) return { error: "Choisis une image." };
-  const extension = AVATAR_TYPES[file.type];
-  if (!extension) return { error: "Formats acceptés : JPEG, PNG ou WebP." };
-  if (file.size > AVATAR_MAX_BYTES) return { error: "L'image dépasse 2 Mo." };
+  const image = readImage(formData, "avatar");
+  if (!image) return { error: "Choisis une image." };
+  if ("error" in image) return { error: image.error };
 
   const { supabase, userId } = await currentUser();
-  // Nom unique à chaque envoi : évite qu'une ancienne photo reste en cache.
-  const path = `${userId}/${Date.now()}.${extension}`;
-  const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
-    contentType: file.type,
-  });
-  if (uploadError) return { error: "Impossible d'envoyer la photo." };
+  const stored = await storeImage(supabase, "avatars", userId, image);
+  if (!stored) return { error: "Impossible d'envoyer la photo." };
 
-  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-  const { error } = await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", userId);
+  const { error } = await supabase.from("profiles").update({ avatar_url: stored.url }).eq("id", userId);
   if (error) return { error: "Impossible d'enregistrer la photo." };
 
-  await removeOldAvatars(supabase, userId, path);
+  await removeFiles(supabase, "avatars", userId, stored.path);
   refresh();
   return { saved: true };
 }
@@ -183,18 +249,7 @@ export async function removeAvatar(): Promise<FormState> {
   const { supabase, userId } = await currentUser();
   const { error } = await supabase.from("profiles").update({ avatar_url: null }).eq("id", userId);
   if (error) return { error: "Impossible de retirer la photo." };
-  await removeOldAvatars(supabase, userId);
+  await removeFiles(supabase, "avatars", userId);
   refresh();
   return {};
-}
-
-// Supprime les photos de l'utilisateur, sauf celle à garder.
-async function removeOldAvatars(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  keep?: string,
-) {
-  const { data: files } = await supabase.storage.from("avatars").list(userId);
-  const old = (files ?? []).map((f) => `${userId}/${f.name}`).filter((p) => p !== keep);
-  if (old.length) await supabase.storage.from("avatars").remove(old);
 }

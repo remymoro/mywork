@@ -264,6 +264,16 @@ export function ProjectSection({ items }: { items: ProjectRow[] }) {
                 )}
               </div>
               {period && <p className="text-xs text-muted-foreground">{period}</p>}
+              {proj.image_url && (
+                <Image
+                  src={proj.image_url}
+                  alt={`Aperçu du projet ${proj.name}`}
+                  width={640}
+                  height={360}
+                  sizes="(min-width: 768px) 640px, 100vw"
+                  className="my-2 aspect-video w-full max-w-xl rounded-lg border object-cover"
+                />
+              )}
               {proj.description && (
                 <p className="whitespace-pre-line text-sm leading-relaxed">{proj.description}</p>
               )}

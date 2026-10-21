@@ -14,6 +14,7 @@ vi.mock("./actions", () => ({
 }));
 
 import { ExperienceFields, type ExperienceRow } from "./experience-fields";
+import { ProjectFields } from "./project-fields";
 import { SectionList } from "./section-list";
 
 const sampleExperiences: ExperienceRow[] = [
@@ -118,5 +119,33 @@ describe("ExperienceFields", () => {
     expect(endDateInput).toBeDisabled();
     fireEvent.click(currentCheckbox);
     expect(endDateInput).not.toBeDisabled();
+  });
+});
+
+describe("ProjectFields", () => {
+  it("propose d'envoyer une image, et de la retirer si le projet en a déjà une", () => {
+    const { unmount } = render(<ProjectFields />);
+    expect(screen.getByLabelText("Image du projet")).toHaveAttribute("type", "file");
+    expect(screen.queryByLabelText("Retirer l'image")).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <ProjectFields
+        item={{
+          id: "p1",
+          position: 0,
+          is_visible: true,
+          name: "MyWork",
+          start_date: null,
+          end_date: null,
+          description: null,
+          url: null,
+          skills: [],
+          image_url: "https://exemple.supabase.co/storage/v1/object/public/project-images/u/p1/1.png",
+        }}
+      />,
+    );
+    expect(screen.getByRole("img", { name: "Image actuelle de MyWork" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Retirer l'image")).toBeInTheDocument();
   });
 });

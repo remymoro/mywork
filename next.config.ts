@@ -6,14 +6,14 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
-  // Photos de profil : 2 Mo maximum, plus une marge pour l'enveloppe du formulaire.
+  // Photos et images de projet : 2 Mo maximum, plus une marge pour l'enveloppe du formulaire.
   experimental: {
     serverActions: { bodySizeLimit: "3mb" },
   },
-  // Photos de profil servies depuis Supabase Storage (dossier public « avatars »).
+  // Photos de profil et images de projet servies depuis les dossiers publics de Supabase Storage.
   images: {
     remotePatterns: supabaseUrl
-      ? [new URL(`${supabaseUrl}/storage/v1/object/public/avatars/**`)]
+      ? [new URL(`${supabaseUrl}/storage/v1/object/public/**`)]
       : [],
   },
   // Pas de page d'accueil séparée : la racine mène directement à la connexion Google.
