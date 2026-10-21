@@ -6,7 +6,7 @@ test("la page de connexion propose Google", async ({ page }) => {
 });
 
 test("les pages privées renvoient vers la connexion", async ({ page }) => {
-  for (const path of ["/dashboard", "/dashboard/profil", "/dashboard/profil/cv"]) {
+  for (const path of ["/dashboard", "/dashboard/profil", "/dashboard/profil/cv", "/dashboard/kanban"]) {
     await page.goto(path);
     await expect(page).toHaveURL(/\/login$/);
   }
@@ -14,5 +14,11 @@ test("les pages privées renvoient vers la connexion", async ({ page }) => {
 
 test("un pseudo inconnu affiche une page 404", async ({ page }) => {
   await page.goto("/ce-pseudo-n-existe-pas");
+  await expect(page.getByRole("heading", { name: "Page introuvable" })).toBeVisible();
+});
+
+// Le Kanban n'a plus de page publique : l'ancienne adresse ne mène à rien.
+test("aucune page publique de tableau Kanban", async ({ page }) => {
+  await page.goto("/remy/kanban/x");
   await expect(page.getByRole("heading", { name: "Page introuvable" })).toBeVisible();
 });

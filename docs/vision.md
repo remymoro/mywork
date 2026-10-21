@@ -11,7 +11,7 @@ Tout s'articule autour d'une page publique par utilisateur (ex. `mywork.website/
 | Module | Partie privée (propriétaire) | Partie publique (visiteur) |
 |---|---|---|
 | Profil (anciennement « CV ») | Édition simple des sections | Profil professionnel consultable par URL, export PDF ou image |
-| Kanban (anciennement « Boards ») | Plusieurs tableaux type Trello | Un tableau marqué public |
+| Kanban (anciennement « Boards ») | Plusieurs tableaux type Trello, partageables avec d'autres utilisateurs de MyWork | Aucune (jamais public, révision du 2026-10-21) |
 | Rendez-vous | Disponibilités, liste des réservations | Réservation d'un créneau |
 | Fichiers | Dossiers et fichiers privés | Dossier public téléchargeable |
 | Visio (plus tard) | Rejoindre l'appel | Rejoindre l'appel lié au RDV |
@@ -31,7 +31,7 @@ Tout s'articule autour d'une page publique par utilisateur (ex. `mywork.website/
 - Utilisateurs européens, donc RGPD (données personnelles des profils et des réservations).
 
 ## Hors périmètre pour l'instant
-Applications mobiles natives, offres multiples, collaboration à plusieurs sur un board, édition de documents en ligne.
+Applications mobiles natives, offres multiples, édition de documents en ligne. (Le travail à plusieurs sur un tableau Kanban, entre utilisateurs de MyWork, est entré dans le périmètre le 2026-10-21 : voir `docs/kanban.md`.)
 
 ## Porteur du projet
 Non développeur : les agents font les choix techniques, expliquent simplement et ne posent que des questions de produit. Chaque étape se termine par une vérification concrète (ce qu'on doit voir à l'écran).

@@ -30,7 +30,7 @@ export function DashboardShell({
       </header>
       <div className="flex flex-1">
         <Sidebar active={active} email={email} displayName={displayName} username={username} isOnline={isOnline} />
-        <main className="flex-1 space-y-6 p-6 sm:p-8">{children}</main>
+        <main className="min-w-0 flex-1 space-y-6 p-6 sm:p-8">{children}</main>
       </div>
     </div>
   );

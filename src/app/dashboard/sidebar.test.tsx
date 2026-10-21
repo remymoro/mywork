@@ -18,7 +18,8 @@ describe("Sidebar", () => {
     for (const name of ["Kanban", "Rendez-vous", "Fichiers", "Visio"]) {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
-    expect(screen.getAllByText("Bientôt").length).toBeGreaterThanOrEqual(4);
+    expect(screen.getAllByText("Bientôt")).toHaveLength(4);
+    expect(screen.getByRole("link", { name: "Kanban" })).toHaveAttribute("href", "/dashboard/kanban");
     expect(screen.getByRole("button", { name: "Rémy Moro" })).toBeInTheDocument();
   });
 
@@ -28,5 +29,15 @@ describe("Sidebar", () => {
       "aria-current",
       "page",
     );
+  });
+
+  it.each([
+    ["accueil", "Mon tableau de bord"],
+    ["profil", "Mon profil"],
+    ["kanban", "Kanban"],
+  ] as const)("affiche l'entrée active %s en bloc carmin", (active, name) => {
+    render(<Sidebar active={active} email="remy@example.com" displayName="Rémy" username="remy" isOnline />);
+    expect(screen.getByRole("link", { name })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name })).toHaveClass("bg-primary", "text-primary-foreground", "rounded-md");
   });
 });

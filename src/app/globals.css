@@ -351,21 +351,22 @@
 }
 
 [data-theme="editorial"] {
+  /* Palette du porteur (2026-10-21), en hexadécimal ; les autres jetons restent en oklch. */
   --font-heading: var(--font-serif);
-  --background: oklch(0.985 0.006 85);
-  --foreground: oklch(0.15 0.01 60);
-  --card: oklch(0.995 0.003 85);
-  --card-foreground: oklch(0.15 0.01 60);
-  --popover: oklch(0.995 0.003 85);
-  --popover-foreground: oklch(0.15 0.01 60);
-  --primary: oklch(0.48 0.19 25);
+  --background: #fdfbf7; /* crème de fond */
+  --foreground: #040a0e; /* noir profond : titres et textes */
+  --card: #fefdfc; /* blanc cassé : cartes et surfaces */
+  --card-foreground: #040a0e;
+  --popover: #fefdfc;
+  --popover-foreground: #040a0e;
+  --primary: #911128; /* carmin principal : boutons, menu actif */
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.945 0.008 80);
+  --secondary: #f3f0ec; /* beige doux */
   --secondary-foreground: oklch(0.22 0.015 60);
-  --muted: oklch(0.945 0.008 80);
+  --muted: #f3f0ec;
   --muted-foreground: oklch(0.48 0.015 65);
-  --accent: oklch(0.935 0.025 25);
-  --accent-foreground: oklch(0.38 0.16 25);
+  --accent: #f2dad9; /* rose carmin clair : élément sélectionné */
+  --accent-foreground: #911128;
   --destructive: oklch(0.55 0.22 27);
   --success: oklch(0.52 0.15 155);
   --success-foreground: oklch(0.985 0 0);
@@ -373,15 +374,15 @@
   --warning-foreground: oklch(0.15 0.01 60);
   --border: oklch(0.895 0.01 80);
   --input: oklch(0.895 0.01 80);
-  --ring: oklch(0.48 0.19 25);
-  --sidebar: oklch(0.968 0.009 82);
-  --sidebar-foreground: oklch(0.15 0.01 60);
-  --sidebar-primary: oklch(0.48 0.19 25);
+  --ring: #911128;
+  --sidebar: #f3f0ec; /* beige doux : barre latérale */
+  --sidebar-foreground: #040a0e;
+  --sidebar-primary: #911128;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.93 0.008 80);
-  --sidebar-accent-foreground: oklch(0.15 0.01 60);
+  --sidebar-accent-foreground: #040a0e;
   --sidebar-border: oklch(0.895 0.01 80);
-  --sidebar-ring: oklch(0.48 0.19 25);
+  --sidebar-ring: #911128;
 }
 
 .dark[data-theme="editorial"],

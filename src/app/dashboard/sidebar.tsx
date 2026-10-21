@@ -13,7 +13,6 @@ import { UserMenu } from "./user-menu";
 
 const MODULE_ICONS = {
   rdv: Calendar,
-  kanban: LayoutGrid,
   fichiers: FolderOpen,
   visio: Video,
 } as const;
@@ -21,6 +20,7 @@ const MODULE_ICONS = {
 const NAV = [
   { id: "accueil", href: "/dashboard", label: "Mon tableau de bord", Icon: LayoutDashboard },
   { id: "profil", href: "/dashboard/profil", label: "Mon profil", Icon: User },
+  { id: "kanban", href: "/dashboard/kanban", label: "Kanban", Icon: LayoutGrid },
 ] as const;
 
 export type SidebarActive = (typeof NAV)[number]["id"];
@@ -54,8 +54,8 @@ export function Sidebar({
                   aria-current={isActive ? "page" : undefined}
                   className={
                     isActive
-                      ? "flex items-center gap-3 border-l-[3px] border-primary bg-sidebar-accent px-3 py-2 text-sm font-medium text-sidebar-accent-foreground"
-                      : "flex items-center gap-3 border-l-[3px] border-transparent px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent"
+                      ? "flex items-center gap-3 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+                      : "flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent"
                   }
                 >
                   <Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />
