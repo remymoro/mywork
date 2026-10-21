@@ -17,15 +17,18 @@ export default async function ProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, display_name, headline")
+    .select("username, display_name, headline, is_online")
     .eq("id", user.id)
     .maybeSingle();
   if (!profile) redirect("/onboarding");
 
-  const userName = profile.display_name ?? profile.username;
-
   return (
-    <DashboardShell active="profil" userName={userName}>
+    <DashboardShell
+      active="profil"
+      email={user.email ?? ""}
+      username={profile.username}
+      isOnline={profile.is_online}
+    >
       <div className="space-y-1.5">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
           ESPACE PRIVÉ

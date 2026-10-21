@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { LogOut, Moon, Settings, Sun, User } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import {
+  ChevronsUpDown,
+  Copy,
+  ExternalLink,
+  Globe,
+  LogOut,
+  Moon,
+  Palette,
+  Sun,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,21 +20,25 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 import {
   DEFAULT_MODE,
   DEFAULT_THEME,
   MODE_STORAGE_KEY,
   THEMES,
   THEME_STORAGE_KEY,
-  getInitials,
   parseMode,
   parseTheme,
   type Mode,
   type ThemeId,
 } from "@/lib/appearance";
 import { signOut } from "./actions";
+import { setProfileOnline } from "./profile-actions";
 
 function readCurrentTheme(): ThemeId {
   if (typeof document === "undefined") return DEFAULT_THEME;
@@ -39,9 +50,21 @@ function readCurrentMode(): Mode {
   return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
-export function UserMenu({ userName }: { userName: string }) {
+export function UserMenu({
+  email,
+  username,
+  isOnline,
+}: {
+  email: string;
+  username: string;
+  isOnline: boolean;
+}) {
   const [theme, setTheme] = useState<ThemeId>(readCurrentTheme);
   const [mode, setMode] = useState<Mode>(readCurrentMode);
+  const [online, setOnline] = useState(isOnline);
+  const [copied, setCopied] = useState(false);
+
+  const initial = email.trim().charAt(0).toUpperCase() || "?";
 
   function selectTheme(next: ThemeId) {
     setTheme(next);
@@ -63,6 +86,24 @@ export function UserMenu({ userName }: { userName: string }) {
     }
   }
 
+  async function handleOnlineChange(next: boolean) {
+    setOnline(next);
+    const res = await setProfileOnline(next);
+    if (res?.error) {
+      setOnline(!next);
+    }
+  }
+
+  async function copyAddress() {
+    try {
+      await navigator.clipboard.writeText(`https://mywork.website/${username}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   return (
     <DropdownMenu
       onOpenChange={(open) => {
@@ -73,11 +114,14 @@ export function UserMenu({ userName }: { userName: string }) {
       }}
     >
       <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-sidebar-foreground hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
-        <Avatar size="sm" aria-hidden="true">
-          <AvatarFallback>{getInitials(userName)}</AvatarFallback>
-        </Avatar>
-        <span className="flex-1 truncate font-medium">{userName}</span>
-        <Settings
+        <span
+          aria-hidden="true"
+          className="flex size-6 shrink-0 items-center justify-center rounded bg-sidebar-accent text-xs font-medium text-sidebar-accent-foreground"
+        >
+          {initial}
+        </span>
+        <span className="flex-1 truncate font-medium">{email}</span>
+        <ChevronsUpDown
           aria-hidden="true"
           className="size-4 shrink-0 text-muted-foreground"
           strokeWidth={1.5}
@@ -86,47 +130,84 @@ export function UserMenu({ userName }: { userName: string }) {
 
       <DropdownMenuContent side="top" align="start" className="min-w-56">
         <DropdownMenuGroup>
-          <DropdownMenuLabel>Thème de la page</DropdownMenuLabel>
-          <DropdownMenuRadioGroup
-            value={theme}
-            onValueChange={(value) => selectTheme(parseTheme(value))}
-          >
-            {THEMES.map((item) => (
-              <DropdownMenuRadioItem key={item.id} value={item.id}>
-                {item.label}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
+          <DropdownMenuLabel className="truncate font-normal">
+            {email}
+          </DropdownMenuLabel>
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Apparence</DropdownMenuLabel>
-          <DropdownMenuRadioGroup
-            value={mode}
-            onValueChange={(value) => selectMode(parseMode(value))}
-          >
-            <DropdownMenuRadioItem value="light">
-              <Sun aria-hidden="true" className="size-4" />
-              Clair
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="dark">
-              <Moon aria-hidden="true" className="size-4" />
-              Sombre
-            </DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuGroup>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Globe aria-hidden="true" className="size-4" />
+            Mon profil public
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="min-w-52">
+            <div className="flex items-center justify-between gap-3 px-1.5 py-1 text-sm">
+              <span>Profil en ligne</span>
+              <Switch
+                aria-label="Profil en ligne"
+                checked={online}
+                onCheckedChange={handleOnlineChange}
+              />
+            </div>
 
-        <DropdownMenuSeparator />
+            <DropdownMenuSeparator />
 
-        <DropdownMenuItem disabled className="justify-between">
-          <span className="flex items-center gap-1.5">
-            <User aria-hidden="true" className="size-4" />
-            <span>Mon compte</span>
-          </span>
-          <Badge variant="secondary">Bientôt</Badge>
-        </DropdownMenuItem>
+            <DropdownMenuItem closeOnClick={false} onClick={copyAddress}>
+              <Copy aria-hidden="true" className="size-4" />
+              {copied ? "Adresse copiée" : "Copier l'adresse"}
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              render={<a href={`/${username}`} target="_blank" rel="noreferrer" />}
+            >
+              <ExternalLink aria-hidden="true" className="size-4" />
+              Ouvrir mon profil public
+            </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Palette aria-hidden="true" className="size-4" />
+            Thème
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="min-w-44">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Thème de la page</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={theme}
+                onValueChange={(value) => selectTheme(parseTheme(value))}
+              >
+                {THEMES.map((item) => (
+                  <DropdownMenuRadioItem key={item.id} value={item.id}>
+                    {item.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuGroup>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Apparence</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={mode}
+                onValueChange={(value) => selectMode(parseMode(value))}
+              >
+                <DropdownMenuRadioItem value="light">
+                  <Sun aria-hidden="true" className="size-4" />
+                  Clair
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="dark">
+                  <Moon aria-hidden="true" className="size-4" />
+                  Sombre
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
 
         <DropdownMenuSeparator />
 

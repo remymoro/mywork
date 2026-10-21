@@ -29,10 +29,14 @@ export type SidebarActive = (typeof NAV)[number]["id"];
 
 export function Sidebar({
   active,
-  userName,
+  email,
+  username,
+  isOnline,
 }: {
   active: SidebarActive;
-  userName: string;
+  email: string;
+  username: string;
+  isOnline: boolean;
 }) {
   return (
     <nav
@@ -86,7 +90,7 @@ export function Sidebar({
       </div>
 
       <div className="mt-auto border-t border-sidebar-border pt-3">
-        <UserMenu userName={userName} />
+        <UserMenu email={email} username={username} isOnline={isOnline} />
       </div>
     </nav>
   );

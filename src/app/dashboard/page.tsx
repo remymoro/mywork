@@ -16,7 +16,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, display_name")
+    .select("username, display_name, is_online")
     .eq("id", user.id)
     .maybeSingle();
   if (!profile) redirect("/onboarding");
@@ -24,7 +24,12 @@ export default async function DashboardPage() {
   const userName = profile.display_name ?? profile.username;
 
   return (
-    <DashboardShell active="accueil" userName={userName}>
+    <DashboardShell
+      active="accueil"
+      email={user.email ?? ""}
+      username={profile.username}
+      isOnline={profile.is_online}
+    >
       <div className="space-y-1.5">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
           ESPACE PRIVÉ

@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { validateProfileInput } from "@/lib/profile";
@@ -35,4 +36,24 @@ export async function updateProfile(_prev: ProfileState, formData: FormData): Pr
     };
   }
   return { saved: true };
+}
+
+export async function setProfileOnline(online: boolean): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ is_online: online })
+    .eq("id", user.id);
+
+  if (error) {
+    return { error: "Impossible de modifier la visibilité du profil." };
+  }
+
+  revalidatePath("/dashboard", "layout");
+  return {};
 }
