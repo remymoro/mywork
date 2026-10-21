@@ -38,3 +38,7 @@ Bénévolat, distinctions et prix, publications, centres d'intérêt, « Mis en 
 ### Plus tard
 
 Recommandations (témoignages d'autres utilisateurs : nécessite l'ouverture aux autres comptes).
+
+## Module Kanban
+
+Trello simplifié : plusieurs tableaux publics ou privés, 5 listes par tableau, 20 cartes par liste, glisser-déposer. Le détail fonctionnel est dans `docs/kanban.md`.
