@@ -108,6 +108,7 @@ export default async function ProfilePage() {
         </p>
       </div>
       <ProfileSectionsNav
+        username={profile.username}
         sections={{
           identite: (
             <ProfileEditor

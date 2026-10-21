@@ -28,13 +28,9 @@ describe("ProfileEditor", () => {
     expect(screen.getByTestId("preview-name")).toHaveTextContent("remy");
   });
 
-  it("propose le lien public et sa copie", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+  it("n'affiche plus le bandeau d'adresse publique (lien déplacé dans le menu des sections)", () => {
     render(<ProfileEditor {...props} />);
-    expect(screen.getByRole("link", { name: "Voir ma page" })).toHaveAttribute("href", "/remy");
-    fireEvent.click(screen.getByRole("button", { name: "Copier le lien" }));
-    expect(writeText).toHaveBeenCalledWith("https://mywork.website/remy");
-    expect(await screen.findByRole("button", { name: "Lien copié" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copier le lien" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Voir ma page" })).not.toBeInTheDocument();
   });
 });

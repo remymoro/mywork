@@ -6,6 +6,7 @@ import {
   BadgeEuro,
   Briefcase,
   Camera,
+  ExternalLink,
   FolderKanban,
   GraduationCap,
   IdCard,
@@ -35,7 +36,13 @@ export const PROFILE_SECTIONS = [
 export type ProfileSectionId = (typeof PROFILE_SECTIONS)[number]["id"];
 
 // Menu des sections à gauche ; seuls les champs de la section choisie s'affichent à droite.
-export function ProfileSectionsNav({ sections }: { sections: Record<ProfileSectionId, ReactNode> }) {
+export function ProfileSectionsNav({
+  sections,
+  username,
+}: {
+  sections: Record<ProfileSectionId, ReactNode>;
+  username: string;
+}) {
   const [active, setActive] = useState<ProfileSectionId>("identite");
   const current = PROFILE_SECTIONS.find((s) => s.id === active)!;
 
@@ -64,6 +71,16 @@ export function ProfileSectionsNav({ sections }: { sections: Record<ProfileSecti
             );
           })}
         </ul>
+        {/* Raccourci vers la page publique, sous la liste des sections. */}
+        <a
+          href={`/${username}`}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="mt-3 flex items-center gap-3 border-t border-l-[3px] border-l-transparent px-3 pt-3 pb-2 text-sm whitespace-nowrap text-primary hover:underline"
+        >
+          <ExternalLink aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />
+          Mon profil public
+        </a>
       </nav>
 
       <section aria-label={current.label} className="min-w-0">
