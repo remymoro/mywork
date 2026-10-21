@@ -2,7 +2,7 @@
 
 Détail fonctionnel du module Kanban (anciennement « Boards »), un Trello simplifié. Voir `docs/modules.md` pour les autres modules et `docs/decisions.md` pour les choix techniques. Les maquettes seront reliées à ce document une fois validées.
 
-Statut : **proposition du 2026-10-21**, à valider avec le porteur. Les points marqués **(à valider)** sont des choix proposés là où la demande ne tranchait pas ; la liste complète est en fin de document.
+Statut : **validé le 2026-10-21** (maquette du porteur + recommandations de Claude, acceptées par le porteur). Les mentions **(à valider)** ci-dessous sont tranchées dans « Décisions », en fin de document.
 
 ## Maquettes (2026-10-21)
 
@@ -17,7 +17,7 @@ Dessinées dans un canvas Claude Design privé (lien à demander au porteur du p
 | Kanban — fenêtre d'une carte | Description et sa barre de mise en forme, images, checklist avec barre de progression, commentaires, actions sur le côté |
 | Kanban — tableau public, visiteur | Page publique et fenêtre « Avant d'ajouter ta carte » (prénom, nom, consentement) |
 
-Choix à faire : proposition A ou B, et barre de gauche avec ou sans la liste des tableaux.
+**Maquette retenue (porteur, 2026-10-21)** : proche de la proposition A. Menu principal à gauche (entrée active en bloc plein carmin, pour toute l'app) ; dans la page, sous « ESPACE PRIVÉ / Kanban », une colonne « MES TABLEAUX » (bouton plein « + Nouveau », un tableau par ligne avec son icône et un menu ⋮, tableau ouvert sur fond rose carmin clair avec un point carmin) ; à droite « TABLEAU : <NOM> » en capitales avec un menu ⋯, les listes côte à côte (en-tête pastel à la couleur de la liste, point de couleur, titre serif, « n cartes », menu ⋮), cartes blanches avec un menu ⋯, bouton « + Carte » en bas de chaque liste, « + Ajouter une liste » sous les listes. Recherche et cloche de notifications de la maquette : V2 (non affichées en V1).
 
 ## Objectif
 
@@ -172,13 +172,34 @@ Tout ce qui précède : tableaux publics et privés, 5 listes, 20 cartes par lis
 
 Collaboration à plusieurs sur un tableau (membres, rôles), pièces jointes autres que les images, assignation de cartes. Les deux premières sont hors périmètre aujourd'hui (voir `docs/vision.md`).
 
-## Questions à valider
+## Décisions (2026-10-21)
 
-1. **Cartes des autres, tableau public** : un visiteur peut-il modifier, déplacer ou supprimer **seulement ses cartes** (proposé) ? Ou seulement en créer, sans pouvoir ensuite les modifier ?
-2. **Entrée dans la description** : Entrée enregistre et Maj + Entrée va à la ligne (proposé, comme un LLM) ; ou l'inverse, plus naturel pour écrire un long texte ?
-3. **Une checklist ou plusieurs** par carte en V1 ? (une seule est proposée)
-4. **Images** : qui peut en ajouter (propriétaire et auteur de la carte, proposé) ; 5 par carte ; stockage privé avec adresses signées.
-5. **Limites sur les tableaux** : combien de tableaux par utilisateur ? (aucune limite en V1, proposé ; à revoir avec l'abonnement)
-6. **Profil hors ligne** : un tableau public reste-t-il visible quand le profil est hors ligne ? (non, proposé)
-7. **Bibliothèque de glisser-déposer** : accord pour ajouter `@dnd-kit` ?
-8. **Suppression d'une liste ou d'un tableau** : suppression définitive avec confirmation (proposé) ou corbeille ?
+1. **Visiteur** : il modifie, déplace et supprime **ses** cartes uniquement.
+2. **Description** : **Entrée va à la ligne** ; **Ctrl/⌘ + Entrée** ou le bouton « Enregistrer » enregistre ; Échap annule.
+3. **Checklist** : une seule par carte en V1.
+4. **Images** : propriétaire et auteur de la carte ; 5 par carte, 2 Mo ; stockage privé, adresses signées.
+5. **Tableaux** : pas de limite en V1.
+6. **Profil hors ligne** : ses tableaux publics sont cachés (page introuvable).
+7. **Glisser-déposer** : `@dnd-kit` (`core`, `sortable`, `utilities`) ajouté.
+8. **Suppression** d'une liste ou d'un tableau : définitive, avec confirmation (corbeille en V2).
+9. **Couleur d'une liste** : choisie parmi 6 pastels (rose, jaune, bleu, vert, violet, gris), par le menu ⋮ de la liste.
+10. **Public / privé** : icône 🔒 ou 🌐 à côté du nom du tableau, réglage dans son menu ⋮ (et à la création).
+11. **Icône d'un tableau** : choisie dans une petite liste (document, graphique, personne, dossier, étoile, cible).
+12. **Menu principal** : entrée active en bloc plein carmin dans toute l'application.
+
+## Livraison par étapes
+
+1. **Étape 1** (code livré le 2026-10-21, migration à appliquer par Claude) : tableaux (création, icône, couleur des listes, public / privé, renommer, supprimer), listes et cartes, glisser-déposer souris/tactile/clavier, fenêtre de carte avec description (Markdown limité sans HTML), checklist et commentaires **du propriétaire** ; page publique **en lecture seule**. Dernier tableau mémorisé, liens de cartes partageables, confirmations de suppression, limites et erreurs affichées. Menu Kanban actif et sélection carmin dans tout le menu principal.
+2. **Étape 2** : identité visiteur (prénom, nom, jeton) ; cartes et commentaires des visiteurs sur un tableau public, protections contre les abus.
+3. **Étape 3** : images des cartes (stockage privé, adresses signées).
+
+### Fichiers de l'étape 1
+
+- `supabase/migrations/20261021190000_kanban.sql` : tables, droits de lecture/écriture, limites simultanées (5/20/30), déplacements atomiques et ordre par pas de 1 000.
+- `src/lib/kanban.ts` : limites, icônes/couleurs, validations, slug, progression et arbre Markdown limité ; tests voisins.
+- `src/app/dashboard/kanban/` : page privée, lectures, actions serveur et écran de réessai. Les écritures vérifient la session puis le propriétaire ; renommer un tableau conserve son adresse.
+- `src/components/kanban/` : colonne des tableaux, listes/cartes et glisser-déposer, fenêtre de carte, rendu Markdown ; tests des interactions et raccourcis.
+- `src/app/[username]/kanban/[slug]/` : page publique, métadonnées et réessai. Un tableau privé ou un profil hors ligne reste introuvable, même pour son propriétaire à cette adresse publique.
+- `src/app/dashboard/sidebar.tsx`, `modules.ts`, `shell.tsx` et `e2e/auth.spec.ts` : navigation et scénarios d'accès.
+
+**Vérification après application de la migration** : ouvrir `/dashboard/kanban`, créer un tableau puis deux listes, ajouter plusieurs cartes avec Entrée ; déplacer une carte et rouvrir son lien `?tableau=<slug>&carte=<id>`. Dans la description, Entrée va à la ligne et Ctrl/⌘ + Entrée enregistre. Passer le tableau en public puis ouvrir son lien dans une fenêtre privée ; couper « Profil en ligne » doit rendre ce lien introuvable. Les visiteurs ne peuvent pas encore écrire ; les images arrivent à l'étape 3.
