@@ -311,6 +311,40 @@ export function validateProject(fields: Fields): Result<ProjectInput> {
   });
 }
 
+/** Sections de la page publique, dans l'ordre par défaut (l'en-tête reste toujours en haut). */
+export const PUBLIC_SECTIONS = [
+  { id: "about", label: "À propos" },
+  { id: "experiences", label: "Expérience" },
+  { id: "educations", label: "Formation" },
+  { id: "skills", label: "Compétences" },
+  { id: "languages", label: "Langues" },
+  { id: "certifications", label: "Certifications" },
+  { id: "projects", label: "Projets" },
+] as const;
+
+export type PublicSectionId = (typeof PUBLIC_SECTIONS)[number]["id"];
+
+/** Ordre enregistré → ordre complet : inconnus et doublons ignorés, sections manquantes ajoutées à la fin. */
+export function normalizeSectionOrder(order: readonly string[] | null | undefined): PublicSectionId[] {
+  const known = PUBLIC_SECTIONS.map((s) => s.id) as PublicSectionId[];
+  const result: PublicSectionId[] = [];
+  for (const id of order ?? []) {
+    if ((known as string[]).includes(id) && !result.includes(id as PublicSectionId)) {
+      result.push(id as PublicSectionId);
+    }
+  }
+  return [...result, ...known.filter((id) => !result.includes(id))];
+}
+
+/** Déplace l'élément d'indice « from » à l'indice « to » (glisser-déposer). */
+export function moveInList<T>(list: readonly T[], from: number, to: number): T[] {
+  const next = [...list];
+  if (from < 0 || from >= next.length || to < 0 || to >= next.length) return next;
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next;
+}
+
 /** Sections à plusieurs éléments : nom côté code → table et validateur. */
 export const SECTIONS = {
   experiences: { table: "profile_experiences", validate: validateExperience },

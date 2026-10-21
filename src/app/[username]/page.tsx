@@ -44,7 +44,7 @@ export default async function PublicProfilePage({
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "id, username, is_online, display_name, headline, avatar_url, location, open_to_work, open_to_work_details, contact_email, website_url, linkedin_url, github_url, other_url, about, top_skills, skills",
+      "id, username, is_online, display_name, headline, avatar_url, location, open_to_work, open_to_work_details, contact_email, website_url, linkedin_url, github_url, other_url, about, top_skills, skills, section_order",
     )
     .eq("username", username)
     .maybeSingle();
@@ -125,6 +125,7 @@ export default async function PublicProfilePage({
         about: profile.about,
         top_skills: profile.top_skills ?? [],
         skills: profile.skills ?? [],
+        section_order: profile.section_order ?? [],
       }}
       experiences={(experiencesRes.data ?? []) as ExperienceRow[]}
       educations={(educationsRes.data ?? []) as EducationRow[]}

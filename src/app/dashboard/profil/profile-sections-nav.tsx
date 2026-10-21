@@ -9,6 +9,7 @@ import {
   GraduationCap,
   IdCard,
   Languages,
+  ListOrdered,
   type LucideIcon,
   MapPin,
   Sparkles,
@@ -26,6 +27,7 @@ export const PROFILE_SECTIONS = [
   { id: "langues", label: "Langues", Icon: Languages },
   { id: "certifications", label: "Certifications", Icon: Award },
   { id: "projets", label: "Projets", Icon: FolderKanban },
+  { id: "ordre", label: "Ordre des sections", Icon: ListOrdered },
 ] as const satisfies readonly { id: string; label: string; Icon: LucideIcon }[];
 
 export type ProfileSectionId = (typeof PROFILE_SECTIONS)[number]["id"];

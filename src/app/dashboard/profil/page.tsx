@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
+import { normalizeSectionOrder } from "@/lib/profile-sections";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileEditor } from "../profile-editor";
 import { DashboardShell } from "../shell";
@@ -13,6 +14,7 @@ import type { LanguageRow } from "./language-fields";
 import type { ProjectRow } from "./project-fields";
 import { ProfileSectionsNav } from "./profile-sections-nav";
 import { SectionList } from "./section-list";
+import { SectionOrderForm } from "./section-order-form";
 import { SkillsForm } from "./skills-form";
 
 // Page dépendante de la session : elle bloque côté serveur (voir docs/decisions.md).
@@ -29,7 +31,7 @@ export default async function ProfilePage() {
   const { data: profile, error } = await supabase
     .from("profiles")
     .select(
-      "username, display_name, headline, is_online, avatar_url, location, open_to_work, open_to_work_details, contact_email, website_url, linkedin_url, github_url, other_url, about, top_skills, skills",
+      "username, display_name, headline, is_online, avatar_url, location, open_to_work, open_to_work_details, contact_email, website_url, linkedin_url, github_url, other_url, about, top_skills, skills, section_order",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -143,6 +145,7 @@ export default async function ProfilePage() {
             <SectionList section="certifications" title="Certifications" items={certifications} />
           ),
           projets: <SectionList section="projects" title="Projets" items={projects} />,
+          ordre: <SectionOrderForm initialOrder={normalizeSectionOrder(profile.section_order)} />,
         }}
       />
     </DashboardShell>

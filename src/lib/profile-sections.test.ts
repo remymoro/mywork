@@ -3,6 +3,8 @@ import {
   formatDuration,
   formatMonth,
   getInitials,
+  moveInList,
+  normalizeSectionOrder,
   isSectionName,
   normalizeUrl,
   parseSkills,
@@ -160,5 +162,22 @@ describe("getInitials", () => {
     expect(getInitials("  ", "remy")).toBe("R");
     expect(getInitials("remy", "remy")).toBe("R");
     expect(getInitials("", "")).toBe("?");
+  });
+});
+
+describe("ordre des sections", () => {
+  it("complète l'ordre enregistré et ignore les inconnus ou doublons", () => {
+    expect(normalizeSectionOrder([])).toEqual([
+      "about", "experiences", "educations", "skills", "languages", "certifications", "projects",
+    ]);
+    expect(normalizeSectionOrder(["projects", "pirate", "experiences", "projects"])).toEqual([
+      "projects", "experiences", "about", "educations", "skills", "languages", "certifications",
+    ]);
+  });
+
+  it("déplace un élément d'une place à une autre", () => {
+    expect(moveInList(["a", "b", "c", "d"], 3, 0)).toEqual(["d", "a", "b", "c"]);
+    expect(moveInList(["a", "b", "c"], 0, 2)).toEqual(["b", "c", "a"]);
+    expect(moveInList(["a", "b"], 0, 5)).toEqual(["a", "b"]);
   });
 });

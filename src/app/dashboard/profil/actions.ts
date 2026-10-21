@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   SECTIONS,
   isSectionName,
+  normalizeSectionOrder,
   validateAbout,
   validateHeader,
   validateSkills,
@@ -89,6 +90,17 @@ export async function updateAbout(_prev: FormState, formData: FormData): Promise
 
 export async function updateSkills(_prev: FormState, formData: FormData): Promise<FormState> {
   return updateProfileColumns(validateSkills, formData);
+}
+
+/** Ordre des sections de la page publique (glisser-déposer), enregistré dès qu'on lâche. */
+export async function updateSectionOrder(order: string[]): Promise<FormState> {
+  const normalized = normalizeSectionOrder(Array.isArray(order) ? order : []);
+  const { supabase, userId } = await currentUser();
+  const { error } = await supabase.from("profiles").update({ section_order: normalized }).eq("id", userId);
+  if (error) return { error: "Impossible d'enregistrer l'ordre." };
+  refresh();
+  revalidatePath("/[username]", "page");
+  return { saved: true };
 }
 
 /** Ajoute (sans champ « id ») ou modifie (avec « id ») un élément d'une section. */

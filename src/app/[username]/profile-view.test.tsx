@@ -218,4 +218,37 @@ describe("Sections publiques du profil", () => {
     expect(screen.getByRole("img", { name: "Aperçu du projet MyWork" })).toBeInTheDocument();
     expect(screen.queryByRole("img", { name: "Aperçu du projet Sans image" })).not.toBeInTheDocument();
   });
+
+  it("affiche les sections dans l'ordre choisi", () => {
+    render(
+      <PublicProfileView
+        profile={{
+          username: "remy",
+          is_online: true,
+          display_name: "Rémy Moro",
+          headline: null,
+          avatar_url: null,
+          location: null,
+          open_to_work: false,
+          open_to_work_details: null,
+          hasContact: false,
+          website_url: null,
+          linkedin_url: null,
+          github_url: null,
+          other_url: null,
+          about: "Bonjour",
+          top_skills: [],
+          skills: ["React"],
+          section_order: ["skills", "languages"],
+        }}
+        experiences={[]}
+        educations={[]}
+        languages={[{ id: "l1", position: 0, is_visible: true, name: "Français", level: "maternelle" }]}
+        certifications={[]}
+        projects={[]}
+      />,
+    );
+    const headings = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(headings).toEqual(["COMPÉTENCES", "LANGUES", "À PROPOS"]);
+  });
 });

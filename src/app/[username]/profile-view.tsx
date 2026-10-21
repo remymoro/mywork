@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Image from "next/image";
 import { Briefcase, CodeXml, EyeOff, Globe, Link2, MapPin } from "lucide-react";
 import { Logo } from "@/components/logo";
@@ -17,6 +18,8 @@ import {
   formatMonth,
   getInitials,
   labelOf,
+  normalizeSectionOrder,
+  type PublicSectionId,
 } from "@/lib/profile-sections";
 import { ContactButton } from "./contact-button";
 
@@ -37,6 +40,8 @@ export type PublicProfileData = {
   about: string | null;
   top_skills: string[];
   skills: string[];
+  /** Ordre choisi dans « Mon profil » (vide = ordre par défaut). */
+  section_order?: string[];
 };
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
@@ -314,6 +319,16 @@ export function PublicProfileView({
   // Comme LinkedIn : le premier poste actuel (dans l'ordre choisi) s'affiche au-dessus du nom.
   const currentPosition = experiences.find((exp) => exp.is_current);
 
+  const sections: Record<PublicSectionId, React.ReactNode> = {
+    about: <AboutSection about={profile.about} topSkills={profile.top_skills} />,
+    experiences: <ExperienceSection items={experiences} />,
+    educations: <EducationSection items={educations} />,
+    skills: <SkillsSection skills={profile.skills} />,
+    languages: <LanguageSection items={languages} />,
+    certifications: <CertificationSection items={certifications} />,
+    projects: <ProjectSection items={projects} />,
+  };
+
   const links = [
     profile.website_url ? { label: "Site", href: profile.website_url, Icon: Globe } : null,
     profile.linkedin_url ? { label: "LinkedIn", href: profile.linkedin_url, Icon: Briefcase } : null,
@@ -409,13 +424,9 @@ export function PublicProfileView({
         <Separator />
 
         <div className="space-y-8">
-          <AboutSection about={profile.about} topSkills={profile.top_skills} />
-          <ExperienceSection items={experiences} />
-          <EducationSection items={educations} />
-          <SkillsSection skills={profile.skills} />
-          <LanguageSection items={languages} />
-          <CertificationSection items={certifications} />
-          <ProjectSection items={projects} />
+          {normalizeSectionOrder(profile.section_order).map((id) => (
+            <Fragment key={id}>{sections[id]}</Fragment>
+          ))}
         </div>
       </main>
     </div>

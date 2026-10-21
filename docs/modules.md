@@ -6,7 +6,7 @@ Détail fonctionnel de chaque module. Les décisions techniques restent dans `do
 
 Vitrine de MyWork : c'est la première chose que voit un visiteur (recruteur, client, partenaire) sur `mywork.website/<pseudo>`. Objectif : un profil professionnel complet, sur le modèle de LinkedIn.
 
-- **Côté privé** (`/dashboard/profil`, « Mon profil ») : menu des sections à gauche (Éditer mon profil, Photo, En-tête, À propos, Expérience, Formation, Compétences, Langues, Certifications, Projets) ; les champs de la section choisie s'affichent à droite. Dans les sections à plusieurs éléments : ajouter, modifier, masquer au public sans supprimer, changer l'ordre, supprimer.
+- **Côté privé** (`/dashboard/profil`, « Mon profil ») : menu des sections à gauche (Éditer mon profil, Photo, En-tête, À propos, Expérience, Formation, Compétences, Langues, Certifications, Projets) ; les champs de la section choisie s'affichent à droite. Dans les sections à plusieurs éléments : ajouter, modifier, masquer au public sans supprimer, changer l'ordre, supprimer. « Ordre des sections » : l'ordre des sections de la page publique se choisit par glisser-déposer (ou flèches), l'en-tête restant en haut.
 - **Côté public** (`/<pseudo>`) : mise en page soignée du résultat. Une section vide ou un élément masqué n'apparaît pas. Profil hors ligne (interrupteur « Profil en ligne ») : page introuvable pour les visiteurs.
 
 ### Version 1 (2026-10-21)
