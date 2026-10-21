@@ -15,15 +15,22 @@ export default async function ProfilePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
-    .select("username, display_name, headline")
+    .select("username, display_name, headline, is_online")
     .eq("id", user.id)
     .maybeSingle();
+  // Une erreur de lecture ne doit pas renvoyer vers /onboarding (boucle avec /dashboard).
+  if (error) throw new Error(`Lecture du profil impossible : ${error.message}`);
   if (!profile) redirect("/onboarding");
 
   return (
-    <DashboardShell active="profil">
+    <DashboardShell
+      active="profil"
+      email={user.email ?? ""}
+      username={profile.username}
+      isOnline={profile.is_online}
+    >
       <div className="space-y-1.5">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
           ESPACE PRIVÉ
