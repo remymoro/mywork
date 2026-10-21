@@ -43,7 +43,8 @@ beforeEach(() => {
   for (const action of Object.values(actions)) action.mockResolvedValue({ saved: true });
 });
 
-function renderCard(readOnly = false) {
+/** `member` : un membre qui ouvre la carte d'un autre (ici celle du propriétaire). */
+function renderCard(member = false) {
   const onClose = vi.fn();
   render(
     <CardDialog
@@ -51,7 +52,8 @@ function renderCard(readOnly = false) {
       list={list}
       checklist={[]}
       comments={[]}
-      readOnly={readOnly}
+      userId={member ? "membre-1" : "owner-1"}
+      isOwner={!member}
       onClose={onClose}
     />,
   );
@@ -120,13 +122,16 @@ describe("fenêtre d'une carte", () => {
     expect(input).toHaveValue("À garder");
   });
 
-  it("n'expose aucun contrôle d'édition en lecture seule", () => {
+  it("sur la carte d'un autre, un membre peut seulement commenter", () => {
     renderCard(true);
     expect(screen.getByText(card.title)).toBeInTheDocument();
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getByText(/Cette carte appartient à quelqu'un d'autre/)).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /Modifier|Ajouter|Publier|Supprimer/ }),
+      screen.queryByRole("button", { name: /Modifier|Ajouter à la checklist|Ajouter une image/ }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Nouvel élément de checklist" })).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Ajouter un commentaire" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Publier le commentaire" })).toBeInTheDocument();
   });
 
   it("montre progression, commentaires triés et nom affiché", () => {
@@ -135,7 +140,8 @@ describe("fenêtre d'une carte", () => {
         card={card}
         list={list}
         onClose={vi.fn()}
-        readOnly
+        userId="membre-1"
+        isOwner={false}
         checklist={[{ id: "item-1", card_id: card.id, text: "Préparer", done: true, position: 0 }]}
         comments={[
           {

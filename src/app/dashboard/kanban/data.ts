@@ -1,4 +1,3 @@
-import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ChecklistItem,
@@ -7,7 +6,9 @@ import type {
   KanbanCardImage,
   KanbanComment,
   KanbanList,
+  KanbanPerson,
 } from "@/lib/kanban";
+import { personName } from "@/lib/kanban";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -32,18 +33,23 @@ async function readRows<T>(
   }
 }
 
-export async function loadOwnedBoards(supabase: Supabase, ownerId: string) {
-  return readRows<KanbanBoard>(
+/** Tableaux créés par l'utilisateur puis ceux partagés avec lui (la RLS ne renvoie que ceux-là). */
+export async function loadAccessibleBoards(supabase: Supabase, userId: string) {
+  const boards = await readRows<KanbanBoard>(
     (start, end) =>
       supabase
         .from("kanban_boards")
         .select("*")
-        .eq("owner_id", ownerId)
         .order("position")
+        .order("created_at")
         .order("id")
         .range(start, end),
     "des tableaux",
   );
+  return [
+    ...boards.filter((board) => board.owner_id === userId),
+    ...boards.filter((board) => board.owner_id !== userId),
+  ];
 }
 
 export async function loadKanbanContent(supabase: Supabase, boards: KanbanBoard[]) {
@@ -126,29 +132,26 @@ export async function loadKanbanContent(supabase: Supabase, boards: KanbanBoard[
     images.push(...cardImages);
   }
 
-  const authorIds = [
-    ...new Set(
-      comments.flatMap((comment) => (comment.author_profile_id ? [comment.author_profile_id] : [])),
-    ),
-  ];
-  const names = new Map<string, string>();
-  for (let offset = 0; offset < authorIds.length; offset += 100) {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, display_name, username")
-      .in("id", authorIds.slice(offset, offset + 100));
-    if (error) throw new Error(`Lecture des auteurs impossible : ${error.message}`);
-    for (const author of data ?? []) names.set(author.id, author.display_name || author.username);
+  // Noms du propriétaire et des membres, lus même si leur profil est hors ligne.
+  const people: KanbanPerson[] = [];
+  for (const board of boards) {
+    const { data, error } = await supabase.rpc("kanban_board_people", { board: board.id });
+    if (error) throw new Error(`Lecture des membres impossible : ${error.message}`);
+    for (const person of (data ?? []) as Omit<KanbanPerson, "board_id">[]) {
+      people.push({ ...person, board_id: board.id });
+    }
   }
+  const names = new Map(people.map((person) => [person.id, personName(person)]));
 
   return {
     lists,
     cards,
     checklist,
     images: await signImages(supabase, images),
+    people,
     comments: comments.map((comment) => ({
       ...comment,
-      author_name: names.get(comment.author_profile_id ?? "") ?? "Compte supprimé",
+      author_name: names.get(comment.author_profile_id ?? "") ?? "Ancien membre",
     })),
   };
 }
@@ -166,27 +169,3 @@ async function signImages(supabase: Supabase, images: KanbanCardImage[]) {
   const urls = new Map((data ?? []).map((item) => [item.path, item.signedUrl]));
   return images.map((image) => ({ ...image, url: urls.get(image.path) ?? undefined }));
 }
-
-// Partagé par la page et ses métadonnées, uniquement pendant la requête courante.
-export const loadPublicBoard = cache(async (username: string, slug: string) => {
-  const supabase = await createClient();
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id, username, display_name")
-    .eq("username", username)
-    .eq("is_online", true)
-    .maybeSingle();
-  if (profileError) throw new Error(`Lecture du profil impossible : ${profileError.message}`);
-  if (!profile) return null;
-
-  const { data: board, error } = await supabase
-    .from("kanban_boards")
-    .select("*")
-    .eq("owner_id", profile.id)
-    .eq("slug", slug)
-    .eq("is_public", true)
-    .maybeSingle();
-  if (error) throw new Error(`Lecture du tableau impossible : ${error.message}`);
-  if (!board) return null;
-  return { profile, board: board as KanbanBoard };
-});

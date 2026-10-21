@@ -3,17 +3,25 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Copy,
-  Globe,
-  Lock,
+  LogOut,
   MoreHorizontal,
   MoreVertical,
   Pencil,
   Plus,
   Trash2,
+  UserMinus,
+  UserPlus,
+  Users,
 } from "lucide-react";
-import { createBoard, deleteBoard, updateBoard } from "@/app/dashboard/kanban/actions";
+import {
+  createBoard,
+  deleteBoard,
+  inviteMember,
+  removeMember,
+  updateBoard,
+} from "@/app/dashboard/kanban/actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,8 +40,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { BOARD_ICONS, type KanbanBoard, type KanbanCard } from "@/lib/kanban";
+import {
+  BOARD_ICONS,
+  MAX_BOARDS,
+  MAX_MEMBERS,
+  personName,
+  type KanbanBoard,
+  type KanbanCard,
+  type KanbanPerson,
+} from "@/lib/kanban";
 import { cn } from "@/lib/utils";
 
 export const NETWORK_ERROR = "La connexion a été interrompue. Réessaie dans un instant.";
@@ -45,11 +60,10 @@ export function BoardEditor({
 }: {
   board?: KanbanBoard;
   onClose: () => void;
-  onSaved: (slug?: string) => void;
+  onSaved: (id?: string) => void;
 }) {
   const [name, setName] = useState(board?.name ?? "");
   const [icon, setIcon] = useState(board?.icon ?? BOARD_ICONS[0].value);
-  const [isPublic, setIsPublic] = useState(board?.is_public ?? false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -58,10 +72,10 @@ export function BoardEditor({
     setPending(true);
     setError("");
     try {
-      const values = { name, icon, is_public: isPublic };
+      const values = { name, icon };
       const result = board ? await updateBoard(board.id, values) : await createBoard(values);
       if (result.error) setError(result.error);
-      else onSaved(result.slug ?? board?.slug);
+      else onSaved(result.id ?? board?.id);
     } catch {
       setError(NETWORK_ERROR);
     } finally {
@@ -75,7 +89,7 @@ export function BoardEditor({
         <DialogHeader>
           <DialogTitle>{board ? "Modifier le tableau" : "Nouveau tableau"}</DialogTitle>
           <DialogDescription>
-            Donne un nom à ton tableau et choisis qui peut le voir.
+            Un tableau est privé : toi seul le vois, et les membres que tu invites.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={save} className="space-y-5">
@@ -109,17 +123,6 @@ export function BoardEditor({
               ))}
             </div>
           </fieldset>
-          <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
-            <div>
-              <Label htmlFor="board-public">Tableau public</Label>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {isPublic
-                  ? "Visible par tous si ton profil est en ligne."
-                  : "Visible uniquement par toi."}
-              </p>
-            </div>
-            <Switch id="board-public" checked={isPublic} onCheckedChange={setIsPublic} />
-          </div>
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -139,48 +142,31 @@ export function BoardEditor({
   );
 }
 
-export function BoardMenu({
+/** Partager un tableau : membres actuels, ajout par pseudo, retrait (propriétaire seul). */
+export function ShareDialog({
   board,
-  cardCount,
-  username,
-  horizontal = false,
-  onSelect,
+  people,
+  onClose,
 }: {
   board: KanbanBoard;
-  cardCount: number;
-  username: string;
-  horizontal?: boolean;
-  onSelect: (slug: string) => void;
+  people: KanbanPerson[];
+  onClose: () => void;
 }) {
   const router = useRouter();
-  const [editing, setEditing] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [username, setUsername] = useState("");
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [pending, setPending] = useState(false);
+  const members = people.filter((person) => !person.is_owner);
+  const full = members.length >= MAX_MEMBERS;
 
-  async function changeVisibility() {
-    setError("");
+  async function run(action: () => Promise<{ error?: string }>, onDone?: () => void) {
     setPending(true);
-    try {
-      const result = await updateBoard(board.id, { is_public: !board.is_public });
-      if (result.error) setError(result.error);
-      else router.refresh();
-    } catch {
-      setError(NETWORK_ERROR);
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function remove() {
     setError("");
-    setPending(true);
     try {
-      const result = await deleteBoard(board.id);
+      const result = await action();
       if (result.error) setError(result.error);
       else {
-        setDeleting(false);
+        onDone?.();
         router.refresh();
       }
     } catch {
@@ -190,15 +176,122 @@ export function BoardMenu({
     }
   }
 
-  async function copyLink() {
+  return (
+    <Dialog open onOpenChange={(open) => !open && !pending && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Partager « {board.name} »</DialogTitle>
+          <DialogDescription>
+            Les membres voient tout le tableau, créent leurs cartes et commentent. Ils ne peuvent
+            modifier que leurs propres cartes.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex items-end gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void run(
+              () => inviteMember(board.id, username),
+              () => setUsername(""),
+            );
+          }}
+        >
+          <div className="min-w-0 flex-1 space-y-2">
+            <Label htmlFor="share-username">Pseudo de la personne</Label>
+            <Input
+              id="share-username"
+              placeholder="ex. louise-dubois"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              disabled={pending || full}
+            />
+          </div>
+          <Button type="submit" disabled={pending || full || !username.trim()}>
+            <UserPlus aria-hidden="true" />
+            Inviter
+          </Button>
+        </form>
+        <p className="text-xs text-muted-foreground">
+          {full
+            ? `${MAX_MEMBERS} membres au maximum : retire quelqu'un pour en inviter un autre.`
+            : `${members.length}/${MAX_MEMBERS} membres.`}
+        </p>
+        {error && (
+          <Alert variant="destructive" role="alert">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        <ul aria-label="Personnes du tableau" className="divide-y rounded-lg border">
+          {people.map((person) => (
+            <li key={person.id} className="flex items-center justify-between gap-3 px-3 py-2">
+              <span className="min-w-0 text-sm">
+                <span className="font-medium">{personName(person)}</span>{" "}
+                <span className="text-muted-foreground">@{person.username}</span>
+              </span>
+              {person.is_owner ? (
+                <Badge variant="secondary">Propriétaire</Badge>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Retirer ${personName(person)}`}
+                  disabled={pending}
+                  onClick={() => void run(() => removeMember(board.id, person.id))}
+                >
+                  <UserMinus aria-hidden="true" />
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={pending}>
+            Fermer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function BoardMenu({
+  board,
+  cardCount,
+  people,
+  userId,
+  horizontal = false,
+  onSelect,
+}: {
+  board: KanbanBoard;
+  cardCount: number;
+  people: KanbanPerson[];
+  userId: string;
+  horizontal?: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const router = useRouter();
+  const isOwner = board.owner_id === userId;
+  const [editing, setEditing] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+
+  async function run(action: () => Promise<{ error?: string }>, onDone: () => void) {
+    setError("");
+    setPending(true);
     try {
-      await navigator.clipboard.writeText(
-        `${window.location.origin}/${username}/kanban/${board.slug}`,
-      );
-      setCopied(true);
-      setError("");
+      const result = await action();
+      if (result.error) setError(result.error);
+      else {
+        onDone();
+        router.refresh();
+      }
     } catch {
-      setError("Impossible de copier le lien. Réessaie depuis le menu du tableau.");
+      setError(NETWORK_ERROR);
+    } finally {
+      setPending(false);
     }
   }
 
@@ -213,33 +306,44 @@ export function BoardMenu({
           {horizontal ? <MoreHorizontal aria-hidden="true" /> : <MoreVertical aria-hidden="true" />}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-56">
-          <DropdownMenuItem onClick={() => setEditing(true)}>
-            <Pencil aria-hidden="true" />
-            Renommer
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setEditing(true)}>Changer l’icône</DropdownMenuItem>
-          <DropdownMenuItem onClick={changeVisibility}>
-            {board.is_public ? <Lock aria-hidden="true" /> : <Globe aria-hidden="true" />}
-            {board.is_public ? "Passer en privé" : "Rendre public"}
-          </DropdownMenuItem>
-          <DropdownMenuItem disabled={!board.is_public} closeOnClick={false} onClick={copyLink}>
-            <Copy aria-hidden="true" />
-            {copied ? "Lien copié" : "Copier le lien public"}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => {
-              setError("");
-              setDeleting(true);
-            }}
-          >
-            <Trash2 aria-hidden="true" />
-            Supprimer le tableau
-          </DropdownMenuItem>
+          {isOwner ? (
+            <>
+              <DropdownMenuItem onClick={() => setEditing(true)}>
+                <Pencil aria-hidden="true" />
+                Renommer ou changer l’icône
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSharing(true)}>
+                <Users aria-hidden="true" />
+                Partager
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => {
+                  setError("");
+                  setDeleting(true);
+                }}
+              >
+                <Trash2 aria-hidden="true" />
+                Supprimer le tableau
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <>
+              <DropdownMenuItem onClick={() => setSharing(true)}>
+                <Users aria-hidden="true" />
+                Voir les membres
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => setLeaving(true)}>
+                <LogOut aria-hidden="true" />
+                Quitter le tableau
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
-      {error && !deleting && (
+      {error && !deleting && !leaving && (
         <p role="alert" className="text-xs text-destructive">
           {error}
         </p>
@@ -248,12 +352,40 @@ export function BoardMenu({
         <BoardEditor
           board={board}
           onClose={() => setEditing(false)}
-          onSaved={(slug) => {
+          onSaved={(id) => {
             setEditing(false);
-            if (slug) onSelect(slug);
+            if (id) onSelect(id);
             router.refresh();
           }}
         />
+      )}
+      {sharing && isOwner && (
+        <ShareDialog board={board} people={people} onClose={() => setSharing(false)} />
+      )}
+      {sharing && !isOwner && (
+        <Dialog open onOpenChange={(open) => !open && setSharing(false)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Membres de « {board.name} »</DialogTitle>
+            </DialogHeader>
+            <ul className="divide-y rounded-lg border">
+              {people.map((person) => (
+                <li key={person.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                  <span>
+                    <span className="font-medium">{personName(person)}</span>{" "}
+                    <span className="text-muted-foreground">@{person.username}</span>
+                  </span>
+                  {person.is_owner && <Badge variant="secondary">Propriétaire</Badge>}
+                </li>
+              ))}
+            </ul>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSharing(false)}>
+                Fermer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
       <Dialog open={deleting} onOpenChange={(open) => !pending && setDeleting(open)}>
         <DialogContent>
@@ -261,7 +393,8 @@ export function BoardMenu({
             <DialogTitle>Supprimer « {board.name} » ?</DialogTitle>
             <DialogDescription>
               Ce tableau et ses {cardCount} carte{cardCount === 1 ? "" : "s"} seront définitivement
-              supprimés, avec leurs listes, checklists et commentaires.
+              supprimés, avec leurs listes, checklists, images et commentaires, aussi pour ses
+              membres.
             </DialogDescription>
           </DialogHeader>
           {error && (
@@ -273,8 +406,40 @@ export function BoardMenu({
             <Button variant="outline" onClick={() => setDeleting(false)} disabled={pending}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={remove} disabled={pending}>
+            <Button
+              variant="destructive"
+              onClick={() => void run(() => deleteBoard(board.id), () => setDeleting(false))}
+              disabled={pending}
+            >
               Confirmer la suppression
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={leaving} onOpenChange={(open) => !pending && setLeaving(open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Quitter « {board.name} » ?</DialogTitle>
+            <DialogDescription>
+              Tu ne verras plus ce tableau. Tes cartes et commentaires y restent ; le propriétaire
+              pourra te réinviter.
+            </DialogDescription>
+          </DialogHeader>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLeaving(false)} disabled={pending}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void run(() => removeMember(board.id, userId), () => setLeaving(false))}
+              disabled={pending}
+            >
+              Quitter le tableau
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -286,33 +451,45 @@ export function BoardMenu({
 export function BoardSidebar({
   boards,
   cards,
+  people,
   selectedId,
-  username,
+  userId,
   onSelect,
 }: {
   boards: KanbanBoard[];
   cards: KanbanCard[];
+  people: KanbanPerson[];
   selectedId?: string;
-  username: string;
-  onSelect: (slug: string) => void;
+  userId: string;
+  onSelect: (id: string) => void;
 }) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
+  const ownedCount = boards.filter((board) => board.owner_id === userId).length;
+  const full = ownedCount >= MAX_BOARDS;
 
   return (
     <nav aria-label="Mes tableaux" className="space-y-4 md:border-r md:pr-5">
       <h2 className="text-xs font-semibold tracking-[0.16em] text-muted-foreground">
         MES TABLEAUX
       </h2>
-      <Button className="w-full justify-start" onClick={() => setCreating(true)}>
+      <Button className="w-full justify-start" disabled={full} onClick={() => setCreating(true)}>
         <Plus aria-hidden="true" />
         Nouveau
       </Button>
+      {full && (
+        <p className="text-xs text-muted-foreground">
+          {MAX_BOARDS} tableaux au maximum : supprime-en un pour en créer un autre.
+        </p>
+      )}
       <ul className="space-y-1">
         {boards.map((board) => {
           const Icon = (BOARD_ICONS.find((item) => item.value === board.icon) ?? BOARD_ICONS[0])
             .icon;
           const selected = board.id === selectedId;
+          const shared = board.owner_id !== userId;
+          const boardPeople = people.filter((person) => person.board_id === board.id);
+          const owner = boardPeople.find((person) => person.is_owner);
           return (
             <li
               key={board.id}
@@ -321,7 +498,7 @@ export function BoardSidebar({
               <button
                 type="button"
                 aria-current={selected ? "page" : undefined}
-                onClick={() => onSelect(board.slug)}
+                onClick={() => onSelect(board.id)}
                 className="flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-2 text-left text-sm hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <span
@@ -332,23 +509,26 @@ export function BoardSidebar({
                   )}
                 />
                 <Icon aria-hidden="true" className="size-4 shrink-0" />
-                <span className="truncate">{board.name}</span>
-                {board.is_public ? (
-                  <Globe
+                <span className="min-w-0">
+                  <span className="block truncate">{board.name}</span>
+                  {shared && owner && (
+                    <span className="block truncate text-xs text-muted-foreground">
+                      de {personName(owner)}
+                    </span>
+                  )}
+                </span>
+                {(shared || boardPeople.length > 1) && (
+                  <Users
                     className="ml-auto size-3.5 shrink-0 text-muted-foreground"
-                    aria-label="Public"
-                  />
-                ) : (
-                  <Lock
-                    className="ml-auto size-3.5 shrink-0 text-muted-foreground"
-                    aria-label="Privé"
+                    aria-label="Tableau partagé"
                   />
                 )}
               </button>
               <BoardMenu
                 board={board}
                 cardCount={cards.filter((card) => card.board_id === board.id).length}
-                username={username}
+                people={boardPeople}
+                userId={userId}
                 onSelect={onSelect}
               />
             </li>
@@ -363,9 +543,9 @@ export function BoardSidebar({
       {creating && (
         <BoardEditor
           onClose={() => setCreating(false)}
-          onSaved={(slug) => {
+          onSaved={(id) => {
             setCreating(false);
-            if (slug) onSelect(slug);
+            if (id) onSelect(id);
             router.refresh();
           }}
         />

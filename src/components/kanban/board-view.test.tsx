@@ -12,7 +12,6 @@ const board = {
   name: "MyWork",
   slug: "mywork",
   icon: "document",
-  is_public: true,
   position: 0,
   created_at: "2026-10-21T10:00:00Z",
 } as const;
@@ -55,8 +54,7 @@ describe("BoardView — aperçu des images", () => {
         checklist={[]}
         comments={[]}
         images={[image("i2", "c1", 1000), image("i1", "c1", 0)]}
-        username="remy"
-        readOnly
+        userId="u1"
         onOpen={vi.fn()}
         onSelect={vi.fn()}
       />,
@@ -76,8 +74,7 @@ describe("BoardView — aperçu des images", () => {
         cards={[]}
         checklist={[]}
         comments={[]}
-        username="remy"
-        readOnly
+        userId="u1"
         onOpen={vi.fn()}
         onSelect={vi.fn()}
       />,

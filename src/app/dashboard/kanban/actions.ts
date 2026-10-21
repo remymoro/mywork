@@ -14,6 +14,8 @@ import {
   validateChecklistText,
   validateComment,
   validateCardImage,
+  validateUsernameInput,
+  canEditCard,
   MAX_CARD_IMAGES,
 } from "@/lib/kanban";
 
@@ -47,17 +49,46 @@ async function ownedBoard({ supabase, userId }: Session, boardId: string) {
   return { board: data };
 }
 
-async function ownedCard(session: Session, boardId: string, cardId: string) {
-  const access = await ownedBoard(session, boardId);
-  if (access.error) return access.error;
+/** Tableau du propriétaire ou partagé avec lui (la RLS ne renvoie que ceux-là). */
+async function accessibleBoard({ supabase, userId }: Session, boardId: string) {
+  const { data, error } = await supabase
+    .from("kanban_boards")
+    .select("id, owner_id")
+    .eq("id", boardId)
+    .maybeSingle();
+  if (error) return { error: "Impossible de lire ce tableau. Réessaie." };
+  if (!data) return { error: "Tableau introuvable ou accès refusé." };
+  return { isOwner: data.owner_id === userId };
+}
+
+async function readCard(session: Session, boardId: string, cardId: string) {
+  const access = await accessibleBoard(session, boardId);
+  if (access.error !== undefined) return { error: access.error };
   const { data, error } = await session.supabase
     .from("kanban_cards")
-    .select("id")
+    .select("id, author_profile_id")
     .eq("id", cardId)
     .eq("board_id", boardId)
     .maybeSingle();
-  if (error) return "Impossible de lire cette carte. Réessaie.";
-  return data ? null : "Carte introuvable ou accès refusé.";
+  if (error) return { error: "Impossible de lire cette carte. Réessaie." };
+  if (!data) return { error: "Carte introuvable ou accès refusé." };
+  return { isOwner: access.isOwner, authorId: data.author_profile_id as string | null };
+}
+
+/** Commenter : toute personne du tableau, sur toutes les cartes. */
+async function accessibleCard(session: Session, boardId: string, cardId: string) {
+  const card = await readCard(session, boardId, cardId);
+  return card.error ?? null;
+}
+
+/** Modifier une carte (titre, description, déplacement, images, checklist) : propriétaire ou auteur. */
+async function editableCard(session: Session, boardId: string, cardId: string) {
+  const card = await readCard(session, boardId, cardId);
+  if (card.error !== undefined) return card.error;
+  if (!canEditCard({ isOwner: card.isOwner, userId: session.userId, authorId: card.authorId })) {
+    return "Tu ne peux modifier que tes propres cartes.";
+  }
+  return null;
 }
 
 function databaseMessage(error: DatabaseError, fallback = "Impossible d'enregistrer. Réessaie.") {
@@ -66,6 +97,10 @@ function databaseMessage(error: DatabaseError, fallback = "Impossible d'enregist
     "Cette liste est pleine : 20 cartes au maximum",
     "5 listes au maximum",
     "30 éléments de checklist au maximum",
+    "10 tableaux au maximum",
+    "10 membres au maximum",
+    "Tu es déjà propriétaire de ce tableau.",
+    "Aucun utilisateur de MyWork avec ce pseudo.",
   ];
   return limits.find((message) => error?.message.includes(message)) ?? fallback;
 }
@@ -91,7 +126,6 @@ async function removeImageFiles(supabase: Supabase, paths: string[]) {
 
 function refresh() {
   revalidatePath("/dashboard/kanban");
-  revalidatePath("/[username]/kanban/[slug]", "page");
 }
 
 function saved(id?: string): KanbanActionResult {
@@ -100,17 +134,12 @@ function saved(id?: string): KanbanActionResult {
 }
 
 /** Une URL existante reste stable quand on renomme le tableau. */
-export async function createBoard(input: {
-  name: string;
-  icon: string;
-  is_public: boolean;
-}): Promise<KanbanActionResult> {
+export async function createBoard(input: { name: string; icon: string }): Promise<KanbanActionResult> {
   const { supabase, userId } = await currentUser();
   const name = validateBoardName(input?.name);
   if (!name.ok) return { error: name.error };
   const icon = validateBoardIcon(input.icon);
   if (!icon.ok) return { error: icon.error };
-  if (typeof input.is_public !== "boolean") return { error: "Choisis un tableau public ou privé." };
 
   const base = slugify(name.value) || "tableau";
   const { data: last, error: readError } = await supabase
@@ -123,7 +152,7 @@ export async function createBoard(input: {
   if (readError) return { error: "Impossible de lire tes tableaux. Réessaie." };
   const position = (last?.position ?? -1000) + 1000;
   const used = new Set<string>();
-  // Pas de limite au nombre de tableaux : l'API pagine, même au-delà de 1 000 noms identiques.
+  // 10 tableaux au plus (vérifié par la base) ; la lecture pagine quand même par prudence.
   for (let offset = 0; ; offset += 500) {
     const { data: page, error } = await supabase
       .from("kanban_boards")
@@ -152,7 +181,6 @@ export async function createBoard(input: {
         name: name.value,
         slug,
         icon: icon.value,
-        is_public: input.is_public,
         position,
       })
       .select("id, slug")
@@ -166,10 +194,10 @@ export async function createBoard(input: {
 
 export async function updateBoard(
   boardId: string,
-  input: { name?: string; icon?: string; is_public?: boolean },
+  input: { name?: string; icon?: string },
 ): Promise<KanbanActionResult> {
   const session = await currentUser();
-  const values: { name?: string; icon?: string; is_public?: boolean } = {};
+  const values: { name?: string; icon?: string } = {};
   if (input?.name !== undefined) {
     const name = validateBoardName(input.name);
     if (!name.ok) return { error: name.error };
@@ -179,11 +207,6 @@ export async function updateBoard(
     const icon = validateBoardIcon(input.icon);
     if (!icon.ok) return { error: icon.error };
     values.icon = icon.value;
-  }
-  if (input?.is_public !== undefined) {
-    if (typeof input.is_public !== "boolean")
-      return { error: "Choisis un tableau public ou privé." };
-    values.is_public = input.is_public;
   }
   if (!Object.keys(values).length) return { error: "Aucune modification à enregistrer." };
   const { data, error } = await session.supabase
@@ -325,8 +348,8 @@ export async function createCard(
   const session = await currentUser();
   const title = validateCardTitle(rawTitle);
   if (!title.ok) return { error: title.error };
-  const access = await ownedBoard(session, boardId);
-  if (access.error) return { error: access.error };
+  const access = await accessibleBoard(session, boardId);
+  if (access.error !== undefined) return { error: access.error };
   const { data: list, error: listError } = await session.supabase
     .from("kanban_lists")
     .select("id")
@@ -358,8 +381,8 @@ export async function updateCard(
   if (!title.ok) return { error: title.error };
   const description = validateDescription(input?.description);
   if (!description.ok) return { error: description.error };
-  const access = await ownedBoard(session, boardId);
-  if (access.error) return { error: access.error };
+  const accessError = await editableCard(session, boardId, cardId);
+  if (accessError) return { error: accessError };
   const { data, error } = await session.supabase
     .from("kanban_cards")
     .update({ title: title.value, description: description.value })
@@ -373,8 +396,8 @@ export async function updateCard(
 
 export async function deleteCard(boardId: string, cardId: string): Promise<KanbanActionResult> {
   const session = await currentUser();
-  const access = await ownedBoard(session, boardId);
-  if (access.error) return { error: access.error };
+  const accessError = await editableCard(session, boardId, cardId);
+  if (accessError) return { error: accessError };
   const paths = await imagePaths(session.supabase, { boardId, cardIds: [cardId] });
   const { data, error } = await session.supabase
     .from("kanban_cards")
@@ -396,7 +419,7 @@ export async function moveCard(
 ): Promise<KanbanActionResult> {
   const session = await currentUser();
   if (!Number.isSafeInteger(targetIndex) || targetIndex < 0) return { error: "Position invalide." };
-  const accessError = await ownedCard(session, boardId, cardId);
+  const accessError = await editableCard(session, boardId, cardId);
   if (accessError) return { error: accessError };
   const { error } = await session.supabase.rpc("kanban_move_card", {
     card_id: cardId,
@@ -441,7 +464,7 @@ export async function addChecklistItem(
   const session = await currentUser();
   const text = validateChecklistText(rawText);
   if (!text.ok) return { error: text.error };
-  const accessError = await ownedCard(session, boardId, cardId);
+  const accessError = await editableCard(session, boardId, cardId);
   if (accessError) return { error: accessError };
   const { data, error } = await session.supabase
     .from("kanban_checklist_items")
@@ -460,7 +483,7 @@ export async function setChecklistItemDone(
 ): Promise<KanbanActionResult> {
   const session = await currentUser();
   if (typeof done !== "boolean") return { error: "État de checklist invalide." };
-  const accessError = await ownedCard(session, boardId, cardId);
+  const accessError = await editableCard(session, boardId, cardId);
   if (accessError) return { error: accessError };
   const { data, error } = await session.supabase
     .from("kanban_checklist_items")
@@ -479,7 +502,7 @@ export async function deleteChecklistItem(
   itemId: string,
 ): Promise<KanbanActionResult> {
   const session = await currentUser();
-  const accessError = await ownedCard(session, boardId, cardId);
+  const accessError = await editableCard(session, boardId, cardId);
   if (accessError) return { error: accessError };
   const { data, error } = await session.supabase
     .from("kanban_checklist_items")
@@ -500,7 +523,7 @@ export async function addComment(
   const session = await currentUser();
   const body = validateComment(rawBody);
   if (!body.ok) return { error: body.error };
-  const accessError = await ownedCard(session, boardId, cardId);
+  const accessError = await accessibleCard(session, boardId, cardId);
   if (accessError) return { error: accessError };
   const { data, error } = await session.supabase
     .from("kanban_comments")
@@ -517,15 +540,16 @@ export async function deleteComment(
   commentId: string,
 ): Promise<KanbanActionResult> {
   const session = await currentUser();
-  const accessError = await ownedCard(session, boardId, cardId);
-  if (accessError) return { error: accessError };
-  const { data, error } = await session.supabase
+  const card = await readCard(session, boardId, cardId);
+  if (card.error !== undefined) return { error: card.error };
+  // Chacun supprime ses commentaires ; le propriétaire du tableau, tous.
+  let query = session.supabase
     .from("kanban_comments")
     .delete()
     .eq("id", commentId)
-    .eq("card_id", cardId)
-    .select("id")
-    .maybeSingle();
+    .eq("card_id", cardId);
+  if (!card.isOwner) query = query.eq("author_profile_id", session.userId);
+  const { data, error } = await query.select("id").maybeSingle();
   if (error || !data) return { error: "Impossible de supprimer ce commentaire. Réessaie." };
   return saved();
 }
@@ -541,7 +565,7 @@ export async function uploadCardImage(
   if (!(file instanceof File)) return { error: "Choisis une image." };
   const checked = validateCardImage(file);
   if (!checked.ok) return { error: checked.error };
-  const accessError = await ownedCard(session, boardId, cardId);
+  const accessError = await editableCard(session, boardId, cardId);
   if (accessError) return { error: accessError };
 
   const { count } = await session.supabase
@@ -579,7 +603,7 @@ export async function deleteCardImage(
   imageId: string,
 ): Promise<KanbanActionResult> {
   const session = await currentUser();
-  const accessError = await ownedCard(session, boardId, cardId);
+  const accessError = await editableCard(session, boardId, cardId);
   if (accessError) return { error: accessError };
   const { data, error } = await session.supabase
     .from("kanban_card_images")
@@ -593,3 +617,38 @@ export async function deleteCardImage(
   await removeImageFiles(session.supabase, [data.path as string]);
   return saved();
 }
+
+/** Partager un tableau : le propriétaire invite un utilisateur de MyWork par son pseudo. */
+export async function inviteMember(boardId: string, rawUsername: string): Promise<KanbanActionResult> {
+  const session = await currentUser();
+  const username = validateUsernameInput(rawUsername);
+  if (!username.ok) return { error: username.error };
+  const access = await ownedBoard(session, boardId);
+  if (access.error) return { error: access.error };
+  const { data, error } = await session.supabase.rpc("kanban_invite_member", {
+    board: boardId,
+    username: username.value,
+  });
+  if (error) return { error: databaseMessage(error, "Impossible d'inviter cette personne. Réessaie.") };
+  return saved(data as string);
+}
+
+/** Le propriétaire retire un membre ; un membre peut se retirer lui-même (quitter le tableau). */
+export async function removeMember(boardId: string, memberId: string): Promise<KanbanActionResult> {
+  const session = await currentUser();
+  const access = await accessibleBoard(session, boardId);
+  if (access.error !== undefined) return { error: access.error };
+  if (!access.isOwner && memberId !== session.userId) {
+    return { error: "Seul le propriétaire peut retirer un membre." };
+  }
+  const { data, error } = await session.supabase
+    .from("kanban_board_members")
+    .delete()
+    .eq("board_id", boardId)
+    .eq("member_id", memberId)
+    .select("member_id")
+    .maybeSingle();
+  if (error || !data) return { error: "Impossible de retirer ce membre. Réessaie." };
+  return saved();
+}
+

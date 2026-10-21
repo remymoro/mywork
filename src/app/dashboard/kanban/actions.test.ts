@@ -54,7 +54,7 @@ function query(table: string) {
 
 const queries: ReturnType<typeof query>[] = [];
 const ok = (data: unknown): Reply => ({ data, error: null });
-const board = { id: "board-1", slug: "projet" };
+const board = { id: "board-1", slug: "projet", owner_id: "owner-1" };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -75,7 +75,7 @@ beforeEach(() => {
 describe("actions Kanban : session, validation et propriété", () => {
   it("vérifie la session avant même la validation et refuse le visiteur", async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null } });
-    await expect(createBoard({ name: "", icon: "document", is_public: false })).rejects.toThrow(
+    await expect(createBoard({ name: "", icon: "document" })).rejects.toThrow(
       "REDIRECT",
     );
     expect(mocks.redirect).toHaveBeenCalledWith("/login");
@@ -100,12 +100,41 @@ describe("actions Kanban : session, validation et propriété", () => {
     expect(queries[0].eq).toHaveBeenCalledWith("owner_id", "owner-1");
   });
 
-  it("n'écrit aucun commentaire si le tableau appartient à quelqu'un d'autre", async () => {
+  it("n'écrit aucun commentaire sur un tableau ni possédé ni partagé", async () => {
+    // La RLS ne renvoie que ses tableaux et ceux partagés avec soi : ici, rien.
     replies.push(ok(null));
     expect((await addComment("board-1", "card-1", "Bonjour")).error).toContain("accès refusé");
     expect(queries).toHaveLength(1);
-    expect(queries[0].eq).toHaveBeenCalledWith("owner_id", "owner-1");
+    expect(queries[0].eq).toHaveBeenCalledWith("id", "board-1");
     expect(queries[0].insert).not.toHaveBeenCalled();
+  });
+
+  it("un membre commente la carte d'un autre, mais ne peut pas la modifier", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: { id: "membre-1" } } });
+    const card = { id: "card-1", author_profile_id: "owner-1" };
+    replies.push(ok(board), ok(card), ok({ id: "comment-1" }));
+    expect(await addComment("board-1", "card-1", "Je m'en occupe")).toMatchObject({ saved: true });
+
+    replies.push(ok(board), ok(card));
+    expect((await addChecklistItem("board-1", "card-1", "Étape")).error).toBe(
+      "Tu ne peux modifier que tes propres cartes.",
+    );
+    replies.push(ok(board), ok(card));
+    expect((await moveCard("board-1", "card-1", "list-2", 0)).error).toBe(
+      "Tu ne peux modifier que tes propres cartes.",
+    );
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("un membre modifie ses cartes et ne supprime que ses commentaires", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: { id: "membre-1" } } });
+    const own = { id: "card-2", author_profile_id: "membre-1" };
+    replies.push(ok(board), ok(own), ok({ id: "item-1" }));
+    expect(await addChecklistItem("board-1", "card-2", "Étape")).toMatchObject({ saved: true });
+
+    replies.push(ok(board), ok(own), ok({ id: "comment-2" }));
+    expect(await deleteComment("board-1", "card-2", "comment-2")).toMatchObject({ saved: true });
+    expect(queries.at(-1)?.eq).toHaveBeenCalledWith("author_profile_id", "membre-1");
   });
 
   it("refuse une carte qui n'appartient pas au tableau autorisé", async () => {
@@ -139,7 +168,7 @@ describe("actions Kanban : créations concurrentes et limites", () => {
       { data: null, error: { code: "23505", message: "duplicate key" } },
       ok({ id: "new-board", slug: "ete-3" }),
     );
-    expect(await createBoard({ name: "Été", icon: "document", is_public: false })).toEqual({
+    expect(await createBoard({ name: "Été", icon: "document" })).toEqual({
       saved: true,
       id: "new-board",
       slug: "ete-3",
@@ -157,7 +186,7 @@ describe("actions Kanban : créations concurrentes et limites", () => {
       ok([{ slug: "ete-501" }]),
       ok({ id: "new-board", slug: "ete-502" }),
     );
-    expect(await createBoard({ name: "Été", icon: "document", is_public: false })).toEqual({
+    expect(await createBoard({ name: "Été", icon: "document" })).toEqual({
       saved: true,
       id: "new-board",
       slug: "ete-502",

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { KanbanWorkspace } from "@/components/kanban/kanban-workspace";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "../shell";
-import { loadKanbanContent, loadOwnedBoards } from "./data";
+import { loadAccessibleBoards, loadKanbanContent } from "./data";
 
 export const instant = false;
 
@@ -28,7 +28,7 @@ export default async function KanbanPage({
   if (!profile) redirect("/onboarding");
 
   const query = await searchParams;
-  const boards = await loadOwnedBoards(supabase, user.id);
+  const boards = await loadAccessibleBoards(supabase, user.id);
   const content = await loadKanbanContent(supabase, boards);
 
   return (
@@ -51,8 +51,8 @@ export default async function KanbanPage({
       <KanbanWorkspace
         boards={boards}
         {...content}
-        username={profile.username}
-        selectedSlug={typeof query.tableau === "string" ? query.tableau : undefined}
+        userId={user.id}
+        selectedBoard={typeof query.tableau === "string" ? query.tableau : undefined}
         selectedCardId={typeof query.carte === "string" ? query.carte : undefined}
       />
     </DashboardShell>

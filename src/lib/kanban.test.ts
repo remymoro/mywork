@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  canEditCard,
+  validateUsernameInput,
   doneListWarning,
   validateCardImage,
   BOARD_ICONS,
@@ -192,3 +194,22 @@ describe("doneListWarning", () => {
     expect(doneListWarning(items, done, done)).toBeNull();
   });
 });
+
+describe("droits des membres", () => {
+  it("le propriétaire modifie toutes les cartes, un membre seulement les siennes", () => {
+    expect(canEditCard({ isOwner: true, userId: "proprio", authorId: "membre" })).toBe(true);
+    expect(canEditCard({ isOwner: false, userId: "membre", authorId: "membre" })).toBe(true);
+    expect(canEditCard({ isOwner: false, userId: "membre", authorId: "proprio" })).toBe(false);
+    expect(canEditCard({ isOwner: false, userId: "membre", authorId: null })).toBe(false);
+  });
+
+  it("valide le pseudo d'une invitation", () => {
+    expect(validateUsernameInput(" @Remy ")).toEqual({ ok: true, value: "remy" });
+    expect(validateUsernameInput("")).toEqual({
+      ok: false,
+      error: "Indique le pseudo de la personne à inviter.",
+    });
+    expect(validateUsernameInput("a b").ok).toBe(false);
+  });
+});
+

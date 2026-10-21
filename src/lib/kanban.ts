@@ -8,7 +8,10 @@ import {
   UserRound,
   type LucideIcon,
 } from "lucide-react";
+import { isValidUsername, normalizeUsername } from "./username";
 
+export const MAX_BOARDS = 10;
+export const MAX_MEMBERS = 10;
 export const MAX_LISTS = 5;
 export const MAX_CARDS = 20;
 export const MAX_CHECKLIST_ITEMS = 30;
@@ -85,10 +88,35 @@ export type KanbanBoard = {
   name: string;
   slug: string;
   icon: BoardIcon;
-  is_public: boolean;
   position: number;
   created_at: string;
 };
+
+/** Propriétaire ou membre d'un tableau (noms lus même si le profil est hors ligne). */
+export type KanbanPerson = {
+  board_id: string;
+  id: string;
+  display_name: string | null;
+  username: string;
+  is_owner: boolean;
+};
+
+export function personName(person: Pick<KanbanPerson, "display_name" | "username">) {
+  return person.display_name || person.username;
+}
+
+/** Droits d'une carte : le propriétaire du tableau modifie tout, un membre seulement ses cartes. */
+export function canEditCard(input: { isOwner: boolean; userId: string; authorId: string | null }) {
+  return input.isOwner || (input.authorId !== null && input.authorId === input.userId);
+}
+
+/** Pseudo saisi pour inviter quelqu'un (mêmes règles que le choix du pseudo). */
+export function validateUsernameInput(raw: string): Result<string> {
+  const value = normalizeUsername(typeof raw === "string" ? raw.trim().replace(/^@/, "") : "");
+  if (!value) return { ok: false, error: "Indique le pseudo de la personne à inviter." };
+  if (!isValidUsername(value)) return { ok: false, error: "Ce pseudo n'est pas valide." };
+  return { ok: true, value };
+}
 
 export type KanbanList = {
   id: string;

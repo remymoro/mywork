@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ createClient: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 
-import { loadKanbanContent, loadOwnedBoards, loadPublicBoard } from "./data";
+import { loadAccessibleBoards, loadKanbanContent } from "./data";
 
 function query(result: { data: unknown; error: { message: string } | null }) {
   const builder = {
@@ -21,63 +21,56 @@ function query(result: { data: unknown; error: { message: string } | null }) {
 describe("Lecture des tableaux Kanban", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("exige un profil en ligne avant même de chercher le tableau public", async () => {
-    const profile = query({ data: null, error: null });
-    const from = vi.fn().mockReturnValue(profile);
-    mocks.createClient.mockResolvedValue({ from });
-
-    expect(await loadPublicBoard("profil-hors-ligne", "projet")).toBeNull();
-    expect(profile.eq).toHaveBeenCalledWith("is_online", true);
-    expect(from).toHaveBeenCalledTimes(1);
-  });
-
-  it("restreint la lecture publique au propriétaire, au slug et aux tableaux publics", async () => {
-    const profile = query({ data: { id: "owner", username: "remy" }, error: null });
-    const board = query({ data: null, error: null });
-    const from = vi.fn().mockReturnValueOnce(profile).mockReturnValueOnce(board);
-    mocks.createClient.mockResolvedValue({ from });
-
-    expect(await loadPublicBoard("remy", "prive")).toBeNull();
-    expect(board.eq).toHaveBeenCalledWith("owner_id", "owner");
-    expect(board.eq).toHaveBeenCalledWith("slug", "prive");
-    expect(board.eq).toHaveBeenCalledWith("is_public", true);
-  });
-
-  it("ne masque pas une panne de lecture par un état vide ou une page introuvable", async () => {
-    const failure = query({ data: null, error: { message: "Connexion interrompue" } });
-    mocks.createClient.mockResolvedValue({ from: vi.fn().mockReturnValue(failure) });
-    await expect(loadPublicBoard("remy", "projet")).rejects.toThrow("Lecture du profil impossible");
-
-    const supabase = await mocks.createClient();
-    await expect(loadOwnedBoards(supabase, "owner")).rejects.toThrow(
-      "Lecture des tableaux impossible",
+  it("liste d'abord ses tableaux, puis ceux partagés avec soi", async () => {
+    const boards = query({
+      data: [
+        { id: "partage", owner_id: "autre" },
+        { id: "mien", owner_id: "moi" },
+      ],
+      error: null,
+    });
+    const result = await loadAccessibleBoards(
+      { from: vi.fn().mockReturnValue(boards) } as never,
+      "moi",
     );
+    expect(result.map((board) => board.id)).toEqual(["mien", "partage"]);
+    // Pas de filtre sur le propriétaire : la RLS renvoie ses tableaux et ceux partagés avec soi.
+    expect(boards.eq).not.toHaveBeenCalled();
+  });
+
+  it("ne masque pas une panne de lecture par un état vide", async () => {
+    const failure = query({ data: null, error: { message: "Connexion interrompue" } });
+    await expect(
+      loadAccessibleBoards({ from: vi.fn().mockReturnValue(failure) } as never, "moi"),
+    ).rejects.toThrow("Lecture des tableaux impossible");
   });
 
   it("pagine les tableaux sans perdre ceux au-delà de la première réponse", async () => {
-    const boards = query({ data: [{ id: "dernier" }], error: null });
+    const boards = query({ data: [{ id: "dernier", owner_id: "moi" }], error: null });
     boards.range.mockResolvedValueOnce({
-      data: Array.from({ length: 500 }, (_, id) => ({ id: String(id) })),
+      data: Array.from({ length: 500 }, (_, id) => ({ id: String(id), owner_id: "moi" })),
       error: null,
     });
-    mocks.createClient.mockResolvedValue({ from: vi.fn().mockReturnValue(boards) });
-
-    const result = await loadOwnedBoards(await mocks.createClient(), "owner");
+    const result = await loadAccessibleBoards(
+      { from: vi.fn().mockReturnValue(boards) } as never,
+      "moi",
+    );
     expect(result).toHaveLength(501);
-    expect(boards.eq).toHaveBeenCalledWith("owner_id", "owner");
     expect(boards.range).toHaveBeenLastCalledWith(500, 999);
   });
 
-  it("renvoie un espace vide sans requête aux tables des autres utilisateurs", async () => {
+  it("renvoie un espace vide sans requête quand il n'y a aucun tableau", async () => {
     const from = vi.fn();
-    mocks.createClient.mockResolvedValue({ from });
-    expect(await loadKanbanContent(await mocks.createClient(), [])).toEqual({
+    const rpc = vi.fn();
+    expect(await loadKanbanContent({ from, rpc } as never, [])).toEqual({
       lists: [],
       cards: [],
       checklist: [],
       comments: [],
       images: [],
+      people: [],
     });
     expect(from).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
   });
 });

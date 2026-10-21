@@ -73,6 +73,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  canEditCard,
   checklistProgress,
   doneListWarning,
   LIST_COLORS,
@@ -84,6 +85,7 @@ import {
   type KanbanCardImage,
   type KanbanComment,
   type KanbanList,
+  type KanbanPerson,
 } from "@/lib/kanban";
 import { cn } from "@/lib/utils";
 import { BoardMenu, NETWORK_ERROR } from "./board-sidebar";
@@ -444,7 +446,8 @@ export function ListColumn({
   checklist,
   comments,
   images = [],
-  readOnly = false,
+  isOwner = true,
+  userId = "",
   disabled = false,
   insertion = null,
   onOpen,
@@ -455,7 +458,9 @@ export function ListColumn({
   checklist: ChecklistItem[];
   comments: KanbanComment[];
   images?: KanbanCardImage[];
-  readOnly?: boolean;
+  /** Propriétaire du tableau : lui seul gère les listes. */
+  isOwner?: boolean;
+  userId?: string;
   disabled?: boolean;
   insertion?: Insertion;
   onOpen: (id: string) => void;
@@ -477,12 +482,12 @@ export function ListColumn({
   } = useSortable({
     id: `list:${list.id}`,
     data: { type: "list", list },
-    disabled: readOnly || disabled,
+    disabled: !isOwner || disabled,
   });
   const { setNodeRef: setDropRef } = useDroppable({
     id: `drop:${list.id}`,
     data: { type: "drop", list, cardCount: cards.length },
-    disabled: readOnly || disabled,
+    disabled,
   });
 
   async function run(action: () => Promise<ActionResult>) {
@@ -530,7 +535,7 @@ export function ListColumn({
             )}
           </p>
         </div>
-        {!readOnly && (
+        {isOwner && (
           <>
             <button
               type="button"
@@ -618,7 +623,7 @@ export function ListColumn({
                     .filter((image) => image.card_id === card.id)
                     .sort((a, b) => a.position - b.position)[0]?.url
                 }
-                readOnly={readOnly}
+                readOnly={!canEditCard({ isOwner, userId, authorId: card.author_profile_id })}
                 disabled={disabled}
                 insertion={insertion}
                 onOpen={onOpen}
@@ -633,7 +638,7 @@ export function ListColumn({
           </p>
         )}
       </div>
-      {!readOnly && <QuickAddCard boardId={list.board_id} listId={list.id} count={cards.length} />}
+      <QuickAddCard boardId={list.board_id} listId={list.id} count={cards.length} />
       {editing && (
         <ListEditor boardId={list.board_id} list={list} onClose={() => setEditing(false)} />
       )}
@@ -715,8 +720,8 @@ export function BoardView({
   checklist,
   comments,
   images = [],
-  username,
-  readOnly = false,
+  people = [],
+  userId,
   onOpen,
   onSelect,
 }: {
@@ -726,12 +731,13 @@ export function BoardView({
   checklist: ChecklistItem[];
   comments: KanbanComment[];
   images?: KanbanCardImage[];
-  username: string;
-  readOnly?: boolean;
+  people?: KanbanPerson[];
+  userId: string;
   onOpen: (id: string) => void;
-  onSelect: (slug: string) => void;
+  onSelect: (id: string) => void;
 }) {
   const router = useRouter();
+  const isOwner = board.owner_id === userId;
   const [visibleLists, setOptimisticLists] = useOptimistic(lists);
   const [visibleCards, setOptimisticCards] = useOptimistic(cards);
   const [pending, startTransition] = useTransition();
@@ -865,7 +871,8 @@ export function BoardView({
               checklist={checklist}
               comments={comments}
               images={images}
-              readOnly={readOnly}
+              isOwner={isOwner}
+              userId={userId}
               disabled={pending}
               insertion={insertion}
               onOpen={onOpen}
@@ -882,15 +889,14 @@ export function BoardView({
         <h2 className="text-xs font-semibold tracking-[0.16em] uppercase">
           Tableau : {board.name}
         </h2>
-        {!readOnly && (
-          <BoardMenu
-            board={board}
-            cardCount={cards.length}
-            username={username}
-            horizontal
-            onSelect={onSelect}
-          />
-        )}
+        <BoardMenu
+          board={board}
+          cardCount={cards.length}
+          people={people}
+          userId={userId}
+          horizontal
+          onSelect={onSelect}
+        />
       </header>
       {error && (
         <Alert variant="destructive" role="alert">
@@ -911,14 +917,12 @@ export function BoardView({
       )}
       {visibleLists.length === 0 && (
         <p className="rounded-xl border border-dashed p-8 text-sm text-muted-foreground">
-          {readOnly
-            ? "Ce tableau ne contient pas encore de liste."
-            : "Ton tableau est prêt. Ajoute une première liste pour commencer."}
+          {isOwner
+            ? "Ton tableau est prêt. Ajoute une première liste pour commencer."
+            : "Ce tableau ne contient pas encore de liste : seul son propriétaire peut en créer."}
         </p>
       )}
-      {readOnly ? (
-        columns
-      ) : (
+      {(
         <DndContext
           id={`kanban-${board.id}`}
           sensors={sensors}
@@ -959,7 +963,7 @@ export function BoardView({
           </DragOverlay>
         </DndContext>
       )}
-      {!readOnly && (
+      {isOwner && (
         <div className="space-y-2">
           <Button
             variant="outline"

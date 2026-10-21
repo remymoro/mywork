@@ -158,12 +158,14 @@ Texte en **Markdown limité**, affiché proprement quand on n'est pas en train d
 
 Déjà livré sur la branche `feature/kanban` (2026-10-21) : tableaux, listes en couleur, cartes, glisser-déposer, fenêtre de carte (description, checklist, commentaires du propriétaire), images avec aperçu sur la carte, liste de fin. Code : `src/lib/kanban.ts`, `src/app/dashboard/kanban/`, `src/components/kanban/`, migrations `20261021190000` à `20261021210000`.
 
-À faire pour suivre cette révision :
+Révision appliquée le 2026-10-21 (migration `20261021220000_kanban_members.sql`) :
 
-1. **Retirer la visibilité publique** : supprimer la page `src/app/[username]/kanban/[slug]/`, le réglage public / privé et « Copier le lien public » ; migration qui retire `is_public` et toute lecture `anon` (tables et images).
-2. **Partage entre utilisateurs** : table des membres, invitation par pseudo, RLS ouverte aux membres, colonne « MES TABLEAUX » avec les tableaux partagés.
-3. **Commentaires et cartes des membres**, selon le tableau des droits.
-4. **Navigation C** : vérifier la double barre à gauche par rapport à la maquette.
+1. **Visibilité publique retirée** : page `/<pseudo>/kanban/<tableau>` supprimée, colonne `is_public` et toute lecture `anon` retirées (tables et images).
+2. **Partage** : table `kanban_board_members`, invitation par pseudo (fonction `kanban_invite_member`, qui trouve aussi un profil hors ligne), retrait d'un membre, « Quitter le tableau » ; noms des personnes par `kanban_board_people`. Fenêtre « Partager » dans le menu ⋮ du tableau ; tableaux partagés marqués d'une icône et du nom du propriétaire dans « MES TABLEAUX ».
+3. **Droits** dans la base (RLS et fonctions `kanban_is_owner`, `kanban_is_member`, `kanban_can_edit_card`) et dans les actions serveur (`canEditCard` dans `src/lib/kanban.ts`) : un membre crée ses cartes et fait tout dessus, commente toutes les cartes, ne supprime que ses commentaires ; il ne touche ni aux cartes des autres ni aux listes. Déplacement d'une carte par `kanban_move_card` (vérifie les droits avant de renuméroter).
+4. **Limites** : 10 tableaux créés par utilisateur, 10 membres par tableau (déclencheurs).
+
+Reste à vérifier : la double barre à gauche par rapport à la maquette C, une fois ses liens ajoutés.
 
 ## Version 2
 

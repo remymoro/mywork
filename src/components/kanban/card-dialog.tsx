@@ -32,6 +32,7 @@ import {
   COMMENT_MAX,
   DESCRIPTION_MAX,
   MAX_CHECKLIST_ITEMS,
+  canEditCard,
   checklistProgress,
   type ChecklistItem,
   type KanbanCardImage,
@@ -67,7 +68,9 @@ export type CardDialogProps = {
   checklist: ChecklistItem[];
   comments: KanbanComment[];
   images?: KanbanCardImage[];
-  readOnly?: boolean;
+  userId: string;
+  /** Propriétaire du tableau : il modifie toutes les cartes et supprime tous les commentaires. */
+  isOwner: boolean;
   onClose: () => void;
 };
 
@@ -78,10 +81,13 @@ export function CardDialog({
   checklist,
   comments,
   images = [],
-  readOnly = false,
+  userId,
+  isOwner,
   onClose,
 }: CardDialogProps) {
   const router = useRouter();
+  // Un membre voit et commente toutes les cartes, mais ne modifie que les siennes.
+  const readOnly = !canEditCard({ isOwner, userId, authorId: card.author_profile_id });
   const [savedTitle, setSavedTitle] = useState(card.title);
   const [title, setTitle] = useState(card.title);
   const [savedDescription, setSavedDescription] = useState(card.description);
@@ -97,7 +103,7 @@ export function CardDialog({
   const progress = checklistProgress(checklist);
 
   async function run(action: () => Promise<{ error?: string }>, onSaved?: () => void) {
-    if (inFlight.current || readOnly) return;
+    if (inFlight.current) return;
     inFlight.current = true;
     setPending(true);
     setError(null);
@@ -241,6 +247,12 @@ export function CardDialog({
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
+        )}
+        {readOnly && (
+          <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+            Cette carte appartient à quelqu&apos;un d&apos;autre : tu peux la commenter, mais seuls
+            son auteur et le propriétaire du tableau peuvent la modifier.
+          </p>
         )}
 
         {!readOnly &&
@@ -493,7 +505,7 @@ export function CardDialog({
                         }).format(new Date(item.created_at))}
                       </time>
                     </div>
-                    {!readOnly && (
+                    {(isOwner || item.author_profile_id === userId) && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -512,7 +524,7 @@ export function CardDialog({
                 </li>
               ))}
           </ol>
-          {!readOnly && (
+          {(
             <form
               onSubmit={(event) => {
                 event.preventDefault();

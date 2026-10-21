@@ -17,7 +17,8 @@ test("un pseudo inconnu affiche une page 404", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Page introuvable" })).toBeVisible();
 });
 
-test("un tableau public inconnu affiche Page introuvable", async ({ page }) => {
-  await page.goto("/ce-pseudo-n-existe-pas/kanban/x");
+// Le Kanban n'a plus de page publique : l'ancienne adresse ne mène à rien.
+test("aucune page publique de tableau Kanban", async ({ page }) => {
+  await page.goto("/remy/kanban/x");
   await expect(page.getByRole("heading", { name: "Page introuvable" })).toBeVisible();
 });
