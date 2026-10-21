@@ -1,17 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-test("la page d'accueil s'affiche", async ({ page }) => {
+test("la racine mène directement à la page de connexion", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-});
-
-test("la page d'accueil propose de se connecter", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("link", { name: "Se connecter" }).click();
   await expect(page).toHaveURL(/\/login$/);
-});
-
-test("la page d'accueil affiche le logo MyWork", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.getByText("MyWork").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continuer avec Google" })).toBeVisible();
 });
