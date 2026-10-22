@@ -568,7 +568,7 @@ function AppointmentsCard({
   return (
     <section aria-label="Liste des rendez-vous" className={card}>
       <Tabs defaultValue="upcoming" className="space-y-3">
-        <TabsList className="w-full">
+        <TabsList className="w-full sm:max-w-md">
           <TabsTrigger value="upcoming" className={activeTab}>À venir ({appointments.length})</TabsTrigger>
           <TabsTrigger value="past" className={activeTab}>Passés ({past.length})</TabsTrigger>
           <TabsTrigger value="cancelled" className={activeTab}>Annulés ({cancelled.length})</TabsTrigger>
