@@ -1,7 +1,6 @@
 import { parseVisioInput } from "@/lib/visio";
 import { issueVisioToken, VisioError } from "@/lib/visio-server";
 
-export const runtime = "nodejs";
 const headers = { "Cache-Control": "private, no-store" };
 const failure = (error: string, status: number, code: string) => Response.json({ error, code }, { status, headers });
 
