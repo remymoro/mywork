@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { LiveKitRoomProps } from "@livekit/components-react";
-import type { CreateLocalTracksOptions } from "livekit-client";
+import { ConnectionError, DisconnectReason, type CreateLocalTracksOptions } from "livekit-client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -216,6 +216,17 @@ describe("session visio", () => {
     expect(mocks.roomProps?.onError).toBe(props?.onError);
     expect(mocks.roomProps?.onDisconnected).toBe(props?.onDisconnected);
     expect(mocks.roomProps?.onMediaDeviceFailure).toBe(props?.onMediaDeviceFailure);
+    expect(mocks.disconnect).not.toHaveBeenCalled();
+  });
+
+  // Développement : React monte l'appel deux fois, la première connexion est annulée par le navigateur lui-même.
+  it("reste dans l'appel après une connexion annulée côté navigateur", async () => {
+    setup();
+    await join();
+    act(() => { mocks.roomProps?.onError?.(ConnectionError.cancelled("Client initiated disconnect")); });
+    act(() => { mocks.roomProps?.onDisconnected?.(DisconnectReason.CLIENT_INITIATED); });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Appel visio" })).toBeInTheDocument();
     expect(mocks.disconnect).not.toHaveBeenCalled();
   });
 

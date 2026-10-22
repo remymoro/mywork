@@ -5,7 +5,7 @@ import {
   LiveKitRoom, RoomAudioRenderer, StartAudio, VideoTrack, isTrackReference,
   useLocalParticipant, usePreviewTracks, useTracks,
 } from "@livekit/components-react";
-import { Track } from "livekit-client";
+import { ConnectionError, ConnectionErrorReason, DisconnectReason, Track } from "livekit-client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { formatLongDate, formatTime } from "@/lib/rdv";
@@ -43,6 +43,8 @@ export function VisioSession({ input, appointment, nowIso }: {
   const state = blocked ?? visioState({ ...appointment, ends_at: connection?.endsAt ?? appointment.ends_at }, now);
   const onDeviceError = useCallback((error: unknown) => setError(deviceMessage(error)), []);
   const onRoomError = useCallback((error: Error) => {
+    // Connexion annulée par le navigateur lui-même (on quitte, ou double montage de React en développement) : pas une panne.
+    if (error instanceof ConnectionError && error.reason === ConnectionErrorReason.Cancelled) return;
     if (["NotAllowedError", "NotFoundError", "NotReadableError", "OverconstrainedError", "SecurityError"].includes(error.name)) {
       setError(deviceMessage(error));
       return;
@@ -51,7 +53,9 @@ export function VisioSession({ input, appointment, nowIso }: {
     setError("La connexion à la visio a échoué. Réessaie pour obtenir un nouvel accès.");
   }, []);
   const onMediaDeviceFailure = useCallback((failure?: string) => setError(deviceMessage({ name: failure })), []);
-  const onDisconnected = useCallback(() => {
+  const onDisconnected = useCallback((reason?: DisconnectReason) => {
+    // Déconnexion voulue côté navigateur (bouton « Quitter », démontage) : rien à signaler.
+    if (reason === DisconnectReason.CLIENT_INITIATED) return;
     setConnection(null);
     setNotice("L’appel est déconnecté. Tu peux le rejoindre si le rendez-vous est encore en cours. Un autre appareil utilisant le même lien remplace la connexion précédente.");
   }, []);
