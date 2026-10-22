@@ -2,7 +2,7 @@
 
 Mini Google Drive **minimal**, sur une seule page. Voir `docs/decisions.md` (D7, D24).
 
-Statut : **spécification proposée le 2026-10-22**, volontairement réduite à l'essentiel (le porteur trouvait la première version trop complexe). Elle sert d'abord à tester.
+Statut : **spécification validée le 2026-10-22** (migration `20261022100000_drive.sql` écrite, pas encore appliquée à Supabase), volontairement réduite à l'essentiel (le porteur trouvait la première version trop complexe). Elle sert d'abord à tester.
 
 ## Objectif
 
@@ -69,7 +69,7 @@ Vue grille, filtre par type, pagination, dossiers imbriqués, déplacement de fi
 
 ## Décisions prises
 
-À valider par le porteur.
+Validées avec la spécification le 2026-10-22.
 
 | # | Sujet | Choix | Pourquoi |
 |---|---|---|---|
