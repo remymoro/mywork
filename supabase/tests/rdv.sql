@@ -1,5 +1,5 @@
 -- Test de la migration Rendez-vous (rejouable, annulé à la fin : ne laisse rien dans la base).
--- Lancer : cat supabase/migrations/20261022200000_rdv.sql supabase/tests/rdv.sql > /tmp/rdv-run.sql && pnpm exec supabase db query --linked -f /tmp/rdv-run.sql
+-- Lancer (migration déjà appliquée) : pnpm exec supabase db query --linked -f supabase/tests/rdv.sql
 -- Résultat attendu : une « erreur » P0001 RESULTATS dont toutes les lignes commencent par « ok ».
 
 create function pg_temp.expect_err(q text, expected text) returns text language plpgsql as $f$
@@ -91,6 +91,22 @@ begin
   perform set_config('request.jwt.claim.sub', uid::text, true);
   r := public.rdv_owner_cancel(aid);
   res := res || (case when r->>'status' = 'cancelled' then 'ok annulation propriétaire' else 'ECHEC annulation propriétaire' end);
+
+  -- relecture : minutes rondes, nuit du changement d'heure, sauvegarde d'un bloc
+  res := res || pg_temp.expect_err(format($q$insert into public.rdv_hours (owner_id, weekday, start_time, end_time) values (%L, 6, '09:02', '10:00')$q$, uid),
+    'new row for relation "rdv_hours" violates check constraint "rdv_hours_round_minutes"');
+  insert into public.rdv_exceptions (owner_id, day, start_time, end_time) values (uid, date '2026-10-25', '02:00', '03:00');
+  res := res || pg_temp.expect_err($q$select public.rdv_book('rdvtest1', '2026-10-25 02:45+02', 30::smallint, 'A','B','dst@b.fr','')$q$, 'rdv_invalid');
+  res := res || (case when not public.rdv_is_open(uid, '2026-10-25 02:45+02', '2026-10-25 02:15+01') then 'ok refus à cheval sur le changement d''heure' else 'ECHEC changement d''heure' end);
+  perform public.rdv_save_settings(false, '{15}', '[{"weekday": 6, "start": "10:00", "end": "11:00"}]'::jsonb);
+  res := res || (case when (select count(*) from public.rdv_hours where owner_id = uid) = 1
+                        and (select durations from public.rdv_settings where owner_id = uid) = '{15}'
+                        and not (select enabled from public.rdv_settings where owner_id = uid)
+                   then 'ok sauvegarde d''un bloc' else 'ECHEC sauvegarde d''un bloc' end);
+  res := res || pg_temp.expect_err($q$select public.rdv_save_settings(true, '{30}', '[{"weekday": 1, "start": "12:00", "end": "09:00"}]'::jsonb)$q$, 'rdv_invalid');
+  res := res || (case when (select count(*) from public.rdv_hours where owner_id = uid) = 1 then 'ok horaires intacts après un refus' else 'ECHEC horaires perdus' end);
+  perform set_config('request.jwt.claim.sub', '', true);
+  res := res || pg_temp.expect_err($q$select public.rdv_save_settings(true, '{30}', '[]'::jsonb)$q$, 'rdv_invalid');
 
   raise exception E'RESULTATS\n%', array_to_string(res, E'\n');
 end $t$;

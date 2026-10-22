@@ -5,6 +5,9 @@
 
 create extension if not exists btree_gist;
 
+-- La page de gestion d'un rendez-vous par le visiteur est /rdv/<lien privé> : « rdv » ne peut pas être un pseudo.
+insert into public.reserved_usernames (username) values ('rdv') on conflict do nothing;
+
 create table public.rdv_settings (
   owner_id uuid primary key references public.profiles (id) on delete cascade,
   -- Tant que la réservation n'est pas activée, l'onglet « Rendez-vous » n'existe pas sur le profil public.

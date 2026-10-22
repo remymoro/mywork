@@ -1,0 +1,131 @@
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  saveSettings: vi.fn(),
+  addException: vi.fn(),
+  removeException: vi.fn(),
+  ownerCancel: vi.fn(),
+  ownerReschedule: vi.fn(),
+}));
+vi.mock("./actions", () => mocks);
+
+import { DEFAULT_HOURS } from "@/lib/rdv";
+import { RdvManager } from "./rdv-manager";
+
+// Jeudi 22 octobre 2026, 10 h à Paris.
+const NOW = "2026-10-22T08:00:00Z";
+const initial = { enabled: false, durations: [30], hours: DEFAULT_HOURS, exceptions: [] };
+const appointment = {
+  id: "a1",
+  starts_at: "2026-10-23T07:30:00Z", // vendredi 23 octobre, 09:30 à Paris
+  ends_at: "2026-10-23T08:00:00Z",
+  duration_min: 30,
+  guest_first: "Camille",
+  guest_last: "Laurent",
+  guest_email: "camille@exemple.fr",
+  message: "Bonjour",
+};
+
+// Petit « utilisateur » pour ces tests : clic et saisie, sans dépendance supplémentaire.
+const user = {
+  click: async (element: HTMLElement) => void fireEvent.click(element),
+  type: async (element: HTMLElement, value: string) => void fireEvent.change(element, { target: { value } }),
+  clear: async (element: HTMLElement) => void fireEvent.change(element, { target: { value: "" } }),
+};
+
+const setup = (over: Partial<Parameters<typeof RdvManager>[0]> = {}) =>
+  render(<RdvManager username="claire" nowIso={NOW} initial={initial} appointments={[]} {...over} />);
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  for (const m of Object.values(mocks)) m.mockResolvedValue({ ok: true });
+});
+
+describe("RdvManager", () => {
+  it("explique que la réservation est désactivée, puis l'active et enregistre les réglages", async () => {
+    setup();
+    expect(screen.getByText(/Désactivée/)).toBeInTheDocument();
+    await user.click(screen.getByRole("switch", { name: "Réservation en ligne" }));
+    expect(screen.getByText(/L'onglet « Rendez-vous » est visible/)).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: "60 min" }));
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(mocks.saveSettings).toHaveBeenCalledTimes(1));
+    expect(mocks.saveSettings).toHaveBeenCalledWith({ enabled: true, durations: [30, 60], hours: DEFAULT_HOURS });
+    expect(await screen.findByRole("status")).toHaveTextContent("Enregistré.");
+  });
+
+  it("affiche le message de la base quand l'enregistrement échoue", async () => {
+    mocks.saveSettings.mockResolvedValue({ ok: false, error: "Une plage doit finir après son début." });
+    setup();
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Une plage doit finir après son début.");
+  });
+
+  it("ajoute et retire une plage horaire", async () => {
+    setup({ initial: { ...initial, hours: [] } });
+    expect(screen.getAllByText("Indisponible")).toHaveLength(7);
+    await user.click(screen.getAllByRole("button", { name: "Ajouter une plage" })[0]);
+    expect(screen.getByLabelText("Lundi : début")).toHaveValue("09:00");
+    await user.click(screen.getByRole("button", { name: "Retirer la plage de Lundi" }));
+    expect(screen.queryByLabelText("Lundi : début")).not.toBeInTheDocument();
+  });
+
+  it("ferme un jour : exception sans horaires", async () => {
+    setup();
+    const add = screen.getByRole("button", { name: "Ajouter" });
+    expect(add).toBeDisabled();
+    await user.type(screen.getByLabelText("Date"), "2026-10-30");
+    await user.click(add);
+    await waitFor(() => expect(mocks.addException).toHaveBeenCalledWith({ day: "2026-10-30" }));
+  });
+
+  it("liste les exceptions et permet de les retirer", async () => {
+    setup({
+      initial: {
+        ...initial,
+        exceptions: [
+          { id: "e1", day: "2026-10-30", start: null, end: null },
+          { id: "e2", day: "2026-11-02", start: "16:00", end: "17:00" },
+        ],
+      },
+    });
+    expect(screen.getByText("Fermé")).toBeInTheDocument();
+    expect(screen.getByText(/16:00–17:00/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Retirer l'exception du 2026-10-30" }));
+    await waitFor(() => expect(mocks.removeException).toHaveBeenCalledWith("e1"));
+  });
+
+  it("dit quand il n'y a aucun rendez-vous", () => {
+    setup();
+    expect(screen.getByText("Aucun rendez-vous pour le moment.")).toBeInTheDocument();
+  });
+
+  it("annule un rendez-vous après confirmation", async () => {
+    setup({ appointments: [appointment] });
+    expect(screen.getByText(/vendredi 23 octobre 2026 à 09:30 · 30 min/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "camille@exemple.fr" })).toHaveAttribute("href", "mailto:camille@exemple.fr");
+    await user.click(screen.getByRole("button", { name: "Annuler" }));
+    expect(mocks.ownerCancel).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Confirmer l'annulation" }));
+    await waitFor(() => expect(mocks.ownerCancel).toHaveBeenCalledWith("a1"));
+  });
+
+  it("reporte un rendez-vous sur un créneau libre d'un autre jour", async () => {
+    setup({ appointments: [appointment] });
+    await user.click(screen.getByRole("button", { name: "Reporter" }));
+    const picker = screen.getByLabelText(/Nouveau jour/).closest("div")!.parentElement!;
+    await user.clear(screen.getByLabelText(/Nouveau jour/));
+    await user.type(screen.getByLabelText(/Nouveau jour/), "2026-10-26");
+    await user.click(within(picker).getByRole("button", { name: "14:00" }));
+    await waitFor(() => expect(mocks.ownerReschedule).toHaveBeenCalledWith("a1", "2026-10-26T13:00:00.000Z"));
+  });
+
+  it("montre l'erreur renvoyée si l'annulation échoue", async () => {
+    mocks.ownerCancel.mockResolvedValue({ ok: false, error: "Ce créneau n'est plus disponible." });
+    setup({ appointments: [appointment] });
+    await user.click(screen.getByRole("button", { name: "Annuler" }));
+    await user.click(screen.getByRole("button", { name: "Confirmer l'annulation" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Ce créneau n'est plus disponible.");
+  });
+});

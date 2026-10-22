@@ -7,6 +7,7 @@ import type { ExperienceRow } from "@/app/dashboard/profil/experience-fields";
 import type { LanguageRow } from "@/app/dashboard/profil/language-fields";
 import type { ProjectRow } from "@/app/dashboard/profil/project-fields";
 import type { ServiceRow } from "@/app/dashboard/profil/service-fields";
+import type { RdvConfig } from "@/lib/rdv";
 import { parseResourceFilter, type PublicResource } from "@/components/drive/resources-section";
 import { createClient } from "@/lib/supabase/server";
 import { PublicProfileView } from "./profile-view";
@@ -72,7 +73,16 @@ export default async function PublicProfilePage({
     notFound();
   }
 
-  const [experiencesRes, educationsRes, languagesRes, certificationsRes, projectsRes, servicesRes, resourcesRes] =
+  const [
+    experiencesRes,
+    educationsRes,
+    languagesRes,
+    certificationsRes,
+    projectsRes,
+    servicesRes,
+    resourcesRes,
+    rdvRes,
+  ] =
     await Promise.all([
       supabase
         .from("profile_experiences")
@@ -123,6 +133,8 @@ export default async function PublicProfilePage({
         .eq("is_public", true)
         .order("updated_at", { ascending: false })
         .limit(100),
+      // Horaires et créneaux occupés (sans donnée personnelle) ; null si la réservation n'est pas activée.
+      supabase.rpc("rdv_public_config", { p_username: profile.username }),
     ]);
 
   return (
@@ -161,7 +173,9 @@ export default async function PublicProfilePage({
       certifications={(certificationsRes.data ?? []) as CertificationRow[]}
       projects={(projectsRes.data ?? []) as ProjectRow[]}
       services={(servicesRes.data ?? []) as ServiceRow[]}
-      activeTab={query.onglet === "drive" ? "drive" : "profil"}
+      activeTab={query.onglet === "drive" ? "drive" : query.onglet === "rdv" ? "rdv" : "profil"}
+      rdvConfig={(rdvRes.data as RdvConfig | null) ?? null}
+      nowIso={new Date().toISOString()}
       resourceFilter={parseResourceFilter(typeof query.type === "string" ? query.type : undefined)}
       resources={(resourcesRes.data ?? []).map((r) => ({ ...r, size_bytes: Number(r.size_bytes) })) as PublicResource[]}
     />

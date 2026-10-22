@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_HOURS } from "@/lib/rdv";
 
 const revealContactEmail = vi.fn();
 
@@ -411,6 +412,28 @@ describe("Sections publiques du profil", () => {
       expect(screen.getByRole("link", { name: "Drive" })).toHaveAttribute("aria-current", "page");
       expect(screen.getByText("Aucun fichier à télécharger pour le moment.")).toBeInTheDocument();
       expect(screen.queryByRole("heading", { name: "À PROPOS" })).not.toBeInTheDocument();
+    });
+
+    it("n'affiche l'onglet Rendez-vous que si la réservation est activée", () => {
+      const { unmount } = render(<PublicProfileView profile={profile} {...empty} />);
+      expect(screen.queryByRole("link", { name: "Rendez-vous" })).not.toBeInTheDocument();
+      unmount();
+      const rdvConfig = { durations: [30], hours: DEFAULT_HOURS, exceptions: [], busy: [] };
+      render(<PublicProfileView profile={profile} {...empty} rdvConfig={rdvConfig} nowIso="2026-10-22T08:00:00Z" />);
+      expect(screen.getByRole("link", { name: "Rendez-vous" })).toHaveAttribute("href", "/remy?onglet=rdv");
+    });
+
+    it("ouvre la prise de rendez-vous dans l'onglet Rendez-vous, et retombe sur le Profil s'il est désactivé", () => {
+      const rdvConfig = { durations: [30], hours: DEFAULT_HOURS, exceptions: [], busy: [] };
+      const { unmount } = render(
+        <PublicProfileView profile={profile} {...empty} rdvConfig={rdvConfig} nowIso="2026-10-22T08:00:00Z" activeTab="rdv" />,
+      );
+      expect(screen.getByRole("link", { name: "Rendez-vous" })).toHaveAttribute("aria-current", "page");
+      expect(screen.getByRole("heading", { name: "Prendre rendez-vous" })).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "À PROPOS" })).not.toBeInTheDocument();
+      unmount();
+      render(<PublicProfileView profile={profile} {...empty} activeTab="rdv" />);
+      expect(screen.getByRole("heading", { name: "À PROPOS" })).toBeInTheDocument();
     });
 
     it("filtre le Drive par type avec le sous-menu", () => {

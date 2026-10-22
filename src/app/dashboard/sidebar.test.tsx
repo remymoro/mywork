@@ -18,9 +18,10 @@ describe("Sidebar", () => {
     for (const name of ["Kanban", "Rendez-vous", "Fichiers", "Visio"]) {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
-    expect(screen.getAllByText("Bientôt")).toHaveLength(3);
+    expect(screen.getAllByText("Bientôt")).toHaveLength(2);
     expect(screen.getByRole("link", { name: "Kanban" })).toHaveAttribute("href", "/dashboard/kanban");
     expect(screen.getByRole("link", { name: "Fichiers" })).toHaveAttribute("href", "/dashboard/fichiers");
+    expect(screen.getByRole("link", { name: "Rendez-vous" })).toHaveAttribute("href", "/dashboard/rendez-vous");
     expect(screen.getByRole("button", { name: "Rémy Moro" })).toBeInTheDocument();
   });
 
@@ -36,6 +37,7 @@ describe("Sidebar", () => {
     ["accueil", "Mon tableau de bord"],
     ["profil", "Mon profil"],
     ["kanban", "Kanban"],
+    ["rdv", "Rendez-vous"],
     ["fichiers", "Fichiers"],
   ] as const)("affiche l'entrée active %s en bloc carmin", (active, name) => {
     render(<Sidebar active={active} email="remy@example.com" displayName="Rémy" username="remy" isOnline />);
