@@ -13,7 +13,7 @@ Tout s'articule autour d'une page publique par utilisateur (ex. `mywork.website/
 | Profil (anciennement « CV ») | Édition simple des sections | Profil professionnel consultable par URL, export PDF ou image |
 | Kanban (anciennement « Boards ») | Plusieurs tableaux type Trello, partageables avec d'autres utilisateurs de MyWork | Aucune (jamais public, révision du 2026-10-21) |
 | Rendez-vous | Disponibilités, liste des réservations | Réservation d'un créneau |
-| Fichiers | Dossiers et fichiers privés | Dossier public téléchargeable |
+| Fichiers | Dossiers et fichiers privés (une seule page, liste ou grille) | Fichiers publics téléchargeables, onglet « Ressources » (voir `docs/drive.md`) |
 | Visio (plus tard) | Rejoindre l'appel | Rejoindre l'appel lié au RDV |
 
 ## Modules et ordre prévu
