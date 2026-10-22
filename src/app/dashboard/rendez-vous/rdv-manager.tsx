@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { Copy, Plus, X } from "lucide-react";
+import { CalendarClock, Copy, MoreHorizontal, Plus, Video, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -584,8 +585,10 @@ function AppointmentsCard({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <AppointmentSummary appointment={a} />
                     <div className="flex gap-2">
-                      <Button type="button" variant="outline" size="sm" onClick={() => { setMoving(moving === a.id ? null : a.id); setMoveDay(parisDay(now)); setConfirming(null); }}>
-                        Reporter
+                      {/* Visio (LiveKit) pas encore branchée : bouton en place, grisé. */}
+                      <Button type="button" size="sm" disabled title="Visio bientôt disponible">
+                        <Video aria-hidden="true" className="size-4" />
+                        Rejoindre
                       </Button>
                       {confirming === a.id ? (
                         <Button type="button" variant="destructive" size="sm" disabled={pending} onClick={() => run(() => ownerCancel(a.id))}>
@@ -596,6 +599,20 @@ function AppointmentsCard({
                           Annuler
                         </Button>
                       )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={<Button variant="ghost" size="icon-sm" />}
+                          aria-label={`Autres actions pour le rendez-vous de ${a.guest_first} ${a.guest_last}`}
+                        >
+                          <MoreHorizontal aria-hidden="true" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-36">
+                          <DropdownMenuItem onClick={() => { setMoving(moving === a.id ? null : a.id); setMoveDay(parisDay(now)); setConfirming(null); }}>
+                            <CalendarClock aria-hidden="true" />
+                            Reporter
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                   {moving === a.id && (

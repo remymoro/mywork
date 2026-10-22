@@ -36,6 +36,11 @@ const user = {
 
 const setup = (over: Partial<Parameters<typeof RdvManager>[0]> = {}) =>
   render(<RdvManager username="claire" nowIso={NOW} initial={initial} appointments={[]} {...over} />);
+// « Reporter » est dans le menu « ⋯ » du rendez-vous.
+const openReschedule = async () => {
+  await user.click(screen.getByRole("button", { name: "Autres actions pour le rendez-vous de Camille Laurent" }));
+  await user.click(await screen.findByRole("menuitem", { name: "Reporter" }));
+};
 // Les réglages sont dans l'onglet de page « Disponibilités ».
 const openAvailability = async () => user.click(screen.getByRole("tab", { name: "Disponibilités" }));
 
@@ -166,6 +171,12 @@ describe("RdvManager", () => {
     expect(screen.queryByRole("button", { name: "Annuler" })).not.toBeInTheDocument();
   });
 
+  it("montre « Rejoindre » grisé tant que la visio n'est pas branchée", () => {
+    setup({ appointments: [appointment] });
+    expect(screen.getByRole("button", { name: "Rejoindre" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Reporter" })).not.toBeInTheDocument();
+  });
+
   it("annule un rendez-vous après confirmation", async () => {
     setup({ appointments: [appointment] });
     expect(screen.getByText(/vendredi 23 octobre 2026 à 09:30 · 30 min/)).toBeInTheDocument();
@@ -178,7 +189,7 @@ describe("RdvManager", () => {
 
   it("reporte un rendez-vous sur un créneau libre d'un autre jour", async () => {
     setup({ appointments: [appointment] });
-    await user.click(screen.getByRole("button", { name: "Reporter" }));
+    await openReschedule();
     const picker = screen.getByLabelText(/Nouveau jour/).closest("div")!.parentElement!;
     await user.clear(screen.getByLabelText(/Nouveau jour/));
     await user.type(screen.getByLabelText(/Nouveau jour/), "2026-10-26");
@@ -188,7 +199,7 @@ describe("RdvManager", () => {
 
   it("ne propose pas l'heure actuelle du rendez-vous comme nouveau créneau", async () => {
     setup({ appointments: [appointment] });
-    await user.click(screen.getByRole("button", { name: "Reporter" }));
+    await openReschedule();
     await user.type(screen.getByLabelText(/Nouveau jour/), "2026-10-23");
     const picker = screen.getByLabelText(/Nouveau jour/).closest("div")!.parentElement!;
     expect(within(picker).queryByRole("button", { name: "09:30" })).not.toBeInTheDocument();
