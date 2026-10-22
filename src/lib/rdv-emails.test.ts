@@ -33,6 +33,8 @@ describe("e-mails de rendez-vous", () => {
     expect(mail.to).toBe("camille@exemple.fr");
     expect(mail.text).toContain("vendredi 23 octobre 2026 à 09:30 (heure de Paris), 30 min");
     expect(mail.text).toContain("https://mywork.website/rdv/tok-123");
+    expect(mail.text).toContain("Rejoindre la visio (10 min avant) : https://mywork.website/rdv/tok-123/visio");
+    expect(mail.html).toContain('href="https://mywork.website/rdv/tok-123/visio"');
   });
 
   it("prévient le propriétaire d'une réservation, message du visiteur échappé en HTML", () => {
@@ -45,6 +47,8 @@ describe("e-mails de rendez-vous", () => {
     expect(mail.text).toContain("Rôle : Recruteur");
     expect(mail.text).toContain("Entreprise : Talentis");
     expect(mail.text).toContain("Motif : Offre d'emploi");
+    expect(mail.text).toContain("https://mywork.website/dashboard/rendez-vous/a1/visio");
+    expect(mail.html).toContain('href="https://mywork.website/dashboard/rendez-vous/a1/visio"');
   });
 
   it("n'écrit ni rôle ni motif pour un ancien rendez-vous qui n'en a pas", () => {
@@ -71,8 +75,20 @@ describe("e-mails de rendez-vous", () => {
     expect(byGuest.to).toBe("claire@exemple.fr");
     expect(byGuest.text).toContain("Ancien créneau : vendredi 23 octobre 2026 à 09:30");
     expect(byGuest.text).toContain("Nouveau créneau : vendredi 23 octobre 2026 à 14:00");
+    expect(byGuest.html).toContain('href="https://mywork.website/dashboard/rendez-vous/a1/visio"');
     const byOwner = rescheduleEmail(appointment, after, "owner", ORIGIN)!;
     expect(byOwner.to).toBe("camille@exemple.fr");
     expect(byOwner.text).toContain("/rdv/tok-123");
+    expect(byOwner.html).toContain('href="https://mywork.website/rdv/tok-123/visio"');
+  });
+
+  it("les e-mails de visio ne contiennent que des liens MyWork, et jamais de jeton LiveKit", () => {
+    const emails = [confirmationForGuest(appointment, ORIGIN), newBookingForOwner(appointment, ORIGIN)!, rescheduleEmail(appointment, appointment, "guest", ORIGIN)!, rescheduleEmail(appointment, appointment, "owner", ORIGIN)!];
+    for (const mail of emails) {
+      expect(mail.text).not.toMatch(/livekit|wss:|access_token|eyJ/i);
+      expect(mail.html).not.toMatch(/livekit|wss:|access_token|eyJ/i);
+    }
+    expect(cancellationEmail(appointment, "guest", ORIGIN)!.html).not.toContain("/visio");
+    expect(cancellationEmail(appointment, "owner", ORIGIN)!.html).not.toContain("/visio");
   });
 });

@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
+import { useVisioClock } from "@/components/visio/use-visio-clock";
+import { visioState } from "@/lib/visio";
 import { useRef, useState, useTransition } from "react";
 import { CalendarClock, CircleX, Copy, Eye, Mail, MoreHorizontal, Plus, Video, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -573,7 +576,7 @@ function AppointmentsCard({
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [copiedGuestLink, setCopiedGuestLink] = useState(false);
   const [pending, startTransition] = useTransition();
-  const now = new Date(nowIso);
+  const now = new Date(useVisioClock(nowIso));
 
   const openDetails = (id: string) => {
     setCopiedEmail(false);
@@ -655,11 +658,7 @@ function AppointmentsCard({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <AppointmentSummary appointment={a} />
                     <div className="flex gap-2">
-                      {/* Visio (LiveKit) pas encore branchée : bouton en place, grisé. */}
-                      <Button type="button" size="sm" disabled title="Visio bientôt disponible">
-                        <Video aria-hidden="true" className="size-4" />
-                        Rejoindre
-                      </Button>
+                      <JoinVisio appointment={a} now={now.getTime()} />
                       {confirming === a.id ? (
                         <Button type="button" variant="destructive" size="sm" disabled={pending} onClick={() => run(() => ownerCancel(a.id))}>
                           Confirmer l&apos;annulation
@@ -879,10 +878,7 @@ function AppointmentsCard({
             {selectedDetails.status === "upcoming" && (
               <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button type="button" size="sm" disabled title="Visio bientôt disponible">
-                    <Video aria-hidden="true" className="size-4" />
-                    Rejoindre
-                  </Button>
+                  <JoinVisio appointment={selectedDetails.appointment} now={now.getTime()} />
                   <Button
                     type="button"
                     variant="outline"
@@ -925,5 +921,25 @@ function AppointmentsCard({
         )}
       </Dialog>
     </section>
+  );
+}
+
+function JoinVisio({ appointment, now }: { appointment: ManagedAppointment; now: number }) {
+  const state = visioState({ ...appointment, status: "confirmed" }, now);
+  return (
+    <div className="space-y-1">
+      {state === "open" ? (
+        <Link href={`/dashboard/rendez-vous/${appointment.id}/visio`} className={buttonVariants({ size: "sm" })}>
+          <Video aria-hidden="true" className="size-4" />Rejoindre
+        </Link>
+      ) : (
+        <>
+          <Button type="button" size="sm" disabled title={state === "waiting" ? "Ouvre 10 min avant" : "Rendez-vous terminé"}>
+            <Video aria-hidden="true" className="size-4" />Rejoindre
+          </Button>
+          <p className="text-xs text-muted-foreground">{state === "waiting" ? "Ouvre 10 min avant" : "Rendez-vous terminé"}</p>
+        </>
+      )}
+    </div>
   );
 }

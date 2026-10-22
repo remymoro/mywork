@@ -17,6 +17,7 @@ const config: RdvConfig = { durations: [30], hours: DEFAULT_HOURS, exceptions: [
 const appointment = {
   status: "confirmed" as const,
   starts_at: "2026-10-23T07:30:00Z", // vendredi 23 octobre, 09:30
+  ends_at: "2026-10-23T08:00:00Z",
   duration_min: 30,
   owner_name: "Claire Moreau",
 };
@@ -35,6 +36,18 @@ describe("GuestManage", () => {
     setup();
     expect(screen.getByText("CONFIRMÉ")).toBeInTheDocument();
     expect(screen.getByText("vendredi 23 octobre 2026 à 09:30 (heure de Paris), 30 min")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Rejoindre la visio" })).toHaveAttribute("href", `/rdv/${TOKEN}/visio`);
+  });
+
+  it("garde le rendez-vous en cours accessible jusqu'à ends_at", () => {
+    const { unmount } = setup({ nowIso: appointment.starts_at });
+    expect(screen.getByText("CONFIRMÉ")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Rejoindre la visio" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reporter" })).not.toBeInTheDocument();
+    unmount();
+    setup({ nowIso: appointment.ends_at });
+    expect(screen.getByText("TERMINÉ")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Rejoindre la visio" })).not.toBeInTheDocument();
   });
 
   it("demande confirmation avant d'annuler, puis annule", async () => {
@@ -81,9 +94,10 @@ describe("GuestManage", () => {
   it("n'offre aucune action sur un rendez-vous annulé ou passé", () => {
     const { unmount } = setup({ appointment: { ...appointment, status: "cancelled" } });
     expect(screen.getByText("Rendez-vous annulé")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Rejoindre la visio" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reporter" })).not.toBeInTheDocument();
     unmount();
-    setup({ appointment: { ...appointment, starts_at: "2026-10-20T07:30:00Z" } });
+    setup({ appointment: { ...appointment, starts_at: "2026-10-20T07:30:00Z", ends_at: "2026-10-20T08:00:00Z" } });
     expect(screen.getByText("TERMINÉ")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Annuler le rendez-vous" })).not.toBeInTheDocument();
   });

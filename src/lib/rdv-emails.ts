@@ -32,14 +32,16 @@ export function whenText(a: Pick<RdvDescription, "starts_at" | "duration_min">) 
 
 const guestName = (a: RdvDescription) => `${a.guest_first} ${a.guest_last}`;
 
-function build(to: string, subject: string, lines: string[], action?: { label: string; url: string }): Email {
-  const text = [...lines, ...(action ? ["", `${action.label} : ${action.url}`] : []), "", "— MyWork"].join("\n");
+function build(to: string, subject: string, lines: string[], action?: { label: string; url: string }, visioUrl?: string): Email {
+  const actions = [
+    ...(visioUrl ? [{ label: "Rejoindre la visio (10 min avant)", url: visioUrl }] : []),
+    ...(action ? [action] : []),
+  ];
+  const text = [...lines, ...actions.flatMap((a) => ["", `${a.label} : ${a.url}`]), "", "— MyWork"].join("\n");
   const html =
     `<div style="font-family:system-ui,sans-serif;max-width:32rem;line-height:1.5;color:#040A0E">` +
     lines.map((l) => (l === "" ? "<br>" : `<p style="margin:0 0 8px">${escapeHtml(l)}</p>`)).join("") +
-    (action
-      ? `<p style="margin:16px 0"><a href="${escapeHtml(action.url)}" style="background:#911128;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">${escapeHtml(action.label)}</a></p>`
-      : "") +
+    actions.map((a) => `<p style="margin:16px 0"><a href="${escapeHtml(a.url)}" style="background:#911128;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">${escapeHtml(a.label)}</a></p>`).join("") +
     `<p style="color:#6b6b6b;font-size:13px">— MyWork</p></div>`;
   return { to, subject, text, html };
 }
@@ -59,6 +61,7 @@ export function confirmationForGuest(a: RdvDescription, origin: string): Email {
       "Un empêchement ? Tu peux le reporter ou l'annuler avec ce lien personnel.",
     ],
     { label: "Gérer mon rendez-vous", url: manageUrl(origin, a.token) },
+    `${manageUrl(origin, a.token)}/visio`,
   );
 }
 
@@ -76,6 +79,7 @@ export function newBookingForOwner(a: RdvDescription, origin: string): Email | n
       ...(a.message ? ["", `Message : ${a.message}`] : []),
     ],
     { label: "Voir mes rendez-vous", url: `${origin}/dashboard/rendez-vous` },
+    `${origin}/dashboard/rendez-vous/${a.id}/visio`,
   );
 }
 
@@ -110,11 +114,11 @@ export function rescheduleEmail(
     return build(after.owner_email, `Rendez-vous reporté : ${guestName(after)}`, [
       `${guestName(after)} a reporté son rendez-vous.`,
       ...lines,
-    ], { label: "Voir mes rendez-vous", url: `${origin}/dashboard/rendez-vous` });
+    ], { label: "Voir mes rendez-vous", url: `${origin}/dashboard/rendez-vous` }, `${origin}/dashboard/rendez-vous/${after.id}/visio`);
   }
   return build(after.guest_email, `Rendez-vous reporté par ${after.owner_name}`, [
     `Bonjour ${after.guest_first},`,
     `${after.owner_name} a déplacé votre rendez-vous.`,
     ...lines,
-  ], { label: "Gérer mon rendez-vous", url: manageUrl(origin, after.token) });
+  ], { label: "Gérer mon rendez-vous", url: manageUrl(origin, after.token) }, `${manageUrl(origin, after.token)}/visio`);
 }
