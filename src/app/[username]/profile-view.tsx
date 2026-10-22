@@ -25,6 +25,7 @@ import {
   type FreelanceAvailability,
   type PublicSectionId,
 } from "@/lib/profile-sections";
+import { ResourcesSection, type PublicResource } from "@/components/drive/resources-section";
 import { ContactButton } from "./contact-button";
 
 export type PublicProfileData = {
@@ -398,6 +399,7 @@ export function PublicProfileView({
   certifications,
   projects,
   services = [],
+  resources = [],
 }: {
   profile: PublicProfileData;
   experiences: ExperienceRow[];
@@ -406,6 +408,8 @@ export function PublicProfileView({
   certifications: CertificationRow[];
   projects: ProjectRow[];
   services?: ServiceRow[];
+  /** Fichiers publics du Drive (section « Ressources », en dernier). */
+  resources?: PublicResource[];
 }) {
   const displayName = profile.display_name ?? profile.username;
   const initials = getInitials(profile.display_name ?? "", profile.username);
@@ -523,6 +527,7 @@ export function PublicProfileView({
             {normalizeSectionOrder(profile.section_order).map((id) => (
               <Fragment key={id}>{sections[id]}</Fragment>
             ))}
+            <ResourcesSection username={profile.username} items={resources} />
           </div>
           {hasFreelance && (
             <aside className="md:sticky md:top-6 md:self-start">

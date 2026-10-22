@@ -6,7 +6,7 @@ test("la page de connexion propose Google", async ({ page }) => {
 });
 
 test("les pages privées renvoient vers la connexion", async ({ page }) => {
-  for (const path of ["/dashboard", "/dashboard/profil", "/dashboard/profil/cv", "/dashboard/kanban"]) {
+  for (const path of ["/dashboard", "/dashboard/profil", "/dashboard/profil/cv", "/dashboard/kanban", "/dashboard/fichiers"]) {
     await page.goto(path);
     await expect(page).toHaveURL(/\/login$/);
   }
@@ -21,4 +21,13 @@ test("un pseudo inconnu affiche une page 404", async ({ page }) => {
 test("aucune page publique de tableau Kanban", async ({ page }) => {
   await page.goto("/remy/kanban/x");
   await expect(page.getByRole("heading", { name: "Page introuvable" })).toBeVisible();
+});
+
+// Un fichier du Drive n'est téléchargeable que s'il est public : sinon (ou s'il n'existe pas), rien.
+test("le téléchargement d'un fichier inconnu ou privé est refusé", async ({ request }) => {
+  for (const path of ["/remy/ressources/pas-un-id", "/remy/ressources/9a8b7c6d-1111-4222-8333-444455556666"]) {
+    const response = await request.get(path, { maxRedirects: 0 });
+    expect(response.status()).toBe(404);
+    expect(response.headers()["x-robots-tag"]).toContain("noindex");
+  }
 });

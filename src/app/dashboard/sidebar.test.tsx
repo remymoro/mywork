@@ -18,8 +18,9 @@ describe("Sidebar", () => {
     for (const name of ["Kanban", "Rendez-vous", "Fichiers", "Visio"]) {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
-    expect(screen.getAllByText("Bientôt")).toHaveLength(4);
+    expect(screen.getAllByText("Bientôt")).toHaveLength(3);
     expect(screen.getByRole("link", { name: "Kanban" })).toHaveAttribute("href", "/dashboard/kanban");
+    expect(screen.getByRole("link", { name: "Fichiers" })).toHaveAttribute("href", "/dashboard/fichiers");
     expect(screen.getByRole("button", { name: "Rémy Moro" })).toBeInTheDocument();
   });
 
@@ -35,6 +36,7 @@ describe("Sidebar", () => {
     ["accueil", "Mon tableau de bord"],
     ["profil", "Mon profil"],
     ["kanban", "Kanban"],
+    ["fichiers", "Fichiers"],
   ] as const)("affiche l'entrée active %s en bloc carmin", (active, name) => {
     render(<Sidebar active={active} email="remy@example.com" displayName="Rémy" username="remy" isOnline />);
     expect(screen.getByRole("link", { name })).toHaveAttribute("aria-current", "page");
