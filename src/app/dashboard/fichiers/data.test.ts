@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DriveNotReadyError, loadDrive } from "./data";
+import { loadDrive } from "./data";
 
 type Reply = { data: unknown; error: { code?: string; message: string } | null };
 
@@ -18,16 +18,10 @@ function fakeSupabase(tables: Record<string, Reply>, rpc: Reply) {
 const ok = (data: unknown): Reply => ({ data, error: null });
 
 describe("loadDrive", () => {
-  it("détecte une base sans la migration du Drive (table absente)", async () => {
-    const missing: Reply = { data: null, error: { code: "PGRST205", message: "Could not find the table" } };
-    const supabase = fakeSupabase({ drive_files: missing, drive_folders: missing }, missing);
-    await expect(loadDrive(supabase, "u1", null)).rejects.toBeInstanceOf(DriveNotReadyError);
-  });
-
-  it("remonte les autres erreurs telles quelles", async () => {
+  it("remonte les erreurs de lecture", async () => {
     const broken: Reply = { data: null, error: { code: "XX000", message: "boom" } };
     const supabase = fakeSupabase({ drive_files: broken, drive_folders: ok([]) }, ok([]));
-    await expect(loadDrive(supabase, "u1", null)).rejects.not.toBeInstanceOf(DriveNotReadyError);
+    await expect(loadDrive(supabase, "u1", null)).rejects.toThrow("Lecture des fichiers impossible");
   });
 
   it("assemble dossiers, fichiers et espace utilisé", async () => {

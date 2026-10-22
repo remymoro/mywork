@@ -106,25 +106,3 @@ test("le mode sombre change les couleurs réelles, les menus et reste mémorisé
   await expect(page.locator("html")).not.toHaveClass(/dark/);
   await expect(mode).not.toBeChecked();
 });
-
-test("l'aperçu du Drive fonctionne avec de fausses données, sans connexion", async ({ page }) => {
-  await page.goto("/design/fichiers");
-  await expect(page.getByRole("heading", { level: 1, name: "Mes fichiers" })).toBeVisible();
-  await expect(page.getByText("fausses données")).toBeVisible();
-  await expect(page.getByRole("cell", { name: "CV-2026.pdf", exact: true })).toBeVisible();
-
-  // Ouvrir un dossier, revenir, puis rendre un fichier public : il rejoint « Ressources ».
-  await page.getByRole("button", { name: "Contrats", exact: true }).click();
-  await expect(page.getByRole("cell", { name: "contrat-client.pdf", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Mes fichiers", exact: true }).click();
-  await page.getByRole("button", { name: "Actions pour budget.xlsx" }).click();
-  await page.getByRole("menuitem", { name: "Rendre public" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Rendre public" }).click();
-  await expect(page.getByRole("region", { name: "Ressources" }).getByText("budget.xlsx")).toBeVisible();
-
-  // Recherche et jauge.
-  await page.getByLabel("Rechercher dans ce dossier").fill("logo");
-  await expect(page.getByRole("cell", { name: "budget.xlsx", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("progressbar", { name: "Stockage utilisé" })).toBeVisible();
-  await expect(page.getByText(/partagée avec ta photo de profil/)).toBeVisible();
-});
