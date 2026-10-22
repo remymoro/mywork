@@ -56,9 +56,9 @@ const card = "space-y-4 rounded-xl border bg-card p-4 sm:p-5";
 const sectionTitle = "text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground";
 // Onglet de page : soulignement carmin sous l'onglet actif, texte actif en foreground, inactif en muted-foreground.
 const pageTab = "px-3 py-1.5 text-muted-foreground data-active:text-foreground after:bg-primary";
-// Sous-onglet sélectionné aux couleurs de l'application (carmin), comme la page active du menu ; plus grand sur grand écran.
+// Sous-onglet sélectionné aux couleurs de l'application (carmin), comme la page active du menu.
 const activeTab =
-  "lg:text-base data-active:bg-primary data-active:text-primary-foreground dark:data-active:border-transparent dark:data-active:bg-primary dark:data-active:text-primary-foreground";
+  "data-active:bg-primary data-active:text-primary-foreground dark:data-active:border-transparent dark:data-active:bg-primary dark:data-active:text-primary-foreground";
 
 /** Propose une nouvelle plage simple et sans chevauchement pour un jour déjà ouvert. */
 function nextRangeForDay(existing: HourRange[]): { start: string; end: string } {
@@ -568,7 +568,7 @@ function AppointmentsCard({
   return (
     <section aria-label="Liste des rendez-vous" className={card}>
       <Tabs defaultValue="upcoming" className="space-y-3">
-        <TabsList className="w-full lg:group-data-horizontal/tabs:h-11">
+        <TabsList className="w-full">
           <TabsTrigger value="upcoming" className={activeTab}>À venir ({appointments.length})</TabsTrigger>
           <TabsTrigger value="past" className={activeTab}>Passés ({past.length})</TabsTrigger>
           <TabsTrigger value="cancelled" className={activeTab}>Annulés ({cancelled.length})</TabsTrigger>
