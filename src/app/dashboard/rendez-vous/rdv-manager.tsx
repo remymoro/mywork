@@ -36,6 +36,9 @@ const WEEKDAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "
 
 const card = "space-y-4 rounded-xl border bg-card p-4 sm:p-5";
 const sectionTitle = "font-heading text-xl font-normal tracking-tight";
+// Onglet sélectionné aux couleurs de l'application (carmin), comme la page active du menu.
+const activeTab =
+  "data-active:bg-primary data-active:text-primary-foreground dark:data-active:border-transparent dark:data-active:bg-primary dark:data-active:text-primary-foreground";
 
 export function RdvManager({
   username,
@@ -309,9 +312,9 @@ function AppointmentsCard({
       </h2>
       <Tabs defaultValue="upcoming" className="space-y-3">
         <TabsList className="w-full sm:w-fit">
-          <TabsTrigger value="upcoming">À venir ({appointments.length})</TabsTrigger>
-          <TabsTrigger value="past">Passés ({past.length})</TabsTrigger>
-          <TabsTrigger value="cancelled">Annulés ({cancelled.length})</TabsTrigger>
+          <TabsTrigger value="upcoming" className={activeTab}>À venir ({appointments.length})</TabsTrigger>
+          <TabsTrigger value="past" className={activeTab}>Passés ({past.length})</TabsTrigger>
+          <TabsTrigger value="cancelled" className={activeTab}>Annulés ({cancelled.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="upcoming" className="space-y-3">
