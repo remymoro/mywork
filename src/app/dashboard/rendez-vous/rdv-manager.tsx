@@ -135,7 +135,7 @@ function SettingsCard({
                     <Input type="time" step={300} aria-label={`${name} : début`} className="w-28" value={h.start} onChange={(e) => update(index, { start: e.target.value })} />
                     <span aria-hidden="true">–</span>
                     <Input type="time" step={300} aria-label={`${name} : fin`} className="w-28" value={h.end} onChange={(e) => update(index, { end: e.target.value })} />
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label={`Retirer la plage de ${name}`} onClick={() => setHours((c) => c.filter((_, k) => k !== index))}>
+                    <Button type="button" variant="destructive" size="icon-sm" aria-label={`Retirer la plage de ${name}`} onClick={() => setHours((c) => c.filter((_, k) => k !== index))}>
                       <Trash2 aria-hidden="true" className="size-4" />
                     </Button>
                   </div>
@@ -221,7 +221,7 @@ function ExceptionsCard({ exceptions }: { exceptions: ManagedException[] }) {
               </span>
               <Button
                 type="button"
-                variant="ghost"
+                variant="destructive"
                 size="icon-sm"
                 aria-label={`Retirer l'exception du ${e.day}`}
                 onClick={() => startTransition(async () => void (await removeException(e.id)))}
