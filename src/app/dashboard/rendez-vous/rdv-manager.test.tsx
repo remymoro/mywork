@@ -36,6 +36,8 @@ const user = {
 
 const setup = (over: Partial<Parameters<typeof RdvManager>[0]> = {}) =>
   render(<RdvManager username="claire" nowIso={NOW} initial={initial} appointments={[]} {...over} />);
+// Les réglages sont dans l'onglet de page « Disponibilités ».
+const openAvailability = async () => user.click(screen.getByRole("tab", { name: "Disponibilités" }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -45,8 +47,9 @@ beforeEach(() => {
 describe("RdvManager", () => {
   it("explique que la réservation est désactivée, puis l'active et enregistre les réglages", async () => {
     setup();
-    expect(screen.getByText(/Désactivée/)).toBeInTheDocument();
-    await user.click(screen.getByRole("switch", { name: "Réservation en ligne" }));
+    await openAvailability();
+    expect(screen.getByText(/Fermées/)).toBeInTheDocument();
+    await user.click(screen.getByRole("switch", { name: "Réservations ouvertes" }));
     expect(screen.getByText(/L'onglet « Rendez-vous » est visible/)).toBeInTheDocument();
     await user.click(screen.getByRole("checkbox", { name: "60 min" }));
     await user.click(screen.getByRole("button", { name: "Enregistrer" }));
@@ -58,21 +61,54 @@ describe("RdvManager", () => {
   it("affiche le message de la base quand l'enregistrement échoue", async () => {
     mocks.saveSettings.mockResolvedValue({ ok: false, error: "Une plage doit finir après son début." });
     setup();
+    await openAvailability();
     await user.click(screen.getByRole("button", { name: "Enregistrer" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Une plage doit finir après son début.");
   });
 
-  it("ajoute et retire une plage horaire", async () => {
+  it("ouvre un jour, ajoute et retire des plages, puis le jour redevient fermé", async () => {
     setup({ initial: { ...initial, hours: [] } });
-    expect(screen.getAllByText("Indisponible")).toHaveLength(7);
-    await user.click(screen.getAllByRole("button", { name: "Ajouter une plage" })[0]);
-    expect(screen.getByLabelText("Lundi : début")).toHaveValue("09:00");
-    await user.click(screen.getByRole("button", { name: "Retirer la plage de Lundi" }));
+    await openAvailability();
+    expect(screen.getAllByText("Fermé")).toHaveLength(7);
+    await user.click(screen.getByRole("checkbox", { name: "Lundi" }));
+    expect(screen.getAllByLabelText("Lundi : début").map((i) => (i as HTMLInputElement).value)).toEqual(["09:00", "14:00"]);
+    await user.click(screen.getByRole("button", { name: "Ajouter une plage le Lundi" }));
+    expect(screen.getAllByLabelText("Lundi : début").map((i) => (i as HTMLInputElement).value)).toEqual(["09:00", "14:00", "19:00"]);
+    for (let n = 0; n < 3; n++) await user.click(screen.getAllByRole("button", { name: "Retirer la plage de Lundi" })[0]);
     expect(screen.queryByLabelText("Lundi : début")).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Lundi" })).not.toBeChecked();
+  });
+
+  it("décocher puis recocher un jour retrouve ses plages", async () => {
+    setup({ initial: { ...initial, hours: [{ weekday: 2, start: "10:00", end: "11:00" }] } });
+    await openAvailability();
+    await user.click(screen.getByRole("checkbox", { name: "Mardi" }));
+    expect(screen.queryByLabelText("Mardi : début")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: "Mardi" }));
+    expect(screen.getByLabelText("Mardi : début")).toHaveValue("10:00");
+  });
+
+  it("affiche les règles fixes en lecture seule", async () => {
+    setup();
+    await openAvailability();
+    expect(screen.getByText("Préavis minimum").nextSibling).toHaveTextContent("4 h");
+    expect(screen.getByText("Réservable jusqu'à").nextSibling).toHaveTextContent("2 mois");
+    expect(screen.getByText("Pause après un rendez-vous").nextSibling).toHaveTextContent("Aucune");
+  });
+
+  it("copie l'adresse de réservation", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    setup();
+    await user.click(screen.getByRole("button", { name: "Copier l'adresse de réservation" }));
+    expect(await screen.findByText("Adresse copiée")).toBeInTheDocument();
+    expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/claire?onglet=rdv`);
   });
 
   it("ferme un jour : exception sans horaires", async () => {
     setup();
+    await openAvailability();
+    await user.click(screen.getByRole("button", { name: "Ajouter une date" }));
     const add = screen.getByRole("button", { name: "Ajouter" });
     expect(add).toBeDisabled();
     await user.type(screen.getByLabelText("Date"), "2026-10-30");
@@ -90,8 +126,10 @@ describe("RdvManager", () => {
         ],
       },
     });
-    expect(screen.getByText("Fermé")).toBeInTheDocument();
-    expect(screen.getByText(/16:00–17:00/)).toBeInTheDocument();
+    await openAvailability();
+    expect(screen.getByText("ven. 30 octobre")).toBeInTheDocument();
+    expect(screen.getByText("Indisponible")).toBeInTheDocument();
+    expect(screen.getByText("16:00 – 17:00")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Retirer l'exception du 2026-10-30" }));
     await waitFor(() => expect(mocks.removeException).toHaveBeenCalledWith("e1"));
   });

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
+import { Copy, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DURATIONS,
+  HORIZON_MONTHS,
+  MIN_NOTICE_HOURS,
+  TIME_ZONE,
   formatLongDate,
   formatTime,
   parisDay,
@@ -34,11 +37,44 @@ export type ManagedAppointment = {
 
 const WEEKDAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
+const DEFAULT_DAY_RANGES = [
+  { start: "09:00", end: "12:00" },
+  { start: "14:00", end: "18:00" },
+];
+
+const SHORT_DATE = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: TIME_ZONE,
+  weekday: "short",
+  day: "numeric",
+  month: "long",
+});
+
+const formatShortDate = (day: string) => SHORT_DATE.format(new Date(`${day}T12:00:00Z`));
+
 const card = "space-y-4 rounded-xl border bg-card p-4 sm:p-5";
-const sectionTitle = "font-heading text-xl font-normal tracking-tight";
-// Onglet sélectionné aux couleurs de l'application (carmin), comme la page active du menu.
+const sectionTitle = "text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground";
+// Onglet de page : soulignement carmin sous l'onglet actif, texte actif en foreground, inactif en muted-foreground.
+const pageTab = "px-3 py-1.5 text-muted-foreground data-active:text-foreground after:bg-primary";
+// Sous-onglet sélectionné aux couleurs de l'application (carmin), comme la page active du menu.
 const activeTab =
   "data-active:bg-primary data-active:text-primary-foreground dark:data-active:border-transparent dark:data-active:bg-primary dark:data-active:text-primary-foreground";
+
+/** Propose une nouvelle plage simple et sans chevauchement pour un jour déjà ouvert. */
+function nextRangeForDay(existing: HourRange[]): { start: string; end: string } {
+  if (existing.length === 1 && existing[0].end <= "13:00") {
+    return { start: "14:00", end: "18:00" };
+  }
+  const last = existing[existing.length - 1];
+  if (last) {
+    const [h] = last.end.split(":").map(Number);
+    if (Number.isInteger(h) && h + 2 <= 23) {
+      const startH = String(h + 1).padStart(2, "0");
+      const endH = String(Math.min(h + 3, 23)).padStart(2, "0");
+      return { start: `${startH}:00`, end: `${endH}:00` };
+    }
+  }
+  return { start: "09:00", end: "12:00" };
+}
 
 export function RdvManager({
   username,
@@ -56,37 +92,118 @@ export function RdvManager({
   cancelled?: ManagedAppointment[];
 }) {
   return (
-    <div className="space-y-6">
-      <AppointmentsCard
-        appointments={appointments}
-        past={past}
-        cancelled={cancelled}
-        initial={initial}
-        nowIso={nowIso}
-      />
-      <SettingsCard username={username} initial={initial} />
-      <ExceptionsCard exceptions={initial.exceptions} />
+    <Tabs defaultValue="appointments" className="space-y-6">
+      <div className="flex flex-col gap-3 border-b pb-2 sm:flex-row sm:items-center sm:justify-between">
+        <TabsList variant="line">
+          <TabsTrigger value="appointments" className={pageTab}>
+            Rendez-vous
+          </TabsTrigger>
+          <TabsTrigger value="availability" className={pageTab}>
+            Disponibilités
+          </TabsTrigger>
+        </TabsList>
+        <CopyBookingLink username={username} />
+      </div>
+
+      <TabsContent value="appointments">
+        <AppointmentsCard
+          appointments={appointments}
+          past={past}
+          cancelled={cancelled}
+          initial={initial}
+          nowIso={nowIso}
+        />
+      </TabsContent>
+
+      <TabsContent value="availability">
+        <AvailabilityTab initial={initial} />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function CopyBookingLink({ username }: { username: string }) {
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const copy = async () => {
+    const url = `${window.location.origin}/${username}?onglet=rdv`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setNotice("Adresse copiée");
+    } catch {
+      setNotice(`Copie impossible : ${url}`);
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="text-xs uppercase tracking-wider"
+        onClick={copy}
+      >
+        <Copy aria-hidden="true" className="size-3.5" />
+        Copier l&apos;adresse de réservation
+      </Button>
+      {notice && (
+        <p role="status" className="text-xs text-muted-foreground">
+          {notice}
+        </p>
+      )}
     </div>
   );
 }
 
-function SettingsCard({
-  username,
+function AvailabilityTab({
   initial,
 }: {
-  username: string;
-  initial: { enabled: boolean; durations: number[]; hours: HourRange[] };
+  initial: { enabled: boolean; durations: number[]; hours: HourRange[]; exceptions: ManagedException[] };
 }) {
   const [enabled, setEnabled] = useState(initial.enabled);
   const [durations, setDurations] = useState<number[]>(initial.durations);
   const [hours, setHours] = useState<HourRange[]>(initial.hours);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const rememberedHours = useRef<Map<number, { start: string; end: string }[]>>(new Map());
 
   const toggleDuration = (d: number) =>
     setDurations((current) => (current.includes(d) ? current.filter((x) => x !== d) : [...current, d]));
-  const update = (index: number, patch: Partial<HourRange>) =>
+
+  const updateHour = (index: number, patch: Partial<HourRange>) =>
     setHours((current) => current.map((h, i) => (i === index ? { ...h, ...patch } : h)));
+
+  const toggleDay = (weekday: number, checked: boolean) => {
+    if (!checked) {
+      const currentDayRanges = hours
+        .filter((h) => h.weekday === weekday)
+        .map(({ start, end }) => ({ start, end }));
+      if (currentDayRanges.length > 0) {
+        rememberedHours.current.set(weekday, currentDayRanges);
+      }
+      setHours((current) => current.filter((h) => h.weekday !== weekday));
+    } else {
+      const restored = rememberedHours.current.get(weekday);
+      const ranges = restored && restored.length > 0 ? restored : DEFAULT_DAY_RANGES;
+      setHours((current) => [
+        ...current.filter((h) => h.weekday !== weekday),
+        ...ranges.map((r) => ({ weekday, start: r.start, end: r.end })),
+      ]);
+    }
+  };
+
+  const addRange = (weekday: number) => {
+    setHours((current) => {
+      const dayRanges = current.filter((h) => h.weekday === weekday);
+      const next = nextRangeForDay(dayRanges);
+      return [...current, { weekday, ...next }];
+    });
+  };
+
+  const removeRange = (index: number) => {
+    setHours((current) => current.filter((_, k) => k !== index));
+  };
 
   const save = () =>
     startTransition(async () => {
@@ -95,79 +212,135 @@ function SettingsCard({
       setMessage(result.ok ? { ok: true, text: "Enregistré." } : { ok: false, text: result.error });
     });
 
+  const sortedDurations = [...durations].sort((a, b) => a - b);
+  const durationsLabel = sortedDurations.length > 0 ? sortedDurations.join(" / ") : "—";
+
   return (
-    <section aria-labelledby="rdv-settings" className={card}>
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 id="rdv-settings" className={sectionTitle}>
-            Réservation en ligne
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {enabled
-              ? `L'onglet « Rendez-vous » est visible sur ton profil public (/${username}).`
-              : "Désactivée : l'onglet « Rendez-vous » n'apparaît pas sur ton profil public."}
-          </p>
+    <div className="space-y-6">
+      {/* a. Carte étroite : ouverture des réservations */}
+      <div className="max-w-md rounded-xl border bg-card p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">Réservations ouvertes</p>
+            <p className="text-xs text-muted-foreground">
+              {enabled
+                ? "L'onglet « Rendez-vous » est visible sur ton profil public."
+                : "Fermées : l'onglet « Rendez-vous » n'apparaît pas sur ton profil public."}
+            </p>
+          </div>
+          <Switch aria-label="Réservations ouvertes" checked={enabled} onCheckedChange={setEnabled} />
         </div>
-        <Switch aria-label="Réservation en ligne" checked={enabled} onCheckedChange={setEnabled} />
       </div>
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">Durées proposées</legend>
-        <div className="flex flex-wrap gap-4">
-          {DURATIONS.map((d) => (
-            <label key={d} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="size-4 accent-primary" checked={durations.includes(d)} onChange={() => toggleDuration(d)} />
-              {d} min
-            </label>
-          ))}
+      {/* b. Grille deux colonnes sur grand écran */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_20rem] lg:items-start">
+        {/* c. Colonne gauche : horaires de la semaine */}
+        <section aria-labelledby="rdv-weekly-hours" className={card}>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="rdv-weekly-hours" className={sectionTitle}>
+              HORAIRES DE LA SEMAINE
+            </h2>
+            <p className="text-xs text-muted-foreground">Créneaux de {durationsLabel} min, heure de Paris</p>
+          </div>
+
+          <div className="divide-y">
+            {WEEKDAYS.map((name, i) => {
+              const weekday = i + 1;
+              const rows = hours.map((h, index) => ({ h, index })).filter(({ h }) => h.weekday === weekday);
+              const isOpen = rows.length > 0;
+              return (
+                <div key={name} className="flex flex-wrap items-center gap-3 py-3 first:pt-1 last:pb-1">
+                  <label className="flex w-28 shrink-0 items-center gap-2.5 text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      className="size-4 shrink-0 accent-primary"
+                      aria-label={name}
+                      checked={isOpen}
+                      onChange={(e) => toggleDay(weekday, e.target.checked)}
+                    />
+                    <span>{name}</span>
+                  </label>
+
+                  {isOpen ? (
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                      {rows.map(({ h, index }) => (
+                        <div key={index} className="flex items-center gap-1.5">
+                          <Input
+                            type="time"
+                            step={300}
+                            aria-label={`${name} : début`}
+                            className="w-28"
+                            value={h.start}
+                            onChange={(e) => updateHour(index, { start: e.target.value })}
+                          />
+                          <span aria-hidden="true" className="text-muted-foreground">
+                            –
+                          </span>
+                          <Input
+                            type="time"
+                            step={300}
+                            aria-label={`${name} : fin`}
+                            className="w-28"
+                            value={h.end}
+                            onChange={(e) => updateHour(index, { end: e.target.value })}
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon-sm"
+                            aria-label={`Retirer la plage de ${name}`}
+                            onClick={() => removeRange(index)}
+                          >
+                            <X aria-hidden="true" className="size-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Ajouter une plage le ${name}`}
+                        onClick={() => addRange(weekday)}
+                      >
+                        <Plus aria-hidden="true" className="size-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Fermé</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* d. Colonne droite : jours particuliers et réglages */}
+        <div className="space-y-6">
+          <ExceptionsSection exceptions={initial.exceptions} />
+          <RulesSection durations={durations} onToggleDuration={toggleDuration} />
         </div>
-      </fieldset>
+      </div>
 
-      <fieldset className="space-y-3">
-        <legend className="text-sm font-medium">Horaires de la semaine (heure de Paris)</legend>
-        {WEEKDAYS.map((name, i) => {
-          const weekday = i + 1;
-          const rows = hours.map((h, index) => ({ h, index })).filter(({ h }) => h.weekday === weekday);
-          return (
-            <div key={name} className="flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-start">
-              <p className="w-28 shrink-0 pt-1.5 text-sm">{name}</p>
-              <div className="flex-1 space-y-2">
-                {rows.length === 0 && <p className="pt-1.5 text-sm text-muted-foreground">Indisponible</p>}
-                {rows.map(({ h, index }) => (
-                  <div key={index} className="flex flex-wrap items-center gap-2">
-                    <Input type="time" step={300} aria-label={`${name} : début`} className="w-28" value={h.start} onChange={(e) => update(index, { start: e.target.value })} />
-                    <span aria-hidden="true">–</span>
-                    <Input type="time" step={300} aria-label={`${name} : fin`} className="w-28" value={h.end} onChange={(e) => update(index, { end: e.target.value })} />
-                    <Button type="button" variant="destructive" size="icon-sm" aria-label={`Retirer la plage de ${name}`} onClick={() => setHours((c) => c.filter((_, k) => k !== index))}>
-                      <Trash2 aria-hidden="true" className="size-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button type="button" variant="outline" size="sm" onClick={() => setHours((c) => [...c, { weekday, start: "09:00", end: "12:00" }])}>
-                  <Plus aria-hidden="true" className="size-4" />
-                  Ajouter une plage
-                </Button>
-              </div>
-            </div>
-          );
-        })}
-      </fieldset>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" onClick={save} disabled={pending}>
-          {pending ? "Enregistrement…" : "Enregistrer"}
-        </Button>
+      {/* e. Bouton Enregistrer en bas à droite */}
+      <div className="flex flex-wrap items-center justify-end gap-3">
         {message && (
-          <p role={message.ok ? "status" : "alert"} className={message.ok ? "text-sm text-muted-foreground" : "text-sm text-destructive"}>
+          <p
+            role={message.ok ? "status" : "alert"}
+            className={message.ok ? "text-sm text-muted-foreground" : "text-sm text-destructive"}
+          >
             {message.text}
           </p>
         )}
+        <Button type="button" onClick={save} disabled={pending}>
+          {pending ? "Enregistrement…" : "Enregistrer"}
+        </Button>
       </div>
-    </section>
+    </div>
   );
 }
 
-function ExceptionsCard({ exceptions }: { exceptions: ManagedException[] }) {
+function ExceptionsSection({ exceptions }: { exceptions: ManagedException[] }) {
+  const [open, setOpen] = useState(false);
   const [day, setDay] = useState("");
   const [custom, setCustom] = useState(false);
   const [start, setStart] = useState("14:00");
@@ -185,56 +358,142 @@ function ExceptionsCard({ exceptions }: { exceptions: ManagedException[] }) {
 
   return (
     <section aria-labelledby="rdv-exceptions" className={card}>
-      <div>
+      <div className="flex items-center justify-between gap-2">
         <h2 id="rdv-exceptions" className={sectionTitle}>
-          Exceptions
+          JOURS PARTICULIERS
         </h2>
-        <p className="text-sm text-muted-foreground">Un jour de congé, ou des horaires particuliers à une date précise.</p>
-      </div>
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="space-y-1 text-sm">
-          <span>Date</span>
-          <Input type="date" className="w-44" value={day} onChange={(e) => setDay(e.target.value)} />
-        </label>
-        <label className="flex items-center gap-2 pb-2 text-sm">
-          <input type="checkbox" className="size-4 accent-primary" checked={custom} onChange={(e) => setCustom(e.target.checked)} />
-          Horaires particuliers (sinon, jour fermé)
-        </label>
-        {custom && (
-          <div className="flex items-center gap-2 pb-0.5">
-            <Input type="time" step={300} aria-label="Exception : début" className="w-28" value={start} onChange={(e) => setStart(e.target.value)} />
-            <span aria-hidden="true">–</span>
-            <Input type="time" step={300} aria-label="Exception : fin" className="w-28" value={end} onChange={(e) => setEnd(e.target.value)} />
-          </div>
-        )}
-        <Button type="button" variant="outline" onClick={add} disabled={pending || !day}>
-          Ajouter
+        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen((v) => !v)}>
+          <Plus aria-hidden="true" className="size-3.5" />
+          Ajouter une date
         </Button>
       </div>
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+
+      {open && (
+        <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+          <label className="block space-y-1 text-sm">
+            <span>Date</span>
+            <Input type="date" className="w-full" value={day} onChange={(e) => setDay(e.target.value)} />
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="size-4 accent-primary"
+              checked={custom}
+              onChange={(e) => setCustom(e.target.checked)}
+            />
+            Horaires particuliers (sinon, jour fermé)
+          </label>
+          {custom && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                type="time"
+                step={300}
+                aria-label="Exception : début"
+                className="w-28"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+              />
+              <span aria-hidden="true">–</span>
+              <Input
+                type="time"
+                step={300}
+                aria-label="Exception : fin"
+                className="w-28"
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+              />
+            </div>
+          )}
+          <Button type="button" variant="outline" size="sm" onClick={add} disabled={pending || !day}>
+            Ajouter
+          </Button>
+        </div>
+      )}
+
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+
       {exceptions.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Aucune exception.</p>
+        <p className="text-sm text-muted-foreground">Aucun jour particulier.</p>
       ) : (
-        <ul className="divide-y rounded-lg border">
+        <ul className="divide-y">
           {exceptions.map((e) => (
-            <li key={e.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-              <span>
-                {formatLongDate(`${e.day}T12:00:00Z`)} ·{" "}
-                {e.start && e.end ? `${e.start}–${e.end}` : <Badge variant="secondary">Fermé</Badge>}
-              </span>
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon-sm"
-                aria-label={`Retirer l'exception du ${e.day}`}
-                onClick={() => startTransition(async () => void (await removeException(e.id)))}
-              >
-                <Trash2 aria-hidden="true" className="size-4" />
-              </Button>
+            <li key={e.id} className="flex items-center justify-between gap-2 py-2 text-sm first:pt-0 last:pb-0">
+              <span>{formatShortDate(e.day)}</span>
+              <div className="flex items-center gap-2">
+                {e.start && e.end ? (
+                  <span>
+                    {e.start} – {e.end}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">Indisponible</span>
+                )}
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon-sm"
+                  aria-label={`Retirer l'exception du ${e.day}`}
+                  onClick={() => startTransition(async () => void (await removeException(e.id)))}
+                >
+                  <X aria-hidden="true" className="size-4" />
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+function RulesSection({
+  durations,
+  onToggleDuration,
+}: {
+  durations: number[];
+  onToggleDuration: (d: number) => void;
+}) {
+  const readonlyRows = [
+    { label: "Pause après un rendez-vous", value: "Aucune" },
+    { label: "Préavis minimum", value: `${MIN_NOTICE_HOURS} h` },
+    { label: "Réservable jusqu'à", value: `${HORIZON_MONTHS} mois` },
+    { label: "Rendez-vous par jour", value: "Pas de limite" },
+    { label: "Fuseau horaire", value: TIME_ZONE },
+  ];
+
+  return (
+    <section aria-labelledby="rdv-rules" className={card}>
+      <h2 id="rdv-rules" className={sectionTitle}>
+        RÉGLAGES
+      </h2>
+      <div className="divide-y text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0">
+          <span>Durée</span>
+          <div className="flex flex-wrap items-center gap-3">
+            {DURATIONS.map((d) => (
+              <label key={d} className="flex items-center gap-1.5 text-sm">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  checked={durations.includes(d)}
+                  onChange={() => onToggleDuration(d)}
+                />
+                {d} min
+              </label>
+            ))}
+          </div>
+        </div>
+        {readonlyRows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between gap-2 py-2.5 last:pb-0">
+            <span className="text-muted-foreground">{row.label}</span>
+            <span>{row.value}</span>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">Ces règles sont fixes pour l&apos;instant.</p>
     </section>
   );
 }
@@ -306,10 +565,7 @@ function AppointmentsCard({
   };
 
   return (
-    <section aria-labelledby="rdv-appointments" className={card}>
-      <h2 id="rdv-appointments" className={sectionTitle}>
-        Tes rendez-vous
-      </h2>
+    <section aria-label="Liste des rendez-vous" className={card}>
       <Tabs defaultValue="upcoming" className="space-y-3">
         <TabsList className="w-full sm:w-fit">
           <TabsTrigger value="upcoming" className={activeTab}>À venir ({appointments.length})</TabsTrigger>

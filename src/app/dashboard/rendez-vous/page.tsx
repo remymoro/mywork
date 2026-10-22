@@ -78,7 +78,7 @@ export default async function RdvPage() {
     >
       <div className="space-y-1.5">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">ESPACE PRIVÉ</p>
-        <h1 className="font-heading text-3xl font-normal tracking-tight sm:text-4xl">Rendez-vous</h1>
+        <h1 className="font-heading text-3xl font-normal tracking-tight sm:text-4xl">Mes rendez-vous</h1>
         <p className="text-sm text-muted-foreground">
           Choisis quand on peut te réserver. Les visiteurs prennent rendez-vous depuis ton profil public, sans compte.
         </p>
