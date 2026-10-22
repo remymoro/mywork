@@ -30,7 +30,9 @@ import {
   type PublicResource,
   type ResourceFilter,
 } from "@/components/drive/resources-section";
+import type { RdvConfig } from "@/lib/rdv";
 import { cn } from "@/lib/utils";
+import { BookingWidget } from "./booking-widget";
 import { ContactButton } from "./contact-button";
 import { ShareButton } from "./share-button";
 
@@ -400,7 +402,7 @@ export function ProjectSection({ items }: { items: ProjectRow[] }) {
   );
 }
 
-export type ProfileTab = "profil" | "drive";
+export type ProfileTab = "profil" | "drive" | "rdv";
 
 export function PublicProfileView({
   profile,
@@ -412,6 +414,8 @@ export function PublicProfileView({
   services = [],
   resources = [],
   activeTab = "profil",
+  rdvConfig = null,
+  nowIso = new Date().toISOString(),
   resourceFilter = "tous",
 }: {
   profile: PublicProfileData;
@@ -425,6 +429,10 @@ export function PublicProfileView({
   resources?: PublicResource[];
   /** Onglet ouvert (`?onglet=drive`). */
   activeTab?: ProfileTab;
+  /** Réservation activée par le propriétaire : horaires et créneaux occupés ; null = pas d'onglet Rendez-vous. */
+  rdvConfig?: RdvConfig | null;
+  /** Instant actuel fourni par le serveur (évite les écarts d'affichage entre serveur et navigateur). */
+  nowIso?: string;
   /** Filtre de l'onglet Drive (`?onglet=drive&type=images`). */
   resourceFilter?: ResourceFilter;
 }) {
@@ -434,7 +442,7 @@ export function PublicProfileView({
   const currentPosition = experiences.find((exp) => exp.is_current);
 
   const hasFreelance = Boolean(profile.freelance);
-  const tab: ProfileTab = activeTab === "drive" ? "drive" : "profil";
+  const tab: ProfileTab = activeTab === "drive" ? "drive" : activeTab === "rdv" && rdvConfig ? "rdv" : "profil";
   const sections: Record<PublicSectionId, React.ReactNode> = {
     about: <AboutSection about={profile.about} topSkills={profile.top_skills} />,
     experiences: <ExperienceSection items={experiences} />,
@@ -460,6 +468,7 @@ export function PublicProfileView({
   const tabs: { id: ProfileTab; label: string; href: string }[] = [
     { id: "profil", label: "Profil", href: base },
     { id: "drive", label: "Drive", href: `${base}?onglet=drive` },
+    ...(rdvConfig ? [{ id: "rdv" as const, label: "Rendez-vous", href: `${base}?onglet=rdv` }] : []),
   ];
 
   return (
@@ -539,7 +548,7 @@ export function PublicProfileView({
           </div>
         </section>
 
-        {/* Barre d'onglets : Profil et Drive (le Drive est toujours là, même sans fichier public). */}
+        {/* Barre d'onglets : Profil et Drive (toujours là, même sans fichier public), puis Rendez-vous si la réservation est activée. */}
         <nav aria-label="Sections du profil" className="flex gap-6 border-b">
           {tabs.map(({ id, label, href }) => (
             <Link
@@ -558,7 +567,9 @@ export function PublicProfileView({
           ))}
         </nav>
 
-        {tab === "drive" ? (
+        {tab === "rdv" && rdvConfig ? (
+          <BookingWidget username={profile.username} config={rdvConfig} nowIso={nowIso} />
+        ) : tab === "drive" ? (
           <ResourcesSection
             username={profile.username}
             items={resources}

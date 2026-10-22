@@ -12,7 +12,6 @@ import { MODULES } from "./modules";
 import { UserMenu } from "./user-menu";
 
 const MODULE_ICONS = {
-  rdv: Calendar,
   visio: Video,
 } as const;
 
@@ -20,6 +19,7 @@ const NAV = [
   { id: "accueil", href: "/dashboard", label: "Mon tableau de bord", shortLabel: "Accueil", Icon: LayoutDashboard },
   { id: "profil", href: "/dashboard/profil", label: "Mon profil", shortLabel: "Profil", Icon: User },
   { id: "kanban", href: "/dashboard/kanban", label: "Kanban", shortLabel: "Kanban", Icon: LayoutGrid },
+  { id: "rdv", href: "/dashboard/rendez-vous", label: "Rendez-vous", shortLabel: "RDV", Icon: Calendar },
   { id: "fichiers", href: "/dashboard/fichiers", label: "Fichiers", shortLabel: "Fichiers", Icon: FolderOpen },
 ] as const;
 
@@ -44,7 +44,7 @@ export function Sidebar({
       className="flex w-full min-w-0 shrink-0 flex-col gap-2 border-b border-sidebar-border bg-sidebar p-2 text-sidebar-foreground md:w-60 md:border-r md:border-b-0 md:p-4"
     >
       <div className="min-w-0 space-y-6">
-        <ul className="grid grid-cols-4 gap-1 md:block md:space-y-1">
+        <ul className="grid grid-cols-5 gap-1 md:block md:space-y-1">
           {NAV.map(({ id, href, label, shortLabel, Icon }) => {
             const isActive = id === active;
             return (
