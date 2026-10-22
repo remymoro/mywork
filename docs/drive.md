@@ -27,8 +27,9 @@ Une page `/dashboard/fichiers` pour ranger des fichiers dans quelques dossiers. 
 
 ## Onglet « Ressources » du profil public
 
-- Le profil public n'a pas d'onglets : « Ressources » est une **section en bas de la page** `/<pseudo>`, affichée **seulement s'il y a au moins un fichier public**.
-- Liste simple : nom, taille, date, bouton **Télécharger**.
+- Depuis le 2026-10-22, le profil public a une **barre d'onglets** (D25) : « Profil » (par défaut) et **« Drive »**, qui affiche les Ressources. L'onglet Drive n'existe que s'il y a au moins un fichier public ; adresse `/<pseudo>?onglet=drive`.
+- Sous-menu de l'onglet Drive : **Tous · Documents · Images · Autres** (`&type=images`), affiché seulement s'il y a au moins deux types de fichiers.
+- Liste simple : nom, taille, date, bouton **Télécharger** (tri par date de modification décroissante).
 - Le téléchargement passe par une route de l'application qui vérifie que le fichier est public, puis redirige vers une adresse signée de courte durée. Le stockage reste privé.
 
 ## Jauge de stockage

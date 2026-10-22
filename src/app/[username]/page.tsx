@@ -7,7 +7,7 @@ import type { ExperienceRow } from "@/app/dashboard/profil/experience-fields";
 import type { LanguageRow } from "@/app/dashboard/profil/language-fields";
 import type { ProjectRow } from "@/app/dashboard/profil/project-fields";
 import type { ServiceRow } from "@/app/dashboard/profil/service-fields";
-import type { PublicResource } from "@/components/drive/resources-section";
+import { parseResourceFilter, type PublicResource } from "@/components/drive/resources-section";
 import { createClient } from "@/lib/supabase/server";
 import { PublicProfileView } from "./profile-view";
 
@@ -36,11 +36,14 @@ export async function generateMetadata({
 
 export default async function PublicProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ username: string }>;
+  searchParams: Promise<{ onglet?: string | string[]; type?: string | string[] }>;
 }) {
   await connection();
   const { username } = await params;
+  const query = await searchParams;
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -115,7 +118,7 @@ export default async function PublicProfilePage({
         .order("created_at"),
       supabase
         .from("drive_files")
-        .select("id, name, size_bytes, updated_at")
+        .select("id, name, size_bytes, mime_type, updated_at")
         .eq("owner_id", profile.id)
         .eq("is_public", true)
         .order("updated_at", { ascending: false })
@@ -158,6 +161,8 @@ export default async function PublicProfilePage({
       certifications={(certificationsRes.data ?? []) as CertificationRow[]}
       projects={(projectsRes.data ?? []) as ProjectRow[]}
       services={(servicesRes.data ?? []) as ServiceRow[]}
+      activeTab={query.onglet === "drive" ? "drive" : "profil"}
+      resourceFilter={parseResourceFilter(typeof query.type === "string" ? query.type : undefined)}
       resources={(resourcesRes.data ?? []).map((r) => ({ ...r, size_bytes: Number(r.size_bytes) })) as PublicResource[]}
     />
   );

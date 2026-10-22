@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_STORAGE_LIMIT_BYTES,
   MAX_FILE_BYTES,
+  categoryOf,
   filterEntries,
   formatSize,
   hasForbiddenExtension,
@@ -134,5 +135,22 @@ describe("jauge de stockage", () => {
     expect(storageLimit(undefined)).toBe(DEFAULT_STORAGE_LIMIT_BYTES);
     expect(storageLimit("abc")).toBe(DEFAULT_STORAGE_LIMIT_BYTES);
     expect(storageLimit("-5")).toBe(DEFAULT_STORAGE_LIMIT_BYTES);
+  });
+});
+
+describe("type d'un fichier (filtre du Drive public)", () => {
+  it("classe d'après le type MIME", () => {
+    expect(categoryOf("application/pdf", "a.pdf")).toBe("documents");
+    expect(categoryOf("text/plain", "a.txt")).toBe("documents");
+    expect(categoryOf("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "a.xlsx")).toBe("documents");
+    expect(categoryOf("image/png", "a.png")).toBe("images");
+    expect(categoryOf("application/zip", "a.zip")).toBe("autres");
+  });
+
+  it("se rabat sur l'extension quand le type est absent ou générique", () => {
+    expect(categoryOf(null, "Logo.PNG")).toBe("images");
+    expect(categoryOf("application/octet-stream", "notes.docx")).toBe("documents");
+    expect(categoryOf("", "archive.zip")).toBe("autres");
+    expect(categoryOf("application/zip", "photo.png")).toBe("autres");
   });
 });

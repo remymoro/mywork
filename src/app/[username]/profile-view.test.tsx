@@ -29,7 +29,7 @@ describe("ContactButton", () => {
     render(<ContactButton username="remy" />);
     expect(screen.queryByText("contact@mywork.website")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Afficher l'e-mail" }));
+    fireEvent.click(screen.getByRole("button", { name: "Me contacter" }));
     expect(revealContactEmail).toHaveBeenCalledWith("remy");
 
     const mailLink = await screen.findByRole("link", { name: "contact@mywork.website" });
@@ -154,7 +154,7 @@ describe("Sections publiques du profil", () => {
     expect(screen.queryByText("Développeur web · Ancienne boîte")).not.toBeInTheDocument();
     expect(screen.getByText("Lyon, France")).toBeInTheDocument();
     expect(screen.getByText("Ouvert aux opportunités : Freelance, CDI")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Afficher l'e-mail" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Me contacter" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "À PROPOS" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "LANGUES" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "FORMATION" })).not.toBeInTheDocument();
@@ -346,5 +346,95 @@ describe("Sections publiques du profil", () => {
     expect(within(aside).getByText("450 € HT / jour")).toBeInTheDocument();
     expect(within(aside).queryByRole("heading", { name: "À PROPOS" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "À PROPOS" })).toBeInTheDocument();
+  });
+
+  describe("onglets Profil / Drive", () => {
+    const profile = {
+      username: "remy",
+      is_online: true,
+      display_name: "Rémy Moro",
+      headline: null,
+      avatar_url: null,
+      location: "Lyon",
+      open_to_work: false,
+      open_to_work_details: null,
+      hasContact: true,
+      website_url: "https://mywork.website",
+      linkedin_url: null,
+      github_url: null,
+      other_url: null,
+      about: "Bonjour",
+      top_skills: [],
+      skills: [],
+      freelance: {
+        availability: "disponible" as const,
+        available_from: null,
+        work_modes: ["hybride", "teletravail"],
+        daily_rate: 450,
+        travel_zone: null,
+      },
+    };
+    const empty = { experiences: [], educations: [], languages: [], certifications: [], projects: [] };
+    const files = [
+      { id: "f1", name: "plaquette.pdf", size_bytes: 1000, updated_at: "2026-10-22T10:00:00Z", mime_type: "application/pdf" },
+      { id: "f2", name: "schema.png", size_bytes: 2000, updated_at: "2026-10-21T10:00:00Z", mime_type: "image/png" },
+    ];
+
+    it("n'affiche pas d'onglet Drive sans fichier public", () => {
+      render(<PublicProfileView profile={profile} {...empty} />);
+      const nav = screen.getByRole("navigation", { name: "Sections du profil" });
+      expect(within(nav).getByRole("link", { name: "Profil" })).toHaveAttribute("aria-current", "page");
+      expect(within(nav).queryByRole("link", { name: "Drive" })).not.toBeInTheDocument();
+    });
+
+    it("ouvre le Profil par défaut : sections, carte freelance, et aucune ressource", () => {
+      render(<PublicProfileView profile={profile} {...empty} resources={files} />);
+      const nav = screen.getByRole("navigation", { name: "Sections du profil" });
+      expect(within(nav).getByRole("link", { name: "Drive" })).toHaveAttribute("href", "/remy?onglet=drive");
+      expect(screen.getByRole("heading", { name: "À PROPOS" })).toBeInTheDocument();
+      expect(screen.getByRole("complementary")).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Ressources" })).not.toBeInTheDocument();
+      expect(screen.queryByText("plaquette.pdf")).not.toBeInTheDocument();
+    });
+
+    it("ouvre le Drive avec les fichiers publics, sans les sections du profil", () => {
+      render(<PublicProfileView profile={profile} {...empty} resources={files} activeTab="drive" />);
+      expect(screen.getByRole("link", { name: "Drive" })).toHaveAttribute("aria-current", "page");
+      expect(screen.getByRole("heading", { name: "Ressources" })).toBeInTheDocument();
+      expect(screen.getByText("plaquette.pdf")).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "À PROPOS" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    });
+
+    it("retombe sur le Profil si on demande le Drive alors qu'il n'y a aucun fichier public", () => {
+      render(<PublicProfileView profile={profile} {...empty} activeTab="drive" />);
+      expect(screen.getByRole("heading", { name: "À PROPOS" })).toBeInTheDocument();
+    });
+
+    it("filtre le Drive par type avec le sous-menu", () => {
+      render(<PublicProfileView profile={profile} {...empty} resources={files} activeTab="drive" resourceFilter="images" />);
+      const filter = screen.getByRole("navigation", { name: "Filtrer les ressources" });
+      expect(within(filter).getByRole("link", { name: "Images" })).toHaveAttribute("aria-current", "true");
+      expect(within(filter).getByRole("link", { name: "Documents" })).toHaveAttribute("href", "/remy?onglet=drive&type=documents");
+      expect(within(filter).getByRole("link", { name: "Tous" })).toHaveAttribute("href", "/remy?onglet=drive");
+      expect(screen.getByText("schema.png")).toBeInTheDocument();
+      expect(screen.queryByText("plaquette.pdf")).not.toBeInTheDocument();
+    });
+
+    it("n'affiche pas le sous-menu quand tous les fichiers sont du même type", () => {
+      render(<PublicProfileView profile={profile} {...empty} resources={[files[0]]} activeTab="drive" />);
+      expect(screen.queryByRole("navigation", { name: "Filtrer les ressources" })).not.toBeInTheDocument();
+    });
+
+    it("résume lieu, mode de travail et disponibilité sous le nom, et range les liens en bas du Profil", () => {
+      render(<PublicProfileView profile={profile} {...empty} />);
+      expect(screen.getByText("Lyon")).toBeInTheDocument();
+      // Le mode de travail figure aussi dans la carte Freelance : une fois en en-tête, une fois dans la carte.
+      expect(screen.getAllByText("Hybride · Télétravail")).toHaveLength(2);
+      expect(screen.getByText("Disponible dès maintenant", { selector: "li" })).toBeInTheDocument();
+      const links = screen.getByRole("region", { name: "Liens" });
+      expect(within(links).getByRole("link", { name: "Site" })).toHaveAttribute("href", "https://mywork.website");
+      expect(screen.getByRole("button", { name: "Partager ce profil" })).toBeInTheDocument();
+    });
   });
 });
