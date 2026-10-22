@@ -393,14 +393,14 @@ describe("Sections publiques du profil", () => {
       expect(within(nav).getByRole("link", { name: "Drive" })).toHaveAttribute("href", "/remy?onglet=drive");
       expect(screen.getByRole("heading", { name: "À PROPOS" })).toBeInTheDocument();
       expect(screen.getByRole("complementary")).toBeInTheDocument();
-      expect(screen.queryByRole("heading", { name: "Ressources" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Documents en libre accès" })).not.toBeInTheDocument();
       expect(screen.queryByText("plaquette.pdf")).not.toBeInTheDocument();
     });
 
     it("ouvre le Drive avec les fichiers publics, sans les sections du profil", () => {
       render(<PublicProfileView profile={profile} {...empty} resources={files} activeTab="drive" />);
       expect(screen.getByRole("link", { name: "Drive" })).toHaveAttribute("aria-current", "page");
-      expect(screen.getByRole("heading", { name: "Ressources" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Documents en libre accès" })).toBeInTheDocument();
       expect(screen.getByText("plaquette.pdf")).toBeInTheDocument();
       expect(screen.queryByRole("heading", { name: "À PROPOS" })).not.toBeInTheDocument();
       expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
