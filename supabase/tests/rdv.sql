@@ -79,6 +79,7 @@ begin
   perform public.rdv_book('rdvtest1', s, 30::smallint, 'Zoé', 'Martin', 'zoe@exemple.fr', '');
   res := res || 'ok ancien créneau libéré après report'::text;
   res := res || pg_temp.expect_err(format($q$select public.rdv_reschedule(%L, %L)$q$, tok, s), 'rdv_slot_taken');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_reschedule(%L, %L)$q$, tok, (d + time '14:00') at time zone 'Europe/Paris'), 'rdv_invalid');
 
   -- limite : 3 rendez-vous à venir par e-mail (camille en a déjà 1 : 14:00)
   perform public.rdv_book('rdvtest1', (d + time '14:30') at time zone 'Europe/Paris', 30::smallint, 'C', 'L', 'camille@exemple.fr', '');

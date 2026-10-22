@@ -121,6 +121,15 @@ describe("RdvManager", () => {
     await waitFor(() => expect(mocks.ownerReschedule).toHaveBeenCalledWith("a1", "2026-10-26T13:00:00.000Z"));
   });
 
+  it("ne propose pas l'heure actuelle du rendez-vous comme nouveau créneau", async () => {
+    setup({ appointments: [appointment] });
+    await user.click(screen.getByRole("button", { name: "Reporter" }));
+    await user.type(screen.getByLabelText(/Nouveau jour/), "2026-10-23");
+    const picker = screen.getByLabelText(/Nouveau jour/).closest("div")!.parentElement!;
+    expect(within(picker).queryByRole("button", { name: "09:30" })).not.toBeInTheDocument();
+    expect(within(picker).getByRole("button", { name: "10:00" })).toBeInTheDocument();
+  });
+
   it("montre l'erreur renvoyée si l'annulation échoue", async () => {
     mocks.ownerCancel.mockResolvedValue({ ok: false, error: "Ce créneau n'est plus disponible." });
     setup({ appointments: [appointment] });

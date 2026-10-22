@@ -258,7 +258,8 @@ function UpcomingCard({
       exceptions: initial.exceptions.map(({ day, start, end }) => ({ day, start, end })),
       busy: appointments.filter((x) => x.id !== a.id).map((x) => ({ start: x.starts_at, end: x.ends_at })),
     };
-    return slotsForDay(config, a.duration_min, moveDay, now);
+    // L'heure actuelle du rendez-vous n'est pas proposée : la « reporter » là ne changerait rien.
+    return slotsForDay(config, a.duration_min, moveDay, now).filter((iso) => Date.parse(iso) !== Date.parse(a.starts_at));
   };
 
   return (

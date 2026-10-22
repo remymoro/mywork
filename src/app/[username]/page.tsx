@@ -20,6 +20,9 @@ export async function generateMetadata({
 }: {
   params: Promise<{ username: string }>;
 }): Promise<Metadata> {
+  // Comme la page : rendu à la demande. Sinon, pour un visiteur connecté, la lecture de session Supabase
+  // consulte l'heure pendant le pré-rendu et Next.js signale une erreur.
+  await connection();
   const { username } = await params;
   const supabase = await createClient();
   const { data: profile } = await supabase
