@@ -380,11 +380,11 @@ describe("Sections publiques du profil", () => {
       { id: "f2", name: "schema.png", size_bytes: 2000, updated_at: "2026-10-21T10:00:00Z", mime_type: "image/png" },
     ];
 
-    it("n'affiche pas d'onglet Drive sans fichier public", () => {
+    it("affiche l'onglet Drive même sans fichier public", () => {
       render(<PublicProfileView profile={profile} {...empty} />);
       const nav = screen.getByRole("navigation", { name: "Sections du profil" });
       expect(within(nav).getByRole("link", { name: "Profil" })).toHaveAttribute("aria-current", "page");
-      expect(within(nav).queryByRole("link", { name: "Drive" })).not.toBeInTheDocument();
+      expect(within(nav).getByRole("link", { name: "Drive" })).toHaveAttribute("href", "/remy?onglet=drive");
     });
 
     it("ouvre le Profil par défaut : sections, carte freelance, et aucune ressource", () => {
@@ -393,22 +393,24 @@ describe("Sections publiques du profil", () => {
       expect(within(nav).getByRole("link", { name: "Drive" })).toHaveAttribute("href", "/remy?onglet=drive");
       expect(screen.getByRole("heading", { name: "À PROPOS" })).toBeInTheDocument();
       expect(screen.getByRole("complementary")).toBeInTheDocument();
-      expect(screen.queryByRole("heading", { name: "Ressources" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Documents en libre accès" })).not.toBeInTheDocument();
       expect(screen.queryByText("plaquette.pdf")).not.toBeInTheDocument();
     });
 
     it("ouvre le Drive avec les fichiers publics, sans les sections du profil", () => {
       render(<PublicProfileView profile={profile} {...empty} resources={files} activeTab="drive" />);
       expect(screen.getByRole("link", { name: "Drive" })).toHaveAttribute("aria-current", "page");
-      expect(screen.getByRole("heading", { name: "Ressources" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Documents en libre accès" })).toBeInTheDocument();
       expect(screen.getByText("plaquette.pdf")).toBeInTheDocument();
       expect(screen.queryByRole("heading", { name: "À PROPOS" })).not.toBeInTheDocument();
       expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
     });
 
-    it("retombe sur le Profil si on demande le Drive alors qu'il n'y a aucun fichier public", () => {
+    it("ouvre un Drive vide avec un message s'il n'y a aucun fichier public", () => {
       render(<PublicProfileView profile={profile} {...empty} activeTab="drive" />);
-      expect(screen.getByRole("heading", { name: "À PROPOS" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Drive" })).toHaveAttribute("aria-current", "page");
+      expect(screen.getByText("Aucun fichier à télécharger pour le moment.")).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "À PROPOS" })).not.toBeInTheDocument();
     });
 
     it("filtre le Drive par type avec le sous-menu", () => {

@@ -421,7 +421,7 @@ export function PublicProfileView({
   certifications: CertificationRow[];
   projects: ProjectRow[];
   services?: ServiceRow[];
-  /** Fichiers publics du Drive : ils forment l'onglet « Drive » (absent s'il n'y en a aucun). */
+  /** Fichiers publics du Drive : ils forment l'onglet « Drive » (message « aucun fichier » s'il n'y en a pas). */
   resources?: PublicResource[];
   /** Onglet ouvert (`?onglet=drive`). */
   activeTab?: ProfileTab;
@@ -434,8 +434,7 @@ export function PublicProfileView({
   const currentPosition = experiences.find((exp) => exp.is_current);
 
   const hasFreelance = Boolean(profile.freelance);
-  const hasDrive = resources.length > 0;
-  const tab: ProfileTab = activeTab === "drive" && hasDrive ? "drive" : "profil";
+  const tab: ProfileTab = activeTab === "drive" ? "drive" : "profil";
   const sections: Record<PublicSectionId, React.ReactNode> = {
     about: <AboutSection about={profile.about} topSkills={profile.top_skills} />,
     experiences: <ExperienceSection items={experiences} />,
@@ -460,7 +459,7 @@ export function PublicProfileView({
   const base = `/${encodeURIComponent(profile.username)}`;
   const tabs: { id: ProfileTab; label: string; href: string }[] = [
     { id: "profil", label: "Profil", href: base },
-    ...(hasDrive ? [{ id: "drive" as const, label: "Drive", href: `${base}?onglet=drive` }] : []),
+    { id: "drive", label: "Drive", href: `${base}?onglet=drive` },
   ];
 
   return (
@@ -540,7 +539,7 @@ export function PublicProfileView({
           </div>
         </section>
 
-        {/* Barre d'onglets : Profil, puis Drive s'il y a des fichiers publics. */}
+        {/* Barre d'onglets : Profil et Drive (le Drive est toujours là, même sans fichier public). */}
         <nav aria-label="Sections du profil" className="flex gap-6 border-b">
           {tabs.map(({ id, label, href }) => (
             <Link
