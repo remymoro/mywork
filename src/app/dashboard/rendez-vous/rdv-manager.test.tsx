@@ -96,9 +96,36 @@ describe("RdvManager", () => {
     await waitFor(() => expect(mocks.removeException).toHaveBeenCalledWith("e1"));
   });
 
-  it("dit quand il n'y a aucun rendez-vous", () => {
+  it("dit quand il n'y a aucun rendez-vous, dans chaque onglet", async () => {
     setup();
-    expect(screen.getByText("Aucun rendez-vous pour le moment.")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "À venir (0)" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("Aucun rendez-vous à venir.")).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Passés (0)" }));
+    expect(await screen.findByText("Aucun rendez-vous passé.")).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Annulés (0)" }));
+    expect(await screen.findByText("Aucun rendez-vous annulé.")).toBeInTheDocument();
+  });
+
+  it("sépare les rendez-vous à venir, passés et annulés", async () => {
+    const past = { ...appointment, id: "p1", starts_at: "2026-10-20T07:30:00Z", ends_at: "2026-10-20T08:00:00Z", guest_first: "Alex" };
+    const byGuest = { ...appointment, id: "c1", guest_first: "Sam", cancelled_by: "guest" as const };
+    const byOwner = { ...appointment, id: "c2", guest_first: "Lou", cancelled_by: "owner" as const };
+    setup({ appointments: [appointment], past: [past], cancelled: [byGuest, byOwner] });
+
+    expect(screen.getByRole("tab", { name: "À venir (1)" })).toBeInTheDocument();
+    expect(screen.getByText(/Camille Laurent/)).toBeInTheDocument();
+    expect(screen.queryByText(/Alex Laurent/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Passés (1)" }));
+    expect(await screen.findByText(/mardi 20 octobre 2026 à 09:30/)).toBeInTheDocument();
+    expect(screen.getByText(/Alex Laurent/)).toBeInTheDocument();
+    // Un rendez-vous passé ne se reporte ni ne s'annule.
+    expect(screen.queryByRole("button", { name: "Reporter" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Annulés (2)" }));
+    expect(await screen.findByText("Annulé par le visiteur")).toBeInTheDocument();
+    expect(screen.getByText("Annulé par toi")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Annuler" })).not.toBeInTheDocument();
   });
 
   it("annule un rendez-vous après confirmation", async () => {

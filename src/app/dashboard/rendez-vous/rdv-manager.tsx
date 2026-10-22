@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DURATIONS,
   formatLongDate,
@@ -27,6 +28,8 @@ export type ManagedAppointment = {
   guest_last: string;
   guest_email: string;
   message: string;
+  /** Rendez-vous annulés : qui a annulé (le visiteur ou toi). */
+  cancelled_by?: "guest" | "owner" | null;
 };
 
 const WEEKDAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -39,17 +42,27 @@ export function RdvManager({
   nowIso,
   initial,
   appointments,
+  past = [],
+  cancelled = [],
 }: {
   username: string;
   nowIso: string;
   initial: { enabled: boolean; durations: number[]; hours: HourRange[]; exceptions: ManagedException[] };
   appointments: ManagedAppointment[];
+  past?: ManagedAppointment[];
+  cancelled?: ManagedAppointment[];
 }) {
   return (
     <div className="space-y-6">
+      <AppointmentsCard
+        appointments={appointments}
+        past={past}
+        cancelled={cancelled}
+        initial={initial}
+        nowIso={nowIso}
+      />
       <SettingsCard username={username} initial={initial} />
       <ExceptionsCard exceptions={initial.exceptions} />
-      <UpcomingCard appointments={appointments} initial={initial} nowIso={nowIso} />
     </div>
   );
 }
@@ -223,12 +236,39 @@ function ExceptionsCard({ exceptions }: { exceptions: ManagedException[] }) {
   );
 }
 
-function UpcomingCard({
+function AppointmentSummary({
+  appointment: a,
+  cancelled = false,
+}: {
+  appointment: ManagedAppointment;
+  cancelled?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className={cancelled ? "font-medium text-muted-foreground line-through" : "font-medium"}>
+        {formatLongDate(a.starts_at)} à {formatTime(a.starts_at)} · {a.duration_min} min
+      </p>
+      <p>
+        {a.guest_first} {a.guest_last} ·{" "}
+        <a className="underline" href={`mailto:${a.guest_email}`}>
+          {a.guest_email}
+        </a>
+      </p>
+      {a.message && <p className="mt-1 text-muted-foreground">« {a.message} »</p>}
+    </div>
+  );
+}
+
+function AppointmentsCard({
   appointments,
+  past,
+  cancelled,
   initial,
   nowIso,
 }: {
   appointments: ManagedAppointment[];
+  past: ManagedAppointment[];
+  cancelled: ManagedAppointment[];
   initial: { durations: number[]; hours: HourRange[]; exceptions: ManagedException[] };
   nowIso: string;
 }) {
@@ -263,63 +303,96 @@ function UpcomingCard({
   };
 
   return (
-    <section aria-labelledby="rdv-upcoming" className={card}>
-      <h2 id="rdv-upcoming" className={sectionTitle}>
-        Rendez-vous à venir
+    <section aria-labelledby="rdv-appointments" className={card}>
+      <h2 id="rdv-appointments" className={sectionTitle}>
+        Tes rendez-vous
       </h2>
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      {appointments.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Aucun rendez-vous pour le moment.</p>
-      ) : (
-        <ul className="divide-y rounded-lg border">
-          {appointments.map((a) => (
-            <li key={a.id} className="space-y-3 p-3 text-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-medium">
-                    {formatLongDate(a.starts_at)} à {formatTime(a.starts_at)} · {a.duration_min} min
-                  </p>
-                  <p>
-                    {a.guest_first} {a.guest_last} · <a className="underline" href={`mailto:${a.guest_email}`}>{a.guest_email}</a>
-                  </p>
-                  {a.message && <p className="mt-1 text-muted-foreground">« {a.message} »</p>}
-                </div>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => { setMoving(moving === a.id ? null : a.id); setMoveDay(parisDay(now)); setConfirming(null); }}>
-                    Reporter
-                  </Button>
-                  {confirming === a.id ? (
-                    <Button type="button" variant="destructive" size="sm" disabled={pending} onClick={() => run(() => ownerCancel(a.id))}>
-                      Confirmer l&apos;annulation
-                    </Button>
-                  ) : (
-                    <Button type="button" variant="outline" size="sm" onClick={() => { setConfirming(a.id); setMoving(null); }}>
-                      Annuler
-                    </Button>
-                  )}
-                </div>
-              </div>
-              {moving === a.id && (
-                <div className="space-y-2 rounded-lg bg-muted/50 p-3">
-                  <label className="flex flex-wrap items-center gap-2">
-                    <span>Nouveau jour</span>
-                    <Input type="date" className="w-44" value={moveDay} onChange={(e) => setMoveDay(e.target.value)} />
-                    <span className="text-muted-foreground">Heure de Paris</span>
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {slotsFor(a).map((iso) => (
-                      <Button key={iso} type="button" variant="outline" size="sm" disabled={pending} onClick={() => run(() => ownerReschedule(a.id, iso))}>
-                        {formatTime(iso)}
+      <Tabs defaultValue="upcoming" className="space-y-3">
+        <TabsList variant="line" className="max-w-full border-b">
+          <TabsTrigger value="upcoming">À venir ({appointments.length})</TabsTrigger>
+          <TabsTrigger value="past">Passés ({past.length})</TabsTrigger>
+          <TabsTrigger value="cancelled">Annulés ({cancelled.length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="upcoming" className="space-y-3">
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          {appointments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun rendez-vous à venir.</p>
+          ) : (
+            <ul className="divide-y rounded-lg border">
+              {appointments.map((a) => (
+                <li key={a.id} className="space-y-3 p-3 text-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <AppointmentSummary appointment={a} />
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => { setMoving(moving === a.id ? null : a.id); setMoveDay(parisDay(now)); setConfirming(null); }}>
+                        Reporter
                       </Button>
-                    ))}
-                    {slotsFor(a).length === 0 && <p className="text-muted-foreground">Aucun créneau libre ce jour-là.</p>}
+                      {confirming === a.id ? (
+                        <Button type="button" variant="destructive" size="sm" disabled={pending} onClick={() => run(() => ownerCancel(a.id))}>
+                          Confirmer l&apos;annulation
+                        </Button>
+                      ) : (
+                        <Button type="button" variant="outline" size="sm" onClick={() => { setConfirming(a.id); setMoving(null); }}>
+                          Annuler
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                  {moving === a.id && (
+                    <div className="space-y-2 rounded-lg bg-muted/50 p-3">
+                      <label className="flex flex-wrap items-center gap-2">
+                        <span>Nouveau jour</span>
+                        <Input type="date" className="w-44" value={moveDay} onChange={(e) => setMoveDay(e.target.value)} />
+                        <span className="text-muted-foreground">Heure de Paris</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {slotsFor(a).map((iso) => (
+                          <Button key={iso} type="button" variant="outline" size="sm" disabled={pending} onClick={() => run(() => ownerReschedule(a.id, iso))}>
+                            {formatTime(iso)}
+                          </Button>
+                        ))}
+                        {slotsFor(a).length === 0 && <p className="text-muted-foreground">Aucun créneau libre ce jour-là.</p>}
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </TabsContent>
+
+        <TabsContent value="past">
+          {past.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun rendez-vous passé.</p>
+          ) : (
+            <ul className="divide-y rounded-lg border">
+              {past.map((a) => (
+                <li key={a.id} className="p-3 text-sm">
+                  <AppointmentSummary appointment={a} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </TabsContent>
+
+        <TabsContent value="cancelled">
+          {cancelled.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun rendez-vous annulé.</p>
+          ) : (
+            <ul className="divide-y rounded-lg border">
+              {cancelled.map((a) => (
+                <li key={a.id} className="flex flex-wrap items-start justify-between gap-3 p-3 text-sm">
+                  <AppointmentSummary appointment={a} cancelled />
+                  <Badge variant="secondary">
+                    {a.cancelled_by === "guest" ? "Annulé par le visiteur" : "Annulé par toi"}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </TabsContent>
+      </Tabs>
     </section>
   );
 }

@@ -26,20 +26,38 @@ export default async function RdvPage() {
   if (!profile) redirect("/onboarding");
 
   const nowIso = new Date().toISOString();
-  const [settingsRes, hoursRes, exceptionsRes, appointmentsRes] = await Promise.all([
+  const columns = "id, starts_at, ends_at, duration_min, guest_first, guest_last, guest_email, message, cancelled_by";
+  const [settingsRes, hoursRes, exceptionsRes, appointmentsRes, pastRes, cancelledRes] = await Promise.all([
     supabase.from("rdv_settings").select("enabled, durations").eq("owner_id", user.id).maybeSingle(),
     supabase.from("rdv_hours").select("weekday, start_time, end_time").eq("owner_id", user.id),
     supabase.from("rdv_exceptions").select("id, day, start_time, end_time").eq("owner_id", user.id).order("day"),
+    // À venir (ou en cours) : du plus proche au plus lointain.
     supabase
       .from("rdv_appointments")
-      .select("id, starts_at, ends_at, duration_min, guest_first, guest_last, guest_email, message")
+      .select(columns)
       .eq("owner_id", user.id)
       .eq("status", "confirmed")
       .gt("ends_at", nowIso)
       .order("starts_at")
       .limit(200),
+    // Passés et annulés : du plus récent au plus ancien, les 100 derniers.
+    supabase
+      .from("rdv_appointments")
+      .select(columns)
+      .eq("owner_id", user.id)
+      .eq("status", "confirmed")
+      .lte("ends_at", nowIso)
+      .order("starts_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("rdv_appointments")
+      .select(columns)
+      .eq("owner_id", user.id)
+      .eq("status", "cancelled")
+      .order("starts_at", { ascending: false })
+      .limit(100),
   ]);
-  for (const failure of [settingsRes.error, hoursRes.error, exceptionsRes.error, appointmentsRes.error]) {
+  for (const failure of [settingsRes.error, hoursRes.error, exceptionsRes.error, appointmentsRes.error, pastRes.error, cancelledRes.error]) {
     if (failure) throw new Error(`Lecture des rendez-vous impossible : ${failure.message}`);
   }
 
@@ -80,6 +98,8 @@ export default async function RdvPage() {
           })),
         }}
         appointments={appointments}
+        past={(pastRes.data ?? []) as ManagedAppointment[]}
+        cancelled={(cancelledRes.data ?? []) as ManagedAppointment[]}
       />
     </DashboardShell>
   );
