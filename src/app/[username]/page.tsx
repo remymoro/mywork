@@ -7,6 +7,7 @@ import type { ExperienceRow } from "@/app/dashboard/profil/experience-fields";
 import type { LanguageRow } from "@/app/dashboard/profil/language-fields";
 import type { ProjectRow } from "@/app/dashboard/profil/project-fields";
 import type { ServiceRow } from "@/app/dashboard/profil/service-fields";
+import type { PublicResource } from "@/components/drive/resources-section";
 import { createClient } from "@/lib/supabase/server";
 import { PublicProfileView } from "./profile-view";
 
@@ -68,7 +69,7 @@ export default async function PublicProfilePage({
     notFound();
   }
 
-  const [experiencesRes, educationsRes, languagesRes, certificationsRes, projectsRes, servicesRes] =
+  const [experiencesRes, educationsRes, languagesRes, certificationsRes, projectsRes, servicesRes, resourcesRes] =
     await Promise.all([
       supabase
         .from("profile_experiences")
@@ -112,6 +113,13 @@ export default async function PublicProfilePage({
         .eq("is_visible", true)
         .order("position")
         .order("created_at"),
+      supabase
+        .from("drive_files")
+        .select("id, name, size_bytes, updated_at")
+        .eq("owner_id", profile.id)
+        .eq("is_public", true)
+        .order("updated_at", { ascending: false })
+        .limit(100),
     ]);
 
   return (
@@ -150,6 +158,7 @@ export default async function PublicProfilePage({
       certifications={(certificationsRes.data ?? []) as CertificationRow[]}
       projects={(projectsRes.data ?? []) as ProjectRow[]}
       services={(servicesRes.data ?? []) as ServiceRow[]}
+      resources={(resourcesRes.data ?? []).map((r) => ({ ...r, size_bytes: Number(r.size_bytes) })) as PublicResource[]}
     />
   );
 }

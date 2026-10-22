@@ -2,7 +2,7 @@
 
 Mini Google Drive **minimal**, sur une seule page. Voir `docs/decisions.md` (D7, D24).
 
-Statut : **spécification validée le 2026-10-22** (migration `20261022100000_drive.sql` écrite, pas encore appliquée à Supabase), volontairement réduite à l'essentiel (le porteur trouvait la première version trop complexe). Elle sert d'abord à tester.
+Statut : **spécification validée le 2026-10-22** (migration `20261022100000_drive.sql` écrite ; page livrée le 2026-10-22 ; **la migration doit encore être appliquée à Supabase** avec `pnpm exec supabase db push`), volontairement réduite à l'essentiel (le porteur trouvait la première version trop complexe). Elle sert d'abord à tester.
 
 ## Objectif
 
@@ -27,7 +27,7 @@ Une page `/dashboard/fichiers` pour ranger des fichiers dans quelques dossiers. 
 
 ## Onglet « Ressources » du profil public
 
-- Affiché sur `/<pseudo>` **seulement s'il y a au moins un fichier public**.
+- Le profil public n'a pas d'onglets : « Ressources » est une **section en bas de la page** `/<pseudo>`, affichée **seulement s'il y a au moins un fichier public**.
 - Liste simple : nom, taille, date, bouton **Télécharger**.
 - Le téléchargement passe par une route de l'application qui vérifie que le fichier est public, puis redirige vers une adresse signée de courte durée. Le stockage reste privé.
 
@@ -49,6 +49,15 @@ Une barre en bas de la page : « **412 Mo utilisés sur 1 Go** ».
 | Types refusés | programmes et scripts (`.exe`, `.msi`, `.bat`, `.cmd`, `.sh`, `.js`, `.jar`, `.apk`, `.dmg`…) |
 
 Un fichier importé avec un nom déjà présent dans le dossier est renommé automatiquement (`nom (2).ext`).
+
+## Réalisation (2026-10-22)
+
+- Page `src/app/dashboard/fichiers/` (données, actions serveur) et interface `src/components/drive/`. Règles pures et testées dans `src/lib/drive.ts`.
+- **Import direct** : le navigateur envoie le fichier vers Supabase (il ne passe pas par Vercel, dont les requêtes sont limitées à 4,5 Mo) ; le serveur contrôle avant (`prepareUpload`) et enregistre après (`finalizeUpload`).
+- Téléchargement public : `src/app/[username]/ressources/[fileId]/route.ts` (404 si privé ou profil hors ligne, `noindex`).
+- Tri, recherche : faits dans le navigateur (100 éléments au maximum par dossier).
+- Pas de glisser-déposer pour l'instant : uniquement le bouton Importer.
+- Plafond de la jauge : variable `STORAGE_LIMIT_BYTES` (facultative).
 
 ## Modèle de données
 

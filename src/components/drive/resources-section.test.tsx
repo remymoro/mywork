@@ -1,0 +1,25 @@
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { ResourcesSection } from "./resources-section";
+
+describe("ResourcesSection", () => {
+  it("n'affiche rien sans fichier public", () => {
+    const { container } = render(<ResourcesSection username="remy" items={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("liste les fichiers avec un lien de téléchargement par l'application", () => {
+    render(
+      <ResourcesSection
+        username="remy"
+        items={[{ id: "f1", name: "CV-2026.pdf", size_bytes: 1468006, updated_at: "2026-10-22T10:00:00Z" }]}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Ressources" })).toBeInTheDocument();
+    expect(screen.getByText(/1,4 Mo/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Télécharger CV-2026.pdf" })).toHaveAttribute(
+      "href",
+      "/remy/ressources/f1",
+    );
+  });
+});
