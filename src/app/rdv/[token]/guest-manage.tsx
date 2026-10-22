@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useVisioClock } from "@/components/visio/use-visio-clock";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatLongDate, formatTime, parisDay, slotsForDay, type RdvConfig } from "@/lib/rdv";
 import { cancelAppointment, rescheduleAppointment } from "../actions";
@@ -11,6 +13,7 @@ import { cancelAppointment, rescheduleAppointment } from "../actions";
 export type GuestAppointment = {
   status: "confirmed" | "cancelled";
   starts_at: string;
+  ends_at: string;
   duration_min: number;
   owner_name: string;
 };
@@ -27,7 +30,7 @@ export function GuestManage({
   nowIso: string;
 }) {
   const router = useRouter();
-  const now = new Date(nowIso);
+  const now = new Date(useVisioClock(nowIso));
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"view" | "cancel" | "move">("view");
   const [day, setDay] = useState(parisDay(now));
@@ -35,6 +38,7 @@ export function GuestManage({
   const [pending, startTransition] = useTransition();
 
   const upcoming = appointment.status === "confirmed" && new Date(appointment.starts_at) > now;
+  const active = new Date(appointment.ends_at) > now;
   const when = `${formatLongDate(appointment.starts_at)} à ${formatTime(appointment.starts_at)} (heure de Paris), ${appointment.duration_min} min`;
 
   const run = (action: () => Promise<{ ok: boolean; error?: string }>, onDone?: () => void) =>
@@ -66,7 +70,7 @@ export function GuestManage({
     <div className="space-y-4">
       <div className="rounded-xl border bg-card p-4">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-          {moved ? "NOUVEAU CRÉNEAU" : upcoming ? "CONFIRMÉ" : "TERMINÉ"}
+          {moved ? "NOUVEAU CRÉNEAU" : active ? "CONFIRMÉ" : "TERMINÉ"}
         </p>
         <p className="mt-1 font-medium">{when}</p>
       </div>
@@ -75,6 +79,12 @@ export function GuestManage({
         <Alert role="alert" variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+
+      {active && (
+        <Link href={`/rdv/${token}/visio`} className={buttonVariants()}>
+          Rejoindre la visio
+        </Link>
       )}
 
       {upcoming && mode === "view" && (

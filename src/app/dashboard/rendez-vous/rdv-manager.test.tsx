@@ -210,10 +210,26 @@ describe("RdvManager", () => {
     expect(screen.queryByText(/·.*·/, { selector: "p.text-xs" })).not.toBeInTheDocument();
   });
 
-  it("montre « Rejoindre » grisé tant que la visio n'est pas branchée", () => {
+  it("montre « Rejoindre » grisé avant la fenêtre d’ouverture", () => {
     setup({ appointments: [appointment] });
     expect(screen.getByRole("button", { name: "Rejoindre" })).toBeDisabled();
+    expect(screen.getByText("Ouvre 10 min avant")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reporter" })).not.toBeInTheDocument();
+  });
+
+  it("permet de rejoindre dans la liste et dans la fiche, dès 10 min avant", async () => {
+    setup({ appointments: [appointment], nowIso: "2026-10-23T07:20:00Z" });
+    const href = `/dashboard/rendez-vous/${appointment.id}/visio`;
+    expect(screen.getByRole("link", { name: "Rejoindre" })).toHaveAttribute("href", href);
+    await user.click(screen.getByRole("button", { name: "Autres actions pour le rendez-vous de Camille Laurent" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Détails" }));
+    expect(within(await screen.findByRole("dialog")).getByRole("link", { name: "Rejoindre" })).toHaveAttribute("href", href);
+  });
+
+  it("désactive l'accès exactement à la fin", () => {
+    setup({ appointments: [appointment], nowIso: appointment.ends_at });
+    expect(screen.getByRole("button", { name: "Rejoindre" })).toBeDisabled();
+    expect(screen.getByText("Rendez-vous terminé")).toBeInTheDocument();
   });
 
   it("annule un rendez-vous après confirmation", async () => {

@@ -5,15 +5,8 @@ import {
   LayoutGrid,
   LayoutDashboard,
   User,
-  Video,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { MODULES } from "./modules";
 import { UserMenu } from "./user-menu";
-
-const MODULE_ICONS = {
-  visio: Video,
-} as const;
 
 const NAV = [
   { id: "accueil", href: "/dashboard", label: "Mon tableau de bord", shortLabel: "Accueil", Icon: LayoutDashboard },
@@ -73,28 +66,6 @@ export function Sidebar({
             );
           })}
         </ul>
-        <div className="hidden space-y-2 md:block">
-          <p className="px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Bientôt
-          </p>
-          <ul className="space-y-1">
-            {MODULES.map((m) => {
-              const Icon = MODULE_ICONS[m.id];
-              return (
-                <li
-                  key={m.id}
-                  className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-muted-foreground"
-                >
-                  <span className="flex items-center gap-3">
-                    <Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />
-                    <span>{m.label}</span>
-                  </span>
-                  <Badge variant="secondary">Bientôt</Badge>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
       </div>
 
       <div className="order-first border-b border-sidebar-border pb-2 md:order-last md:mt-auto md:border-t md:border-b-0 md:pt-3 md:pb-0">

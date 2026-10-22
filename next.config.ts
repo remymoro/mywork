@@ -20,6 +20,16 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{ source: "/", destination: "/login", permanent: false }];
   },
+  async headers() {
+    return ["/rdv/:token/visio", "/dashboard/rendez-vous/:id/visio"].map((source) => ({
+      source,
+      headers: [
+        { key: "Permissions-Policy", value: "camera=(self), microphone=(self)" },
+        { key: "Referrer-Policy", value: "no-referrer" },
+        { key: "X-Robots-Tag", value: "noindex, nofollow" },
+      ],
+    }));
+  },
   turbopack: {
     rules: {
       "*.css": {

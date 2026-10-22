@@ -40,6 +40,7 @@ export default async function GuestAppointmentPage({ params }: { params: Promise
           appointment={{
             status: appointment.status,
             starts_at: appointment.starts_at,
+            ends_at: appointment.ends_at,
             duration_min: appointment.duration_min,
             owner_name: appointment.owner_name,
           }}
