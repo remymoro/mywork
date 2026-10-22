@@ -10,13 +10,16 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("livekit-server-sdk", () => ({
   AccessToken: mocks.AccessToken, RoomServiceClient: mocks.RoomServiceClient,
-  TrackSource: { CAMERA: 1, MICROPHONE: 2 },
+  TrackSource: { CAMERA: 1, MICROPHONE: 2, SCREEN_SHARE: 3, SCREEN_SHARE_AUDIO: 4 },
 }));
 import { getVisioAppointment, issueVisioToken } from "./visio-server";
 
 const id = "9a8b7c6d-1111-4222-8333-444455556666";
 const token = "5b3f0c1e-1111-4222-8333-444455556666";
-const a = { id, owner_id: "proprietaire", status: "confirmed", starts_at: "2026-10-23T07:30:00Z", ends_at: "2026-10-23T08:00:00Z" };
+const a = {
+  id, owner_id: "proprietaire", status: "confirmed", starts_at: "2026-10-23T07:30:00Z", ends_at: "2026-10-23T08:00:00Z",
+  guest_first: "Camille", guest_last: "Laurent", owner_name: "Claire Moreau", guest_email: "camille@exemple.fr",
+};
 const guest = { role: "guest" as const, token };
 const owner = { role: "owner" as const, id };
 
@@ -52,27 +55,33 @@ describe("autorisation et émission visio", () => {
   it("autorise le visiteur via rdv_get, sans retourner les autres données", async () => {
     const data = await getVisioAppointment(guest);
     expect(mocks.rpc).toHaveBeenCalledWith("rdv_get", { p_token: token });
-    expect(data).toEqual({ id, status: a.status, starts_at: a.starts_at, ends_at: a.ends_at });
+    // Ni e-mail ni code privé : seulement les horaires et les deux noms affichés dans l'appel.
+    expect(data).toEqual({
+      id, status: a.status, starts_at: a.starts_at, ends_at: a.ends_at,
+      self_name: "Camille Laurent", peer_name: "Claire Moreau",
+    });
     expect(mocks.getUser).not.toHaveBeenCalled();
     noSdk();
   });
 
   it("vérifie session, id et propriétaire sous RLS", async () => {
+    mocks.maybeSingle.mockResolvedValueOnce({ data: a, error: null }).mockResolvedValueOnce({ data: { display_name: "Claire" }, error: null });
     await issueVisioToken(owner);
     expect(mocks.getUser).toHaveBeenCalledOnce();
     expect(mocks.from).toHaveBeenCalledWith("rdv_appointments");
-    expect(mocks.eq.mock.calls).toEqual([["id", id], ["owner_id", a.owner_id]]);
-    expect(mocks.AccessToken).toHaveBeenCalledWith(expect.any(String), expect.any(String), { identity: `owner:${id}`, ttl: 60 });
+    expect(mocks.eq.mock.calls).toEqual([["id", id], ["owner_id", a.owner_id], ["id", a.owner_id]]);
+    expect(mocks.from).toHaveBeenCalledWith("profiles");
+    expect(mocks.AccessToken).toHaveBeenCalledWith(expect.any(String), expect.any(String), { identity: `owner:${id}`, name: "Claire", ttl: 60 });
   });
 
   it("crée une salle à deux et signe seulement les droits caméra et micro pour 60 s", async () => {
     const result = await issueVisioToken(guest);
     expect(mocks.RoomServiceClient).toHaveBeenCalledWith("https://visio.example.test", "cle-fictive", "secret-fictif-de-test");
     expect(mocks.createRoom).toHaveBeenCalledWith({ name: `rdv-${id}`, maxParticipants: 2, emptyTimeout: 300, departureTimeout: 60 });
-    expect(mocks.AccessToken).toHaveBeenCalledWith(expect.any(String), expect.any(String), { identity: `guest:${id}`, ttl: 60 });
+    expect(mocks.AccessToken).toHaveBeenCalledWith(expect.any(String), expect.any(String), { identity: `guest:${id}`, name: "Camille Laurent", ttl: 60 });
     expect(mocks.addGrant).toHaveBeenCalledWith({
       room: `rdv-${id}`, roomJoin: true, canPublish: true, canSubscribe: true,
-      canPublishSources: [1, 2], canPublishData: false, canUpdateOwnMetadata: false,
+      canPublishSources: [1, 2, 3, 4], canPublishData: true, canUpdateOwnMetadata: false,
     });
     expect(mocks.AccessToken.mock.results[0].value.ttl).toBe(Date.now() / 1000 + 60);
     expect(result).toEqual({ token: "jeton-fictif", serverUrl: "wss://visio.example.test", endsAt: a.ends_at, serverNow: new Date().toISOString() });

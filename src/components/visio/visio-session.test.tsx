@@ -5,7 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   fetch: vi.fn(), disconnect: vi.fn(), capture: vi.fn(), stop: vi.fn(), attach: vi.fn(), detach: vi.fn(),
-  setMicrophoneEnabled: vi.fn(), setCameraEnabled: vi.fn(),
+  setMicrophoneEnabled: vi.fn(), setCameraEnabled: vi.fn(), setScreenShareEnabled: vi.fn(), send: vi.fn(),
+  chatMessages: [] as { id: string; timestamp: number; message: string; from?: { identity: string; name?: string } }[],
   roomProps: null as LiveKitRoomProps | null,
   audioError: undefined as ((error: Error) => void) | undefined,
   videoError: undefined as ((error: Error) => void) | undefined,
@@ -26,9 +27,14 @@ vi.mock("@livekit/components-react", async () => {
     isTrackReference: () => true,
     useTracks: () => [{ participant: { identity: "autre", isLocal: false }, publication: { isMuted: false } }],
     useLocalParticipant: () => ({
-      localParticipant: { setMicrophoneEnabled: mocks.setMicrophoneEnabled, setCameraEnabled: mocks.setCameraEnabled },
-      isMicrophoneEnabled: false, isCameraEnabled: false,
+      localParticipant: {
+        identity: "guest:moi",
+        setMicrophoneEnabled: mocks.setMicrophoneEnabled, setCameraEnabled: mocks.setCameraEnabled,
+        setScreenShareEnabled: mocks.setScreenShareEnabled,
+      },
+      isMicrophoneEnabled: false, isCameraEnabled: false, isScreenShareEnabled: false,
     }),
+    useChat: () => ({ chatMessages: mocks.chatMessages, isSending: false, send: mocks.send }),
     usePreviewTracks: (options: CreateLocalTracksOptions, onError?: (error: Error) => void) => {
       if (options.audio) mocks.audioError = onError;
       if (options.video) mocks.videoError = onError;
@@ -47,6 +53,7 @@ import { VisioSession } from "./visio-session";
 const appointment = {
   id: "9a8b7c6d-1111-4222-8333-444455556666", status: "confirmed",
   starts_at: "2026-10-23T07:30:00Z", ends_at: "2026-10-23T08:00:00Z",
+  self_name: "Camille Laurent", peer_name: "Claire Moreau",
 };
 const input = { role: "guest" as const, token: "5b3f0c1e-1111-4222-8333-444455556666" };
 const setup = (props: Partial<Parameters<typeof VisioSession>[0]> = {}) => render(
@@ -126,7 +133,7 @@ describe("session visio", () => {
     expect(screen.getByTestId("audio-distant")).toBeInTheDocument();
     expect(screen.getByTestId("video-distante")).toBeInTheDocument();
     expect(mocks.stop).toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Quitter la visio" }));
+    fireEvent.click(screen.getByRole("button", { name: "Quitter" }));
     expect(mocks.disconnect).toHaveBeenCalled();
     expect(screen.getByRole("status")).toHaveTextContent("Tu as quitté la visio.");
   });
@@ -134,12 +141,54 @@ describe("session visio", () => {
   it("change les appareils pendant l'appel et explique un refus", async () => {
     setup();
     await join();
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Activer le micro" })); });
+    const micro = screen.getByRole("button", { name: "Micro" });
+    expect(micro).toHaveAttribute("aria-pressed", "false");
+    await act(async () => { fireEvent.click(micro); });
     expect(mocks.setMicrophoneEnabled).toHaveBeenCalledWith(true);
     mocks.setCameraEnabled.mockRejectedValue(new DOMException("non", "NotAllowedError"));
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Activer la caméra" })); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Caméra" })); });
     expect(screen.getByRole("alert")).toHaveTextContent("refusé");
     expect(screen.getByRole("region", { name: "Appel visio" })).toBeInTheDocument();
+  });
+
+  it("affiche l'interlocuteur et l'heure de fin dans la barre du haut", async () => {
+    setup();
+    await join();
+    expect(screen.getByRole("banner")).toHaveTextContent("Claire Moreau · Fin prévue à 10:00");
+  });
+
+  it("partage l'écran, et ignore un refus volontaire", async () => {
+    Object.defineProperty(navigator, "mediaDevices", { value: { getDisplayMedia: vi.fn() }, configurable: true });
+    setup();
+    await join();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Partager l'écran" })); });
+    expect(mocks.setScreenShareEnabled).toHaveBeenCalledWith(true);
+    mocks.setScreenShareEnabled.mockRejectedValue(new DOMException("non", "NotAllowedError"));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Partager l'écran" })); });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("ouvre la discussion, envoie un message et la referme", async () => {
+    mocks.chatMessages = [
+      { id: "m1", timestamp: Date.parse("2026-10-23T07:34:00Z"), message: "Je vous partage mon portfolio", from: { identity: "owner:x", name: "Claire Moreau" } },
+    ];
+    mocks.send.mockResolvedValue({});
+    setup();
+    await join();
+    const toggle = screen.getByRole("button", { name: "Discussion" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(toggle);
+    expect(screen.getByText("Je vous partage mon portfolio")).toBeInTheDocument();
+    expect(screen.getByText(/Claire Moreau · 09:34/)).toBeInTheDocument();
+    const field = screen.getByRole("textbox", { name: "Écrire un message" });
+    expect(screen.getByRole("button", { name: "Envoyer" })).toBeDisabled();
+    fireEvent.change(field, { target: { value: "Merci, je regarde ça." } });
+    await act(async () => { fireEvent.keyDown(field, { key: "Enter" }); });
+    expect(mocks.send).toHaveBeenCalledWith("Merci, je regarde ça.");
+    expect(field).toHaveValue("");
+    fireEvent.click(screen.getByRole("button", { name: "Fermer la discussion" }));
+    expect(screen.queryByRole("textbox", { name: "Écrire un message" })).not.toBeInTheDocument();
+    mocks.chatMessages = [];
   });
 
   it("coupe l'appel à ends_at et arrête les pistes", async () => {

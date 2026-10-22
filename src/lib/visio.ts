@@ -4,6 +4,9 @@ export type VisioAppointment = {
   status: string;
   starts_at: string;
   ends_at: string;
+  /** Noms affichés dans l'appel : le sien (vu par l'autre, ex. dans la discussion) et celui de l'interlocuteur. */
+  self_name: string;
+  peer_name: string;
 };
 
 export type VisioInput = { role: "guest"; token: string } | { role: "owner"; id: string };
