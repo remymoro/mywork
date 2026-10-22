@@ -50,6 +50,22 @@ Une barre en bas de la page : « **412 Mo utilisés sur 1 Go** ».
 
 Un fichier importé avec un nom déjà présent dans le dossier est renommé automatiquement (`nom (2).ext`).
 
+## Mise en service (quand Supabase est disponible)
+
+Le Drive est livré **en deux modes**, sans rien à changer dans le code pour passer de l'un à l'autre :
+
+| Mode | Adresse | Données | Ce qu'il faut |
+|---|---|---|---|
+| **Aperçu** | `/design/fichiers` (publique) | Fausses données en mémoire, perdues au rechargement ; aucun appel à Supabase | Rien : disponible dès maintenant |
+| **Vrai Drive** | `/dashboard/fichiers` (connecté) | Supabase | La migration appliquée |
+
+Pour activer le vrai Drive :
+1. Appliquer la migration : `pnpm exec supabase db push` (connecté avec `supabase login`). Elle crée les tables, le dossier privé `files` et la fonction `storage_usage()`.
+2. *(Facultatif)* Régler le plafond de la jauge avec `STORAGE_LIMIT_BYTES` (octets ; 1 Go par défaut) dans `.env.local` et dans Vercel.
+3. Ouvrir `/dashboard/fichiers`, importer un fichier, le rendre public, vérifier qu'il apparaît dans « Ressources » sur `/<pseudo>`.
+
+Tant que la migration n'est pas appliquée, `/dashboard/fichiers` affiche un message « Le Drive n'est pas encore activé » avec un lien vers l'aperçu, au lieu d'une erreur. L'interface est la même dans les deux modes : elle reçoit ses données par un petit adaptateur (`DriveApi`, `src/components/drive/drive-api.ts`) ; l'aperçu en fournit une version en mémoire (`drive-demo.tsx`).
+
 ## Réalisation (2026-10-22)
 
 - Page `src/app/dashboard/fichiers/` (données, actions serveur) et interface `src/components/drive/`. Règles pures et testées dans `src/lib/drive.ts`.

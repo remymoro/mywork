@@ -21,18 +21,8 @@ import {
   Download,
   Archive,
 } from "lucide-react";
-import {
-  createFolder,
-  deleteFile,
-  deleteFolder,
-  downloadFile,
-  finalizeUpload,
-  prepareUpload,
-  renameFile,
-  renameFolder,
-  setFilePublic,
-  type DriveActionResult,
-} from "@/app/dashboard/fichiers/actions";
+import type { DriveActionResult } from "@/app/dashboard/fichiers/actions";
+import { realDriveApi, type DriveApi } from "./drive-api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,7 +44,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  FILES_BUCKET,
   filterEntries,
   formatDriveDate,
   formatSize,
@@ -64,7 +53,6 @@ import {
   type SortDirection,
   type SortKey,
 } from "@/lib/drive";
-import { createClient } from "@/lib/supabase/client";
 
 const NETWORK_ERROR = "La connexion a été interrompue. Réessaie dans un instant.";
 
@@ -79,6 +67,12 @@ export type DriveWorkspaceProps = {
   entries: DriveEntry[];
   usedBytes: number;
   limitBytes: number;
+  /** Accès aux données ; par défaut le vrai Drive (Supabase). L'aperçu fournit une version en mémoire. */
+  api?: DriveApi;
+  /** Après une modification ; par défaut, recharge la page. */
+  onChange?: () => void;
+  /** Aperçu : ouvre un dossier sans changer d'adresse (null = retour à la racine). */
+  onOpenFolder?: (id: string | null) => void;
 };
 
 function EntryIcon({ entry }: { entry: DriveEntry }) {
@@ -91,8 +85,17 @@ function EntryIcon({ entry }: { entry: DriveEntry }) {
   return <FileIcon aria-hidden="true" className={className} />;
 }
 
-export function DriveWorkspace({ folder, entries, usedBytes, limitBytes }: DriveWorkspaceProps) {
+export function DriveWorkspace({
+  folder,
+  entries,
+  usedBytes,
+  limitBytes,
+  api = realDriveApi,
+  onChange,
+  onOpenFolder,
+}: DriveWorkspaceProps) {
   const router = useRouter();
+  const changed = onChange ?? (() => router.refresh());
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -118,7 +121,7 @@ export function DriveWorkspace({ folder, entries, usedBytes, limitBytes }: Drive
     try {
       const result = await action();
       if (result.error) setMessage(result.error);
-      else router.refresh();
+      else changed();
       return result;
     } catch {
       setMessage(NETWORK_ERROR);
@@ -129,25 +132,22 @@ export function DriveWorkspace({ folder, entries, usedBytes, limitBytes }: Drive
   async function upload(files: FileList | null) {
     if (!files || files.length === 0) return;
     setMessage("");
-    const supabase = createClient();
     const problems: string[] = [];
     for (const file of Array.from(files)) {
       setUploading(`Envoi de « ${file.name} »…`);
       try {
-        const prepared = await prepareUpload(folder?.id ?? null, file.name, file.size);
+        const prepared = await api.prepareUpload(folder?.id ?? null, file.name, file.size);
         if (prepared.error || !prepared.id || !prepared.path || !prepared.name) {
           problems.push(prepared.error ?? "Impossible d'envoyer ce fichier.");
           continue;
         }
         const type = file.type || "application/octet-stream";
-        const { error } = await supabase.storage
-          .from(FILES_BUCKET)
-          .upload(prepared.path, file, { contentType: type });
+        const { error } = await api.uploadFile(prepared.path, file, type);
         if (error) {
           problems.push(`« ${file.name} » n'a pas pu être envoyé.`);
           continue;
         }
-        const result = await finalizeUpload({
+        const result = await api.finalizeUpload({
           id: prepared.id,
           folderId: folder?.id ?? null,
           name: prepared.name,
@@ -162,11 +162,11 @@ export function DriveWorkspace({ folder, entries, usedBytes, limitBytes }: Drive
     setUploading("");
     if (inputRef.current) inputRef.current.value = "";
     if (problems.length) setMessage(problems.join(" "));
-    router.refresh();
+    changed();
   }
 
   async function download(entry: DriveEntry) {
-    const result = await run(() => downloadFile(entry.id));
+    const result = await run(() => api.downloadFile(entry.id));
     if (result.url) window.location.assign(result.url);
   }
 
@@ -178,9 +178,15 @@ export function DriveWorkspace({ folder, entries, usedBytes, limitBytes }: Drive
         <nav aria-label="Fil d'Ariane" className="flex items-center gap-1.5 text-sm text-muted-foreground">
           {folder ? (
             <>
-              <Link href="/dashboard/fichiers" className="hover:text-foreground hover:underline">
-                Mes fichiers
-              </Link>
+              {onOpenFolder ? (
+                <button type="button" className="hover:text-foreground hover:underline" onClick={() => onOpenFolder(null)}>
+                  Mes fichiers
+                </button>
+              ) : (
+                <Link href="/dashboard/fichiers" className="hover:text-foreground hover:underline">
+                  Mes fichiers
+                </Link>
+              )}
               <span aria-hidden="true">›</span>
               <span className="font-medium text-foreground">{folder.name}</span>
             </>
@@ -267,7 +273,11 @@ export function DriveWorkspace({ folder, entries, usedBytes, limitBytes }: Drive
                 <td className="max-w-0 px-4 py-2.5">
                   <div className="flex min-w-0 items-center gap-2.5">
                     <EntryIcon entry={entry} />
-                    {entry.kind === "folder" ? (
+                    {entry.kind === "folder" && onOpenFolder ? (
+                      <button type="button" className="truncate font-medium hover:underline" onClick={() => onOpenFolder(entry.id)}>
+                        {entry.name}
+                      </button>
+                    ) : entry.kind === "folder" ? (
                       <Link
                         href={`/dashboard/fichiers?dossier=${entry.id}`}
                         className="truncate font-medium hover:underline"
@@ -318,7 +328,7 @@ export function DriveWorkspace({ folder, entries, usedBytes, limitBytes }: Drive
                         <DropdownMenuItem
                           onClick={() =>
                             entry.isPublic
-                              ? void run(() => setFilePublic(entry.id, false))
+                              ? void run(() => api.setFilePublic(entry.id, false))
                               : setDialogue({ type: "make-public", entry })
                           }
                         >
@@ -367,10 +377,11 @@ export function DriveWorkspace({ folder, entries, usedBytes, limitBytes }: Drive
       {dialogue && (
         <DriveDialog
           dialogue={dialogue}
+          api={api}
           onClose={() => setDialogue(null)}
           onDone={() => {
             setDialogue(null);
-            router.refresh();
+            changed();
           }}
         />
       )}
@@ -380,10 +391,12 @@ export function DriveWorkspace({ folder, entries, usedBytes, limitBytes }: Drive
 
 function DriveDialog({
   dialogue,
+  api,
   onClose,
   onDone,
 }: {
   dialogue: Dialogue;
+  api: DriveApi;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -398,12 +411,12 @@ function DriveDialog({
     setError("");
     try {
       let result: DriveActionResult;
-      if (dialogue.type === "new-folder") result = await createFolder(name);
+      if (dialogue.type === "new-folder") result = await api.createFolder(name);
       else if (dialogue.type === "rename") {
         const { entry } = dialogue;
-        result = entry.kind === "folder" ? await renameFolder(entry.id, name) : await renameFile(entry.id, name);
-      } else if (dialogue.type === "make-public") result = await setFilePublic(dialogue.entry.id, true);
-      else result = dialogue.entry.kind === "folder" ? await deleteFolder(dialogue.entry.id) : await deleteFile(dialogue.entry.id);
+        result = entry.kind === "folder" ? await api.renameFolder(entry.id, name) : await api.renameFile(entry.id, name);
+      } else if (dialogue.type === "make-public") result = await api.setFilePublic(dialogue.entry.id, true);
+      else result = dialogue.entry.kind === "folder" ? await api.deleteFolder(dialogue.entry.id) : await api.deleteFile(dialogue.entry.id);
       if (result.error) setError(result.error);
       else onDone();
     } catch {
