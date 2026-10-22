@@ -132,3 +132,31 @@ export function storageLimit(raw: string | undefined): number {
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_STORAGE_LIMIT_BYTES;
 }
+
+export type FileCategory = "documents" | "images" | "autres";
+export const FILE_CATEGORIES: { id: FileCategory; label: string }[] = [
+  { id: "documents", label: "Documents" },
+  { id: "images", label: "Images" },
+  { id: "autres", label: "Autres" },
+];
+
+const DOCUMENT_EXTENSIONS = ["pdf", "doc", "docx", "odt", "rtf", "txt", "md", "xls", "xlsx", "ods", "csv", "ppt", "pptx", "odp"];
+
+/** Type d'un fichier pour le filtre du Drive public (d'après le type MIME, sinon l'extension). */
+export function categoryOf(mimeType: string | null | undefined, name: string): FileCategory {
+  const mime = (mimeType ?? "").toLowerCase();
+  if (mime.startsWith("image/")) return "images";
+  if (
+    mime === "application/pdf" ||
+    mime.startsWith("text/") ||
+    /word|excel|spreadsheet|presentation|powerpoint|opendocument|msword|rtf/.test(mime)
+  ) {
+    return "documents";
+  }
+  if (!mime || mime === "application/octet-stream") {
+    const ext = extensionOf(name);
+    if (["png", "jpg", "jpeg", "gif", "webp", "svg", "avif"].includes(ext)) return "images";
+    if (DOCUMENT_EXTENSIONS.includes(ext)) return "documents";
+  }
+  return "autres";
+}

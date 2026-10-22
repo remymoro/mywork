@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Mail } from "lucide-react";
+import { ArrowRight, Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { revealContactEmail } from "./actions";
 
@@ -33,9 +33,15 @@ export function ContactButton({ username }: { username: string }) {
 
   if (!email) {
     return (
-      <Button type="button" variant="outline" size="sm" onClick={handleReveal} disabled={loading}>
-        <Mail aria-hidden="true" className="size-4" />
-        Afficher l&apos;e-mail
+      <Button
+        type="button"
+        size="lg"
+        className="gap-2 px-4 text-xs font-medium uppercase tracking-[0.12em]"
+        onClick={handleReveal}
+        disabled={loading}
+      >
+        Me contacter
+        <ArrowRight aria-hidden="true" className="size-4" />
       </Button>
     );
   }

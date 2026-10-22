@@ -1,10 +1,10 @@
 import { Fragment } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Briefcase, CodeXml, EyeOff, Globe, Link2, MapPin } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import type { CertificationRow } from "@/app/dashboard/profil/certification-fields";
 import type { EducationRow } from "@/app/dashboard/profil/education-fields";
 import type { ExperienceRow } from "@/app/dashboard/profil/experience-fields";
@@ -25,8 +25,14 @@ import {
   type FreelanceAvailability,
   type PublicSectionId,
 } from "@/lib/profile-sections";
-import { ResourcesSection, type PublicResource } from "@/components/drive/resources-section";
+import {
+  ResourcesSection,
+  type PublicResource,
+  type ResourceFilter,
+} from "@/components/drive/resources-section";
+import { cn } from "@/lib/utils";
 import { ContactButton } from "./contact-button";
+import { ShareButton } from "./share-button";
 
 export type PublicProfileData = {
   username: string;
@@ -59,6 +65,19 @@ export type FreelanceOffer = {
   travel_zone: string | null;
 };
 
+/** Texte de disponibilité (une date « à partir du » déjà passée revient à « disponible »). */
+function availabilityOf(offer: FreelanceOffer, nowIso?: string) {
+  const today = nowIso ?? new Date().toISOString().slice(0, 10);
+  return offer.availability === "disponible" ||
+    (offer.availability === "a_partir_du" && offer.available_from && offer.available_from <= today)
+    ? { text: "Disponible dès maintenant", variant: "success" as const }
+    : offer.availability === "a_partir_du" && offer.available_from
+      ? { text: `Disponible à partir du ${formatDay(offer.available_from)}`, variant: "success" as const }
+      : offer.availability === "indisponible"
+        ? { text: "Indisponible pour le moment", variant: "secondary" as const }
+        : null;
+}
+
 export function FreelanceSection({
   offer,
   services,
@@ -69,17 +88,7 @@ export function FreelanceSection({
   nowIso?: string;
 }) {
   if (!offer) return null;
-  const today = nowIso ?? new Date().toISOString().slice(0, 10);
-  // Une date « à partir du » déjà passée revient à « disponible ».
-  const availability =
-    offer.availability === "disponible" ||
-    (offer.availability === "a_partir_du" && offer.available_from && offer.available_from <= today)
-      ? { text: "Disponible dès maintenant", variant: "success" as const }
-      : offer.availability === "a_partir_du" && offer.available_from
-        ? { text: `Disponible à partir du ${formatDay(offer.available_from)}`, variant: "success" as const }
-        : offer.availability === "indisponible"
-          ? { text: "Indisponible pour le moment", variant: "secondary" as const }
-          : null;
+  const availability = availabilityOf(offer, nowIso);
   const modes = offer.work_modes.map((m) => labelOf(WORK_MODES, m)).filter(Boolean).join(" · ");
 
   const details = [
@@ -391,6 +400,8 @@ export function ProjectSection({ items }: { items: ProjectRow[] }) {
   );
 }
 
+export type ProfileTab = "profil" | "drive";
+
 export function PublicProfileView({
   profile,
   experiences,
@@ -400,6 +411,8 @@ export function PublicProfileView({
   projects,
   services = [],
   resources = [],
+  activeTab = "profil",
+  resourceFilter = "tous",
 }: {
   profile: PublicProfileData;
   experiences: ExperienceRow[];
@@ -408,8 +421,12 @@ export function PublicProfileView({
   certifications: CertificationRow[];
   projects: ProjectRow[];
   services?: ServiceRow[];
-  /** Fichiers publics du Drive (section « Ressources », en dernier). */
+  /** Fichiers publics du Drive : ils forment l'onglet « Drive » (absent s'il n'y en a aucun). */
   resources?: PublicResource[];
+  /** Onglet ouvert (`?onglet=drive`). */
+  activeTab?: ProfileTab;
+  /** Filtre de l'onglet Drive (`?onglet=drive&type=images`). */
+  resourceFilter?: ResourceFilter;
 }) {
   const displayName = profile.display_name ?? profile.username;
   const initials = getInitials(profile.display_name ?? "", profile.username);
@@ -417,6 +434,8 @@ export function PublicProfileView({
   const currentPosition = experiences.find((exp) => exp.is_current);
 
   const hasFreelance = Boolean(profile.freelance);
+  const hasDrive = resources.length > 0;
+  const tab: ProfileTab = activeTab === "drive" && hasDrive ? "drive" : "profil";
   const sections: Record<PublicSectionId, React.ReactNode> = {
     about: <AboutSection about={profile.about} topSkills={profile.top_skills} />,
     experiences: <ExperienceSection items={experiences} />,
@@ -434,9 +453,19 @@ export function PublicProfileView({
     profile.other_url ? { label: "Autre", href: profile.other_url, Icon: Link2 } : null,
   ].filter((link): link is NonNullable<typeof link> => link !== null);
 
+  // Ligne d'infos sous le nom : lieu, mode de travail, disponibilité, ouverture aux opportunités.
+  const availability = profile.freelance ? availabilityOf(profile.freelance) : null;
+  const modes = (profile.freelance?.work_modes ?? []).map((m) => labelOf(WORK_MODES, m)).filter(Boolean).join(" · ");
+
+  const base = `/${encodeURIComponent(profile.username)}`;
+  const tabs: { id: ProfileTab; label: string; href: string }[] = [
+    { id: "profil", label: "Profil", href: base },
+    ...(hasDrive ? [{ id: "drive" as const, label: "Drive", href: `${base}?onglet=drive` }] : []),
+  ];
+
   return (
     <div className="min-h-screen bg-background">
-      <main className={`mx-auto space-y-8 px-4 py-6 sm:px-6 sm:py-10 ${hasFreelance ? "max-w-5xl" : "max-w-3xl"}`}>
+      <main className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-10">
         <header className="flex items-center justify-between">
           <Logo />
         </header>
@@ -459,82 +488,115 @@ export function PublicProfileView({
               alt={displayName}
               width={96}
               height={96}
-              className="size-24 shrink-0 rounded-full border object-cover"
+              className="size-24 shrink-0 rounded-lg border object-cover"
             />
           ) : (
             <div
               aria-label="Initiales"
-              className="flex size-24 shrink-0 items-center justify-center rounded-full border bg-muted font-heading text-2xl text-muted-foreground"
+              className="flex size-24 shrink-0 items-center justify-center rounded-lg border bg-muted font-heading text-3xl text-muted-foreground"
             >
               {initials}
             </div>
           )}
 
-          <div className="flex-1 space-y-3">
-            <div className="space-y-1">
+          <div className="flex-1 space-y-4">
+            <div className="space-y-1.5">
               {currentPosition && (
-                <p className="text-lg font-medium text-foreground">
+                <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
                   {currentPosition.title} · {currentPosition.company}
                 </p>
               )}
-              <h1 className="font-heading text-3xl font-normal tracking-tight text-foreground sm:text-4xl">
+              <h1 className="font-heading text-4xl font-normal tracking-tight text-foreground sm:text-5xl">
                 {displayName}
               </h1>
-              {profile.headline && (
-                <p className="text-lg text-muted-foreground">{profile.headline}</p>
-              )}
-              {profile.location && (
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <MapPin aria-hidden="true" className="size-4" />
-                  {profile.location}
-                </p>
-              )}
+              {profile.headline && <p className="text-lg text-muted-foreground">{profile.headline}</p>}
+              <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                {profile.location && (
+                  <li className="flex items-center gap-1.5">
+                    <MapPin aria-hidden="true" className="size-3.5" />
+                    {profile.location}
+                  </li>
+                )}
+                {modes && <li>{modes}</li>}
+                {availability && availability.variant === "success" && (
+                  <li className="flex items-center gap-1.5">
+                    <span aria-hidden="true" className="size-1.5 rounded-full bg-success" />
+                    {availability.text}
+                  </li>
+                )}
+                {profile.open_to_work && (
+                  <li>
+                    Ouvert aux opportunités
+                    {profile.open_to_work_details ? ` : ${profile.open_to_work_details}` : ""}
+                  </li>
+                )}
+              </ul>
             </div>
 
-            {profile.open_to_work && (
-              <div>
-                <Badge variant="success">
-                  Ouvert aux opportunités
-                  {profile.open_to_work_details ? ` : ${profile.open_to_work_details}` : ""}
-                </Badge>
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+            <div className="flex flex-wrap items-center gap-3">
               {profile.hasContact && <ContactButton username={profile.username} />}
-
-              {links.map(({ label, href, Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <Icon aria-hidden="true" className="size-4" />
-                  <span>{label}</span>
-                </a>
-              ))}
+              <ShareButton title={displayName} />
             </div>
           </div>
         </section>
 
-        <Separator />
+        {/* Barre d'onglets : Profil, puis Drive s'il y a des fichiers publics. */}
+        <nav aria-label="Sections du profil" className="flex gap-6 border-b">
+          {tabs.map(({ id, label, href }) => (
+            <Link
+              key={id}
+              href={href}
+              aria-current={tab === id ? "page" : undefined}
+              className={cn(
+                "-mb-px border-b-2 pb-3 text-sm",
+                tab === id
+                  ? "border-primary font-medium text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
 
-        {/* Offre freelance : carte à droite, les autres sections à gauche. */}
-        <div className={hasFreelance ? "grid gap-10 md:grid-cols-[1fr_18rem]" : undefined}>
-          <div className="min-w-0 space-y-8">
-            {normalizeSectionOrder(profile.section_order).map((id) => (
-              <Fragment key={id}>{sections[id]}</Fragment>
-            ))}
-            <ResourcesSection username={profile.username} items={resources} />
+        {tab === "drive" ? (
+          <ResourcesSection
+            username={profile.username}
+            items={resources}
+            filter={resourceFilter}
+            filterHref={(f) => (f === "tous" ? `${base}?onglet=drive` : `${base}?onglet=drive&type=${f}`)}
+          />
+        ) : (
+          /* Offre freelance : carte à droite, les autres sections à gauche. */
+          <div className={hasFreelance ? "grid gap-10 md:grid-cols-[1fr_18rem]" : undefined}>
+            <div className="min-w-0 space-y-8">
+              {normalizeSectionOrder(profile.section_order).map((id) => (
+                <Fragment key={id}>{sections[id]}</Fragment>
+              ))}
+              {links.length > 0 && (
+                <section aria-label="Liens" className="flex flex-wrap items-center gap-4 border-t pt-6">
+                  {links.map(({ label, href, Icon }) => (
+                    <a
+                      key={label}
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <Icon aria-hidden="true" className="size-4" />
+                      <span>{label}</span>
+                    </a>
+                  ))}
+                </section>
+              )}
+            </div>
+            {hasFreelance && (
+              <aside className="md:sticky md:top-6 md:self-start">
+                <FreelanceSection offer={profile.freelance} services={services} />
+              </aside>
+            )}
           </div>
-          {hasFreelance && (
-            <aside className="md:sticky md:top-6 md:self-start">
-              <FreelanceSection offer={profile.freelance} services={services} />
-            </aside>
-          )}
-        </div>
+        )}
       </main>
     </div>
   );
