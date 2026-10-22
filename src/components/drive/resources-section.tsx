@@ -18,7 +18,7 @@ export function parseResourceFilter(raw: string | undefined): ResourceFilter {
 }
 
 /**
- * Fichiers publics du Drive, sur le profil public. Rien ne s'affiche s'il n'y en a pas.
+ * Fichiers publics du Drive, sur le profil public. Sans fichier, un message le dit.
  * Avec `filterHref`, un petit menu (Tous, Documents, Images, Autres) filtre par type, dès qu'il y a au
  * moins deux types de fichiers.
  */
@@ -33,7 +33,6 @@ export function ResourcesSection({
   filter?: ResourceFilter;
   filterHref?: (filter: ResourceFilter) => string;
 }) {
-  if (items.length === 0) return null;
   const present = FILE_CATEGORIES.filter((c) => items.some((i) => categoryOf(i.mime_type, i.name) === c.id));
   const showFilter = Boolean(filterHref) && present.length >= 2;
   const active = present.some((c) => c.id === filter) ? filter : "tous";
@@ -63,26 +62,33 @@ export function ResourcesSection({
           ))}
         </nav>
       )}
-      <ul className="divide-y rounded-xl border bg-card">
-        {shown.map((item) => (
-          <li key={item.id} className="flex items-center justify-between gap-4 px-4 py-3">
-            <div className="min-w-0">
-              <p className="truncate font-medium">{item.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatSize(item.size_bytes)} · {formatDriveDate(item.updated_at)}
-              </p>
-            </div>
-            <a
-              href={`/${encodeURIComponent(username)}/ressources/${item.id}`}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm hover:bg-muted"
-              aria-label={`Télécharger ${item.name}`}
-            >
-              <Download aria-hidden="true" className="size-4" />
-              Télécharger
-            </a>
-          </li>
-        ))}
-      </ul>
+      {items.length === 0 && (
+        <p className="rounded-xl border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+          Aucun fichier à télécharger pour le moment.
+        </p>
+      )}
+      {shown.length > 0 && (
+        <ul className="divide-y rounded-xl border bg-card">
+          {shown.map((item) => (
+            <li key={item.id} className="flex items-center justify-between gap-4 px-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{item.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatSize(item.size_bytes)} · {formatDriveDate(item.updated_at)}
+                </p>
+              </div>
+              <a
+                href={`/${encodeURIComponent(username)}/ressources/${item.id}`}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm hover:bg-muted"
+                aria-label={`Télécharger ${item.name}`}
+              >
+                <Download aria-hidden="true" className="size-4" />
+                Télécharger
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

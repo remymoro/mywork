@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import { ResourcesSection } from "./resources-section";
 
 describe("ResourcesSection", () => {
-  it("n'affiche rien sans fichier public", () => {
-    const { container } = render(<ResourcesSection username="remy" items={[]} />);
-    expect(container).toBeEmptyDOMElement();
+  it("dit qu'il n'y a aucun fichier à télécharger quand il n'y en a pas", () => {
+    render(<ResourcesSection username="remy" items={[]} />);
+    expect(screen.getByText("Aucun fichier à télécharger pour le moment.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Télécharger/ })).not.toBeInTheDocument();
   });
 
   it("liste les fichiers avec un lien de téléchargement par l'application", () => {
