@@ -22,7 +22,7 @@ Statut : **acté le 2026-10-22** par le porteur (décisions V1 et réponses aux 
 ## Parcours du visiteur
 
 1. Onglet « Rendez-vous » : choix de la durée, d'un jour (calendrier du mois), puis d'un créneau libre.
-2. Formulaire : prénom, nom, e-mail, message facultatif. Bouton « Confirmer ».
+2. Formulaire : « Tu es… » (obligatoire : recruteur, client ou prospect, partenaire ou collègue, autre), prénom, nom, e-mail, entreprise (facultative), motif (obligatoire : offre d'emploi, mission ou projet, conseil ou échange, autre), précisions facultatives. Bouton « Confirmer ». Rôle, entreprise et motif figurent dans l'e-mail envoyé au propriétaire (décision du porteur, 2026-10-23).
 3. Page de confirmation, et e-mail de confirmation avec un lien privé pour **annuler** ou **reporter**.
 4. Un créneau déjà pris disparaît de la liste ; si deux visiteurs choisissent le même créneau en même temps, le second voit « Ce créneau vient d'être pris » et en choisit un autre.
 
@@ -31,7 +31,7 @@ Statut : **acté le 2026-10-22** par le porteur (décisions V1 et réponses aux 
 Page `/dashboard/rendez-vous` (entrée « Rendez-vous » du menu, aujourd'hui en « Bientôt ») :
 - **Horaires** : plages par jour de la semaine, durées proposées.
 - **Exceptions** : jours de congé ou horaires particuliers à une date.
-- **Rendez-vous à venir** : liste (date, durée, nom, e-mail, message), avec annuler et reporter.
+- **Rendez-vous** : liste (date, durée, nom, e-mail, et d'emblée rôle · entreprise · motif), avec annuler et reporter ; menu « ⋯ » → **Détails** : fiche du rendez-vous (statut, horaire, e-mail à copier, fonction, entreprise, motif, date de réservation, référence courte, objet ; « Rejoindre », « Copier le lien de l'invité », « Annuler le rendez-vous »).
 
 ## E-mails (Resend)
 

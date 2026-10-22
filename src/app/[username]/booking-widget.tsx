@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  GUEST_ROLES,
+  REASONS,
   TIME_ZONE,
   addDays,
   addMonth,
@@ -103,9 +105,12 @@ export function BookingWidget({
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [takenBusy, setTakenBusy] = useState<{ start: string; end: string }[]>([]);
 
+  const [role, setRole] = useState("");
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
   const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
   const [website, setWebsite] = useState("");
 
@@ -179,7 +184,7 @@ export function BookingWidget({
     e.preventDefault();
     if (!selectedSlot || submitting) return;
 
-    const errors = validateBooking({ first, last, email, message });
+    const errors = validateBooking({ first, last, email, message, role, reason, company });
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
@@ -195,6 +200,9 @@ export function BookingWidget({
         last,
         email,
         message,
+        role,
+        reason,
+        company,
         website,
       });
 
@@ -573,6 +581,54 @@ export function BookingWidget({
               )}
 
               <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
+                <fieldset
+                  role="radiogroup"
+                  aria-labelledby="rdv-role-label"
+                  aria-invalid={Boolean(fieldErrors.role)}
+                  aria-describedby={fieldErrors.role ? "rdv-role-error" : undefined}
+                  className="space-y-1.5"
+                >
+                  <legend id="rdv-role-label" className="text-sm leading-none font-medium">
+                    Tu es…
+                  </legend>
+                  <div className="flex flex-wrap gap-2">
+                    {(Object.entries(GUEST_ROLES) as [string, string][]).map(([value, label]) => {
+                      const selected = role === value;
+                      return (
+                        <label
+                          key={value}
+                          className={cn(
+                            "relative cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors select-none focus-within:ring-2 focus-within:ring-ring/50",
+                            selected
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-background text-foreground hover:border-primary hover:bg-secondary",
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="role"
+                            value={value}
+                            checked={selected}
+                            onChange={() => {
+                              setRole(value);
+                              if (fieldErrors.role) {
+                                setFieldErrors((prev) => ({ ...prev, role: undefined }));
+                              }
+                            }}
+                            className="sr-only"
+                          />
+                          {label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {fieldErrors.role && (
+                    <p id="rdv-role-error" className="text-xs text-destructive">
+                      {fieldErrors.role}
+                    </p>
+                  )}
+                </fieldset>
+
                 <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="rdv-first">Prénom</Label>
@@ -648,8 +704,83 @@ export function BookingWidget({
                 </div>
 
                 <div className="space-y-1.5">
+                  <Label htmlFor="rdv-company">
+                    Entreprise <span className="font-normal text-muted-foreground">(facultatif)</span>
+                  </Label>
+                  <Input
+                    id="rdv-company"
+                    name="company"
+                    type="text"
+                    autoComplete="organization"
+                    maxLength={120}
+                    value={company}
+                    onChange={(e) => {
+                      setCompany(e.target.value);
+                      if (fieldErrors.company) {
+                        setFieldErrors((prev) => ({ ...prev, company: undefined }));
+                      }
+                    }}
+                    aria-invalid={Boolean(fieldErrors.company)}
+                    aria-describedby={fieldErrors.company ? "rdv-company-error" : undefined}
+                  />
+                  {fieldErrors.company && (
+                    <p id="rdv-company-error" className="text-xs text-destructive">
+                      {fieldErrors.company}
+                    </p>
+                  )}
+                </div>
+
+                <fieldset
+                  role="radiogroup"
+                  aria-labelledby="rdv-reason-label"
+                  aria-invalid={Boolean(fieldErrors.reason)}
+                  aria-describedby={fieldErrors.reason ? "rdv-reason-error" : undefined}
+                  className="space-y-1.5"
+                >
+                  <legend id="rdv-reason-label" className="text-sm leading-none font-medium">
+                    Motif du rendez-vous
+                  </legend>
+                  <div className="flex flex-wrap gap-2">
+                    {(Object.entries(REASONS) as [string, string][]).map(([value, label]) => {
+                      const selected = reason === value;
+                      return (
+                        <label
+                          key={value}
+                          className={cn(
+                            "relative cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors select-none focus-within:ring-2 focus-within:ring-ring/50",
+                            selected
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-background text-foreground hover:border-primary hover:bg-secondary",
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="reason"
+                            value={value}
+                            checked={selected}
+                            onChange={() => {
+                              setReason(value);
+                              if (fieldErrors.reason) {
+                                setFieldErrors((prev) => ({ ...prev, reason: undefined }));
+                              }
+                            }}
+                            className="sr-only"
+                          />
+                          {label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {fieldErrors.reason && (
+                    <p id="rdv-reason-error" className="text-xs text-destructive">
+                      {fieldErrors.reason}
+                    </p>
+                  )}
+                </fieldset>
+
+                <div className="space-y-1.5">
                   <Label htmlFor="rdv-message">
-                    Message <span className="font-normal text-muted-foreground">(facultatif)</span>
+                    Précisions <span className="font-normal text-muted-foreground">(facultatif)</span>
                   </Label>
                   <Textarea
                     id="rdv-message"

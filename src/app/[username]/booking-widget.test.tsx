@@ -138,6 +138,8 @@ describe("BookingWidget", () => {
     expect(screen.getByLabelText("Prénom")).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByLabelText("Nom")).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByLabelText("E-mail")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("Indique qui tu es.")).toBeInTheDocument();
+    expect(screen.getByText("Choisis le motif du rendez-vous.")).toBeInTheDocument();
 
     // Saisie valide.
     fireEvent.change(screen.getByLabelText("Prénom"), { target: { value: "Camille" } });
@@ -145,7 +147,10 @@ describe("BookingWidget", () => {
     fireEvent.change(screen.getByLabelText("E-mail"), {
       target: { value: "camille.laurent@exemple.fr" },
     });
-    fireEvent.change(screen.getByLabelText(/Message/i), {
+    fireEvent.click(screen.getByRole("radio", { name: "Recruteur" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Offre d'emploi" }));
+    fireEvent.change(screen.getByLabelText("Entreprise (facultatif)"), { target: { value: "Talentis" } });
+    fireEvent.change(screen.getByLabelText(/Précisions/i), {
       target: { value: "À vendredi !" },
     });
 
@@ -160,6 +165,9 @@ describe("BookingWidget", () => {
       last: "Laurent",
       email: "camille.laurent@exemple.fr",
       message: "À vendredi !",
+      role: "recruiter",
+      reason: "job",
+      company: "Talentis",
       website: "",
     });
 
@@ -202,6 +210,8 @@ describe("BookingWidget", () => {
     fireEvent.change(screen.getByLabelText("E-mail"), {
       target: { value: "camille.laurent@exemple.fr" },
     });
+    fireEvent.click(screen.getByRole("radio", { name: "Recruteur" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Offre d'emploi" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirmer le rendez-vous" }));
 
     const alert = await screen.findByRole("alert");
@@ -229,6 +239,8 @@ describe("BookingWidget", () => {
     fireEvent.change(screen.getByLabelText("E-mail"), {
       target: { value: "camille.laurent@exemple.fr" },
     });
+    fireEvent.click(screen.getByRole("radio", { name: "Recruteur" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Offre d'emploi" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirmer le rendez-vous" }));
 
     await waitFor(() => {

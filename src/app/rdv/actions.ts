@@ -40,6 +40,9 @@ export async function bookAppointment(input: {
   last: string;
   email: string;
   message: string;
+  role: string;
+  reason: string;
+  company: string;
   /** Champ piège : invisible pour une personne, rempli par les robots. */
   website?: string;
 }): Promise<BookingResult> {
@@ -61,6 +64,9 @@ export async function bookAppointment(input: {
     p_last: input.last,
     p_email: input.email,
     p_message: input.message,
+    p_role: input.role,
+    p_reason: input.reason,
+    p_company: input.company,
   });
   if (error || !data) return { ok: false, ...rdvErrorMessage(error) };
 

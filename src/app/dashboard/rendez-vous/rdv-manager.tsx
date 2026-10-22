@@ -1,20 +1,26 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { CalendarClock, Copy, MoreHorizontal, Plus, Video, X } from "lucide-react";
+import { CalendarClock, CircleX, Copy, Eye, Mail, MoreHorizontal, Plus, Video, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DURATIONS,
+  GUEST_ROLES,
   HORIZON_MONTHS,
   MIN_NOTICE_HOURS,
+  REASONS,
   TIME_ZONE,
+  appointmentReference,
   formatLongDate,
   formatTime,
+  isGuestRole,
+  isReason,
   parisDay,
   slotsForDay,
   type HourRange,
@@ -34,6 +40,13 @@ export type ManagedAppointment = {
   message: string;
   /** Rendez-vous annulés : qui a annulé (le visiteur ou toi). */
   cancelled_by?: "guest" | "owner" | null;
+  /** Code privé (lien du visiteur, référence courte) et date de réservation. */
+  token?: string;
+  created_at?: string;
+  /** Rôle et motif : clés de GUEST_ROLES et REASONS (@/lib/rdv) ; vides pour les anciens rendez-vous. */
+  guest_role?: string | null;
+  reason?: string | null;
+  guest_company?: string;
 };
 
 const WEEKDAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -50,7 +63,15 @@ const SHORT_DATE = new Intl.DateTimeFormat("fr-FR", {
   month: "long",
 });
 
+const HEADER_DATE = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: TIME_ZONE,
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+
 const formatShortDate = (day: string) => SHORT_DATE.format(new Date(`${day}T12:00:00Z`));
+const capitalize = (text: string) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : text);
 
 const card = "space-y-4 rounded-xl border bg-card p-4 sm:p-5";
 const sectionTitle = "text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground";
@@ -506,18 +527,27 @@ function AppointmentSummary({
   appointment: ManagedAppointment;
   cancelled?: boolean;
 }) {
+  const roleLabel = isGuestRole(a.guest_role) ? GUEST_ROLES[a.guest_role] : null;
+  const company = a.guest_company?.trim() || null;
+  const reasonLabel = isReason(a.reason) ? REASONS[a.reason] : null;
+  const meta = [roleLabel, company, reasonLabel].filter((x): x is string => Boolean(x));
+
   return (
     <div className="min-w-0">
       <p className={cancelled ? "font-medium text-muted-foreground line-through" : "font-medium"}>
         {formatLongDate(a.starts_at)} à {formatTime(a.starts_at)} · {a.duration_min} min
       </p>
       <p>
-        {a.guest_first} {a.guest_last} ·{" "}
+        <strong className="font-semibold">
+          {a.guest_first} {a.guest_last}
+        </strong>{" "}
+        ·{" "}
         <a className="underline" href={`mailto:${a.guest_email}`}>
           {a.guest_email}
         </a>
       </p>
-      {a.message && <p className="mt-1 text-muted-foreground">« {a.message} »</p>}
+      {meta.length > 0 && <p className="text-xs text-muted-foreground">{meta.join(" · ")}</p>}
+      {a.message && <p className="mt-1 line-clamp-2 text-muted-foreground">« {a.message} »</p>}
     </div>
   );
 }
@@ -539,8 +569,48 @@ function AppointmentsCard({
   const [confirming, setConfirming] = useState<string | null>(null);
   const [moving, setMoving] = useState<string | null>(null);
   const [moveDay, setMoveDay] = useState("");
+  const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [copiedEmail, setCopiedEmail] = useState(false);
+  const [copiedGuestLink, setCopiedGuestLink] = useState(false);
   const [pending, startTransition] = useTransition();
   const now = new Date(nowIso);
+
+  const openDetails = (id: string) => {
+    setCopiedEmail(false);
+    setCopiedGuestLink(false);
+    setDetailsId(id);
+  };
+
+  const selectedDetails = (() => {
+    if (!detailsId) return null;
+    const upcomingItem = appointments.find((a) => a.id === detailsId);
+    if (upcomingItem) return { appointment: upcomingItem, status: "upcoming" as const };
+    const pastItem = past.find((a) => a.id === detailsId);
+    if (pastItem) return { appointment: pastItem, status: "past" as const };
+    const cancelledItem = cancelled.find((a) => a.id === detailsId);
+    if (cancelledItem) return { appointment: cancelledItem, status: "cancelled" as const };
+    return null;
+  })();
+
+  const copyEmail = async (email: string) => {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopiedEmail(true);
+      setTimeout(() => setCopiedEmail(false), 2000);
+    } catch {
+      // Ignorer si le presse-papiers est indisponible
+    }
+  };
+
+  const copyGuestLink = async (token: string) => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/rdv/${token}`);
+      setCopiedGuestLink(true);
+      setTimeout(() => setCopiedGuestLink(false), 2000);
+    } catch {
+      // Ignorer si le presse-papiers est indisponible
+    }
+  };
 
   const run = (action: () => Promise<{ ok: boolean; error?: string }>) =>
     startTransition(async () => {
@@ -607,6 +677,10 @@ function AppointmentsCard({
                           <MoreHorizontal aria-hidden="true" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="min-w-36">
+                          <DropdownMenuItem onClick={() => openDetails(a.id)}>
+                            <Eye aria-hidden="true" />
+                            Détails
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => { setMoving(moving === a.id ? null : a.id); setMoveDay(parisDay(now)); setConfirming(null); }}>
                             <CalendarClock aria-hidden="true" />
                             Reporter
@@ -644,8 +718,22 @@ function AppointmentsCard({
           ) : (
             <ul className="divide-y rounded-lg border">
               {past.map((a) => (
-                <li key={a.id} className="p-3 text-sm">
+                <li key={a.id} className="flex flex-wrap items-start justify-between gap-3 p-3 text-sm">
                   <AppointmentSummary appointment={a} />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={<Button variant="ghost" size="icon-sm" />}
+                      aria-label={`Autres actions pour le rendez-vous de ${a.guest_first} ${a.guest_last}`}
+                    >
+                      <MoreHorizontal aria-hidden="true" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-36">
+                      <DropdownMenuItem onClick={() => openDetails(a.id)}>
+                        <Eye aria-hidden="true" />
+                        Détails
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </li>
               ))}
             </ul>
@@ -660,15 +748,182 @@ function AppointmentsCard({
               {cancelled.map((a) => (
                 <li key={a.id} className="flex flex-wrap items-start justify-between gap-3 p-3 text-sm">
                   <AppointmentSummary appointment={a} cancelled />
-                  <Badge variant="secondary">
-                    {a.cancelled_by === "guest" ? "Annulé par le visiteur" : "Annulé par toi"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">
+                      {a.cancelled_by === "guest" ? "Annulé par le visiteur" : "Annulé par toi"}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={<Button variant="ghost" size="icon-sm" />}
+                        aria-label={`Autres actions pour le rendez-vous de ${a.guest_first} ${a.guest_last}`}
+                      >
+                        <MoreHorizontal aria-hidden="true" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="min-w-36">
+                        <DropdownMenuItem onClick={() => openDetails(a.id)}>
+                          <Eye aria-hidden="true" />
+                          Détails
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog
+        open={selectedDetails !== null}
+        onOpenChange={(open) => {
+          if (!open) setDetailsId(null);
+        }}
+      >
+        {selectedDetails && (
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader className="gap-1.5 pr-8">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={sectionTitle}>
+                  {HEADER_DATE.format(new Date(selectedDetails.appointment.starts_at)).toUpperCase()}
+                </span>
+                <Badge variant={selectedDetails.status === "upcoming" ? "secondary" : "outline"}>
+                  {selectedDetails.status === "upcoming"
+                    ? "Confirmé"
+                    : selectedDetails.status === "past"
+                      ? "Passé"
+                      : "Annulé"}
+                </Badge>
+              </div>
+              <DialogTitle className="font-heading text-2xl font-normal tracking-tight">
+                {selectedDetails.appointment.guest_first} {selectedDetails.appointment.guest_last}
+              </DialogTitle>
+              <DialogDescription>
+                {formatTime(selectedDetails.appointment.starts_at)} –{" "}
+                {formatTime(selectedDetails.appointment.ends_at)} · Visio · Heure de Paris
+              </DialogDescription>
+            </DialogHeader>
+
+            <dl className="divide-y border-y text-sm">
+              <div className="grid grid-cols-[7rem_1fr] items-baseline gap-2 py-2.5">
+                <dt className="text-muted-foreground">E-mail</dt>
+                <dd className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="break-all">{selectedDetails.appointment.guest_email}</span>
+                  <span className="inline-flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void copyEmail(selectedDetails.appointment.guest_email)}
+                      className="inline-flex items-center gap-1 text-xs font-medium tracking-wider text-muted-foreground uppercase hover:text-foreground"
+                    >
+                      <Copy aria-hidden="true" className="size-3" />
+                      {copiedEmail ? "Copié" : "Copier"}
+                    </button>
+                    <a
+                      href={`mailto:${selectedDetails.appointment.guest_email}`}
+                      className="inline-flex items-center gap-1 text-xs font-medium tracking-wider text-muted-foreground uppercase hover:text-foreground"
+                    >
+                      <Mail aria-hidden="true" className="size-3" />
+                      Écrire
+                    </a>
+                  </span>
+                </dd>
+              </div>
+
+              {isGuestRole(selectedDetails.appointment.guest_role) && (
+                <div className="grid grid-cols-[7rem_1fr] items-baseline gap-2 py-2.5">
+                  <dt className="text-muted-foreground">Fonction</dt>
+                  <dd>{GUEST_ROLES[selectedDetails.appointment.guest_role]}</dd>
+                </div>
+              )}
+
+              {selectedDetails.appointment.guest_company?.trim() && (
+                <div className="grid grid-cols-[7rem_1fr] items-baseline gap-2 py-2.5">
+                  <dt className="text-muted-foreground">Entreprise</dt>
+                  <dd>{selectedDetails.appointment.guest_company.trim()}</dd>
+                </div>
+              )}
+
+              {isReason(selectedDetails.appointment.reason) && (
+                <div className="grid grid-cols-[7rem_1fr] items-baseline gap-2 py-2.5">
+                  <dt className="text-muted-foreground">Motif</dt>
+                  <dd>{REASONS[selectedDetails.appointment.reason]}</dd>
+                </div>
+              )}
+
+              {selectedDetails.appointment.created_at && (
+                <div className="grid grid-cols-[7rem_1fr] items-baseline gap-2 py-2.5">
+                  <dt className="text-muted-foreground">Réservé le</dt>
+                  <dd>{capitalize(formatLongDate(selectedDetails.appointment.created_at))}</dd>
+                </div>
+              )}
+
+              {selectedDetails.appointment.token && (
+                <div className="grid grid-cols-[7rem_1fr] items-baseline gap-2 py-2.5">
+                  <dt className="text-muted-foreground">Référence</dt>
+                  <dd className="font-mono">{appointmentReference(selectedDetails.appointment.token)}</dd>
+                </div>
+              )}
+            </dl>
+
+            <div className="space-y-1.5">
+              <h4 className={sectionTitle}>OBJET DU RENDEZ-VOUS</h4>
+              <div className="rounded-lg bg-muted p-3 text-sm">
+                {selectedDetails.appointment.message ? (
+                  <p className="whitespace-pre-wrap">{selectedDetails.appointment.message}</p>
+                ) : (
+                  <p className="text-muted-foreground">Aucune précision.</p>
+                )}
+              </div>
+            </div>
+
+            {selectedDetails.status === "upcoming" && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" size="sm" disabled title="Visio bientôt disponible">
+                    <Video aria-hidden="true" className="size-4" />
+                    Rejoindre
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!selectedDetails.appointment.token}
+                    onClick={() =>
+                      selectedDetails.appointment.token &&
+                      void copyGuestLink(selectedDetails.appointment.token)
+                    }
+                  >
+                    <Copy aria-hidden="true" className="size-4" />
+                    {copiedGuestLink ? "Lien copié" : "Copier le lien de l'invité"}
+                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    const id = selectedDetails.appointment.id;
+                    setDetailsId(null);
+                    setConfirming(id);
+                    setMoving(null);
+                  }}
+                >
+                  <CircleX aria-hidden="true" className="size-4" />
+                  Annuler le rendez-vous
+                </Button>
+              </div>
+            )}
+
+            {selectedDetails.status === "cancelled" && (
+              <p className="border-t pt-3 text-xs text-muted-foreground">
+                {selectedDetails.appointment.cancelled_by === "guest"
+                  ? "Annulé par le visiteur"
+                  : "Annulé par toi"}
+              </p>
+            )}
+          </DialogContent>
+        )}
+      </Dialog>
     </section>
   );
 }

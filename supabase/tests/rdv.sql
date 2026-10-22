@@ -37,38 +37,44 @@ begin
 
   -- réservation valide mardi 10:00 (heure de Paris), 30 min
   s := (d + time '10:00') at time zone 'Europe/Paris';
-  r := public.rdv_book('rdvtest1', s, 30::smallint, 'Camille', 'Laurent', ' Camille@Exemple.fr ', 'Bonjour');
+  r := public.rdv_book('rdvtest1', s, 30::smallint, 'Camille', 'Laurent', ' Camille@Exemple.fr ', 'Bonjour', 'client', 'mission', ' Talentis ');
   tok := (r->>'token')::uuid; aid := (r->>'id')::uuid;
-  res := res || (case when r->>'guest_email' = 'camille@exemple.fr' and r->>'owner_email' = 'owner@example.com' then 'ok réservation' else 'ECHEC réservation ' || r::text end);
+  res := res || (case when r->>'guest_email' = 'camille@exemple.fr' and r->>'owner_email' = 'owner@example.com' and r->>'guest_role' = 'client' and r->>'reason' = 'mission' and r->>'guest_company' = 'Talentis' then 'ok réservation' else 'ECHEC réservation ' || r::text end);
   res := res || (case when jsonb_array_length(public.rdv_public_config('rdvtest1')->'busy') = 1 then 'ok créneau occupé visible' else 'ECHEC busy' end);
   res := res || (case when (public.rdv_public_config('rdvtest1')::text) not like '%camille%' then 'ok aucune donnée perso publique' else 'ECHEC fuite donnée perso' end);
 
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','')$q$, s), 'rdv_slot_taken');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 60::smallint, 'A','B','a@b.fr','')$q$, s + interval '30 minutes' - interval '30 minutes' + interval '0'), 'rdv_slot_taken');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','')$q$, s + interval '15 minutes'), 'rdv_slot_taken');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','')$q$, (d + time '12:00') at time zone 'Europe/Paris'), 'rdv_invalid');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 60::smallint, 'A','B','a@b.fr','')$q$, (d + time '11:30') at time zone 'Europe/Paris'), 'rdv_invalid');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','')$q$, (d + 4 + time '10:00') at time zone 'Europe/Paris'), 'rdv_invalid');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 15::smallint, 'A','B','a@b.fr','')$q$, (d + time '15:00') at time zone 'Europe/Paris'), 'rdv_invalid');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','')$q$, now() + interval '1 hour'), 'rdv_invalid');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','')$q$, now() + interval '3 months'), 'rdv_invalid');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','')$q$, (d + time '10:07') at time zone 'Europe/Paris'), 'rdv_invalid');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest2', %L, 30::smallint, 'A','B','a@b.fr','')$q$, (d + time '15:00') at time zone 'Europe/Paris'), 'rdv_invalid');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, '','B','a@b.fr','')$q$, (d + time '15:00') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, s), 'rdv_slot_taken');
+  -- rôle et motif : obligatoires et pris dans la liste ; entreprise : 120 caractères au plus
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'client', 'job', repeat('x', 121))$q$, (d + time '16:00') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', null, 'job', '')$q$, (d + time '16:00') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'client', null, '')$q$, (d + time '16:00') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'patron', 'job', '')$q$, (d + time '16:00') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'client', 'vente', '')$q$, (d + time '16:00') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 60::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, s + interval '30 minutes' - interval '30 minutes' + interval '0'), 'rdv_slot_taken');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, s + interval '15 minutes'), 'rdv_slot_taken');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, (d + time '12:00') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 60::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, (d + time '11:30') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, (d + 4 + time '10:00') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 15::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, (d + time '15:00') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, now() + interval '1 hour'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, now() + interval '3 months'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, (d + time '10:07') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest2', %L, 30::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, (d + time '15:00') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, '','B','a@b.fr','', 'client', 'mission', '')$q$, (d + time '15:00') at time zone 'Europe/Paris'), 'rdv_invalid');
 
   -- exceptions : jour fermé / horaires particuliers
   insert into public.rdv_exceptions (owner_id, day) values (uid, d + 1);
   insert into public.rdv_exceptions (owner_id, day, start_time, end_time) values (uid, d + 2, '16:00', '17:00');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','')$q$, (d + 1 + time '10:00') at time zone 'Europe/Paris'), 'rdv_invalid');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','')$q$, (d + 2 + time '10:00') at time zone 'Europe/Paris'), 'rdv_invalid');
-  perform public.rdv_book('rdvtest1', (d + 2 + time '16:30') at time zone 'Europe/Paris', 30::smallint, 'A','B','x@y.fr','');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, (d + 1 + time '10:00') at time zone 'Europe/Paris'), 'rdv_invalid');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'A','B','a@b.fr','', 'client', 'mission', '')$q$, (d + 2 + time '10:00') at time zone 'Europe/Paris'), 'rdv_invalid');
+  perform public.rdv_book('rdvtest1', (d + 2 + time '16:30') at time zone 'Europe/Paris', 30::smallint, 'A','B','x@y.fr','', 'client', 'mission', '');
   res := res || 'ok exception horaires particuliers'::text;
 
   -- annulation par le visiteur, puis le créneau se libère
   r := public.rdv_cancel(tok);
   res := res || (case when r->>'status' = 'cancelled' then 'ok annulation' else 'ECHEC annulation' end);
   res := res || pg_temp.expect_err(format($q$select public.rdv_cancel(%L)$q$, tok), 'rdv_invalid');
-  r := public.rdv_book('rdvtest1', s, 30::smallint, 'Camille', 'Laurent', 'camille@exemple.fr', '');
+  r := public.rdv_book('rdvtest1', s, 30::smallint, 'Camille', 'Laurent', 'camille@exemple.fr', '', 'client', 'mission', '');
   tok := (r->>'token')::uuid; aid := (r->>'id')::uuid;
   res := res || 'ok créneau libéré rebloqué'::text;
 
@@ -76,15 +82,15 @@ begin
   r := public.rdv_reschedule(tok, (d + time '14:00') at time zone 'Europe/Paris');
   res := res || (case when (r->'after'->>'starts_at')::timestamptz = (d + time '14:00') at time zone 'Europe/Paris'
                         and (r->'before'->>'starts_at')::timestamptz = s then 'ok report' else 'ECHEC report ' || r::text end);
-  perform public.rdv_book('rdvtest1', s, 30::smallint, 'Zoé', 'Martin', 'zoe@exemple.fr', '');
+  perform public.rdv_book('rdvtest1', s, 30::smallint, 'Zoé', 'Martin', 'zoe@exemple.fr', '', 'client', 'mission', '');
   res := res || 'ok ancien créneau libéré après report'::text;
   res := res || pg_temp.expect_err(format($q$select public.rdv_reschedule(%L, %L)$q$, tok, s), 'rdv_slot_taken');
   res := res || pg_temp.expect_err(format($q$select public.rdv_reschedule(%L, %L)$q$, tok, (d + time '14:00') at time zone 'Europe/Paris'), 'rdv_invalid');
 
   -- limite : 3 rendez-vous à venir par e-mail (camille en a déjà 1 : 14:00)
-  perform public.rdv_book('rdvtest1', (d + time '14:30') at time zone 'Europe/Paris', 30::smallint, 'C', 'L', 'camille@exemple.fr', '');
-  perform public.rdv_book('rdvtest1', (d + time '15:00') at time zone 'Europe/Paris', 30::smallint, 'C', 'L', 'camille@exemple.fr', '');
-  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'C','L','camille@exemple.fr','')$q$, (d + time '15:30') at time zone 'Europe/Paris'), 'rdv_limit');
+  perform public.rdv_book('rdvtest1', (d + time '14:30') at time zone 'Europe/Paris', 30::smallint, 'C', 'L', 'camille@exemple.fr', '', 'client', 'mission', '');
+  perform public.rdv_book('rdvtest1', (d + time '15:00') at time zone 'Europe/Paris', 30::smallint, 'C', 'L', 'camille@exemple.fr', '', 'client', 'mission', '');
+  res := res || pg_temp.expect_err(format($q$select public.rdv_book('rdvtest1', %L, 30::smallint, 'C','L','camille@exemple.fr','', 'client', 'mission', '')$q$, (d + time '15:30') at time zone 'Europe/Paris'), 'rdv_limit');
 
   -- côté propriétaire (auth.uid() simulé)
   perform set_config('request.jwt.claim.sub', uid2::text, true);
@@ -97,7 +103,7 @@ begin
   res := res || pg_temp.expect_err(format($q$insert into public.rdv_hours (owner_id, weekday, start_time, end_time) values (%L, 6, '09:02', '10:00')$q$, uid),
     'new row for relation "rdv_hours" violates check constraint "rdv_hours_round_minutes"');
   insert into public.rdv_exceptions (owner_id, day, start_time, end_time) values (uid, date '2026-10-25', '02:00', '03:00');
-  res := res || pg_temp.expect_err($q$select public.rdv_book('rdvtest1', '2026-10-25 02:45+02', 30::smallint, 'A','B','dst@b.fr','')$q$, 'rdv_invalid');
+  res := res || pg_temp.expect_err($q$select public.rdv_book('rdvtest1', '2026-10-25 02:45+02', 30::smallint, 'A','B','dst@b.fr','', 'client', 'mission', '')$q$, 'rdv_invalid');
   res := res || (case when not public.rdv_is_open(uid, '2026-10-25 02:45+02', '2026-10-25 02:15+01') then 'ok refus à cheval sur le changement d''heure' else 'ECHEC changement d''heure' end);
   perform public.rdv_save_settings(false, '{15}', '[{"weekday": 6, "start": "10:00", "end": "11:00"}]'::jsonb);
   res := res || (case when (select count(*) from public.rdv_hours where owner_id = uid) = 1

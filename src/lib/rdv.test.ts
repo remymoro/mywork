@@ -15,6 +15,7 @@ import {
   validateDurations,
   validateHours,
   type RdvConfig,
+  appointmentReference,
 } from "./rdv";
 
 const config = (over: Partial<RdvConfig> = {}): RdvConfig => ({
@@ -144,13 +145,30 @@ describe("calendrier", () => {
 });
 
 describe("validateBooking", () => {
-  const valid = { first: "Camille", last: "Laurent", email: "camille@exemple.fr", message: "" };
+  const valid = { first: "Camille", last: "Laurent", email: "camille@exemple.fr", message: "", role: "recruiter", reason: "job", company: "" };
   it("accepte une saisie correcte", () => {
     expect(validateBooking(valid)).toEqual({});
   });
   it("signale les champs manquants ou invalides", () => {
-    const errors = validateBooking({ first: " ", last: "", email: "pas-un-email", message: "x".repeat(1001) });
-    expect(Object.keys(errors).sort()).toEqual(["email", "first", "last", "message"]);
+    const errors = validateBooking({ first: " ", last: "", email: "pas-un-email", message: "x".repeat(1001), role: "", reason: "", company: "" });
+    expect(Object.keys(errors).sort()).toEqual(["email", "first", "last", "message", "reason", "role"]);
+  });
+  it("n'accepte que les rôles et motifs de la liste, et une entreprise de 120 caractères au plus", () => {
+    expect(validateBooking({ ...valid, role: "patron", reason: "vente" })).toEqual({
+      role: "Indique qui tu es.",
+      reason: "Choisis le motif du rendez-vous.",
+    });
+    expect(validateBooking({ ...valid, role: "toString" }).role).toBeDefined();
+    expect(validateBooking({ ...valid, company: "x".repeat(121) }).company).toMatch(/120/);
+  });
+});
+
+describe("appointmentReference", () => {
+  it("donne une référence courte et stable", () => {
+    const ref = appointmentReference("9a8b7c6d-1111-4222-8333-444455556666");
+    expect(ref).toMatch(/^[0-9A-Z]{4}-[0-9A-Z]{4}$/);
+    expect(appointmentReference("9a8b7c6d-1111-4222-8333-444455556666")).toBe(ref);
+    expect(appointmentReference("1a8b7c6d-1111-4222-8333-444455556666")).not.toBe(ref);
   });
 });
 

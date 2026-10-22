@@ -179,7 +179,35 @@ export const formatLongDate = (iso: string) => LONG.format(new Date(iso));
 
 // Saisie du visiteur --------------------------------------------------------------------------------
 
-export type BookingInput = { first: string; last: string; email: string; message: string };
+/** Qui prend rendez-vous (choix obligatoire). Mêmes valeurs que la base (`rdv_appointments.guest_role`). */
+export const GUEST_ROLES = {
+  recruiter: "Recruteur",
+  client: "Client ou prospect",
+  partner: "Partenaire ou collègue",
+  other: "Autre",
+} as const;
+export type GuestRole = keyof typeof GUEST_ROLES;
+
+/** Motif du rendez-vous (choix obligatoire ; le message reste pour préciser). Mêmes valeurs que la base. */
+export const REASONS = {
+  job: "Offre d'emploi",
+  mission: "Mission ou projet",
+  advice: "Conseil ou échange",
+  other: "Autre",
+} as const;
+export type Reason = keyof typeof REASONS;
+
+export const isGuestRole = (value: unknown): value is GuestRole => typeof value === "string" && Object.hasOwn(GUEST_ROLES, value);
+export const isReason = (value: unknown): value is Reason => typeof value === "string" && Object.hasOwn(REASONS, value);
+
+/** Référence courte d'un rendez-vous, lisible au téléphone : « ZHEC-2LX8 » (tirée de son code privé). */
+export function appointmentReference(token: string): string {
+  const hex = token.replace(/-/g, "").slice(0, 10);
+  const code = BigInt(`0x${hex}`).toString(36).toUpperCase().padStart(8, "0").slice(-8);
+  return `${code.slice(0, 4)}-${code.slice(4)}`;
+}
+
+export type BookingInput = { first: string; last: string; email: string; message: string; role: string; reason: string; company: string };
 export type BookingErrors = Partial<Record<keyof BookingInput, string>>;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -192,6 +220,9 @@ export function validateBooking(input: BookingInput): BookingErrors {
   if (first.length < 1 || first.length > 80) errors.first = "Indique ton prénom (80 caractères au maximum).";
   if (last.length < 1 || last.length > 80) errors.last = "Indique ton nom (80 caractères au maximum).";
   if (!EMAIL.test(email) || email.length > 254) errors.email = "Indique une adresse e-mail valide.";
+  if (!isGuestRole(input.role)) errors.role = "Indique qui tu es.";
+  if (!isReason(input.reason)) errors.reason = "Choisis le motif du rendez-vous.";
+  if (input.company.trim().length > 120) errors.company = "Nom d'entreprise trop long : 120 caractères au maximum.";
   if (input.message.trim().length > 1000) errors.message = "Message trop long : 1 000 caractères au maximum.";
   return errors;
 }

@@ -26,7 +26,7 @@ export default async function RdvPage() {
   if (!profile) redirect("/onboarding");
 
   const nowIso = new Date().toISOString();
-  const columns = "id, starts_at, ends_at, duration_min, guest_first, guest_last, guest_email, message, cancelled_by";
+  const columns = "id, token, created_at, starts_at, ends_at, duration_min, guest_first, guest_last, guest_email, guest_company, guest_role, reason, message, cancelled_by";
   const [settingsRes, hoursRes, exceptionsRes, appointmentsRes, pastRes, cancelledRes] = await Promise.all([
     supabase.from("rdv_settings").select("enabled, durations").eq("owner_id", user.id).maybeSingle(),
     supabase.from("rdv_hours").select("weekday, start_time, end_time").eq("owner_id", user.id),

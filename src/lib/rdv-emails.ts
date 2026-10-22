@@ -1,5 +1,5 @@
 import type { Email } from "./email";
-import { formatLongDate, formatTime } from "./rdv";
+import { GUEST_ROLES, REASONS, formatLongDate, formatTime, isGuestRole, isReason } from "./rdv";
 
 /** Un rendez-vous tel que le décrit la base (`rdv_describe`). `owner_email` : e-mail de contact du profil. */
 export type RdvDescription = {
@@ -13,6 +13,10 @@ export type RdvDescription = {
   guest_last: string;
   guest_email: string;
   message: string;
+  /** Vides pour les rendez-vous pris avant l'ajout du rôle et du motif. */
+  guest_role: string | null;
+  reason: string | null;
+  guest_company: string;
   owner_username: string;
   owner_name: string;
   owner_email: string | null;
@@ -66,6 +70,9 @@ export function newBookingForOwner(a: RdvDescription, origin: string): Email | n
     [
       `${guestName(a)} (${a.guest_email}) a réservé un rendez-vous :`,
       whenText(a),
+      ...(isGuestRole(a.guest_role) ? [`Rôle : ${GUEST_ROLES[a.guest_role]}`] : []),
+      ...(a.guest_company ? [`Entreprise : ${a.guest_company}`] : []),
+      ...(isReason(a.reason) ? [`Motif : ${REASONS[a.reason]}`] : []),
       ...(a.message ? ["", `Message : ${a.message}`] : []),
     ],
     { label: "Voir mes rendez-vous", url: `${origin}/dashboard/rendez-vous` },

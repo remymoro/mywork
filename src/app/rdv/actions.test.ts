@@ -40,6 +40,9 @@ const input = {
   last: "Laurent",
   email: "camille@exemple.fr",
   message: "",
+  role: "client",
+  reason: "mission",
+  company: "Talentis",
 };
 
 beforeEach(() => {
@@ -55,7 +58,7 @@ describe("bookAppointment", () => {
       ok: true,
       appointment: { token: TOKEN, starts_at: appointment.starts_at, duration_min: 30, owner_name: "Claire Moreau" },
     });
-    expect(mocks.rpc).toHaveBeenCalledWith("rdv_book", expect.objectContaining({ p_username: "claire", p_duration: 30 }));
+    expect(mocks.rpc).toHaveBeenCalledWith("rdv_book", expect.objectContaining({ p_username: "claire", p_duration: 30, p_role: "client", p_reason: "mission", p_company: "Talentis" }));
     const recipients = mocks.sendEmail.mock.calls.map(([mail]) => mail.to).sort();
     expect(recipients).toEqual(["camille@exemple.fr", "claire@exemple.fr"]);
     expect(mocks.sendEmail.mock.calls[0][0].text + mocks.sendEmail.mock.calls[1][0].text).toContain(

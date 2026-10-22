@@ -13,6 +13,8 @@ vi.mock("./actions", () => mocks);
 import { DEFAULT_HOURS } from "@/lib/rdv";
 import { RdvManager } from "./rdv-manager";
 
+// Code privé fictif d'un rendez-vous (lien du visiteur).
+const GUEST_LINK_CODE = "9a8b7c6d-1111-4222-8333-444455556666";
 // Jeudi 22 octobre 2026, 10 h à Paris.
 const NOW = "2026-10-22T08:00:00Z";
 const initial = { enabled: false, durations: [30], hours: DEFAULT_HOURS, exceptions: [] };
@@ -169,6 +171,43 @@ describe("RdvManager", () => {
     expect(await screen.findByText("Annulé par le visiteur")).toBeInTheDocument();
     expect(screen.getByText("Annulé par toi")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Annuler" })).not.toBeInTheDocument();
+  });
+
+  it("montre d'emblée qui contacte, puis la fiche détaillée depuis le menu ⋯", async () => {
+    const detailed = {
+      ...appointment,
+      token: GUEST_LINK_CODE,
+      created_at: "2026-10-17T09:00:00Z",
+      guest_role: "recruiter",
+      reason: "job",
+      guest_company: "Talentis",
+    };
+    setup({ appointments: [detailed] });
+    expect(screen.getByText("Recruteur · Talentis · Offre d'emploi")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Autres actions pour le rendez-vous de Camille Laurent" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Détails" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Camille Laurent" })).toBeInTheDocument();
+    expect(within(dialog).getByText("Confirmé")).toBeInTheDocument();
+    expect(within(dialog).getByText("09:30 – 10:00 · Visio · Heure de Paris")).toBeInTheDocument();
+    expect(within(dialog).getByText("Fonction").nextSibling).toHaveTextContent("Recruteur");
+    expect(within(dialog).getByText("Entreprise").nextSibling).toHaveTextContent("Talentis");
+    expect(within(dialog).getByText("Réservé le").nextSibling).toHaveTextContent("Samedi 17 octobre 2026");
+    expect(within(dialog).getByText("Référence").nextSibling).toHaveTextContent(/^[0-9A-Z]{4}-[0-9A-Z]{4}$/);
+    expect(within(dialog).getByText("Bonjour")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Rejoindre" })).toBeDisabled();
+
+    // Annuler depuis la fiche passe par la même confirmation que la liste.
+    await user.click(within(dialog).getByRole("button", { name: "Annuler le rendez-vous" }));
+    expect(mocks.ownerCancel).not.toHaveBeenCalled();
+    await user.click(await screen.findByRole("button", { name: "Confirmer l'annulation" }));
+    await waitFor(() => expect(mocks.ownerCancel).toHaveBeenCalledWith("a1"));
+  });
+
+  it("n'affiche rien de plus pour un ancien rendez-vous sans rôle ni motif", () => {
+    setup({ appointments: [appointment] });
+    expect(screen.queryByText(/·.*·/, { selector: "p.text-xs" })).not.toBeInTheDocument();
   });
 
   it("montre « Rejoindre » grisé tant que la visio n'est pas branchée", () => {

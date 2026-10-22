@@ -19,6 +19,9 @@ const appointment: RdvDescription = {
   guest_last: "Laurent",
   guest_email: "camille@exemple.fr",
   message: "Bonjour <b>vous</b>",
+  guest_role: "recruiter",
+  reason: "job",
+  guest_company: "Talentis",
   owner_username: "claire",
   owner_name: "Claire Moreau",
   owner_email: "claire@exemple.fr",
@@ -39,6 +42,14 @@ describe("e-mails de rendez-vous", () => {
     expect(mail.html).not.toContain("<b>vous</b>");
     expect(mail.html).toContain("&lt;b&gt;vous&lt;/b&gt;");
     expect(mail.text).toContain("Message : Bonjour <b>vous</b>");
+    expect(mail.text).toContain("Rôle : Recruteur");
+    expect(mail.text).toContain("Entreprise : Talentis");
+    expect(mail.text).toContain("Motif : Offre d'emploi");
+  });
+
+  it("n'écrit ni rôle ni motif pour un ancien rendez-vous qui n'en a pas", () => {
+    const mail = newBookingForOwner({ ...appointment, guest_role: null, reason: null, guest_company: "" }, ORIGIN)!;
+    expect(mail.text).not.toMatch(/Rôle|Motif|Entreprise/);
   });
 
   it("n'écrit pas au propriétaire sans e-mail de contact", () => {
