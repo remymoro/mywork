@@ -15,8 +15,8 @@ import { FILES_BUCKET } from "@/lib/drive";
 import { createClient } from "@/lib/supabase/client";
 
 /**
- * Tout ce que l'interface du Drive demande au « monde extérieur ». Le vrai Drive utilise Supabase
- * (`realDriveApi`) ; l'aperçu avec de fausses données (`/design/fichiers`) en fournit une version en mémoire.
+ * Tout ce que l'interface du Drive demande au « monde extérieur ». Il passe par Supabase
+ * (`realDriveApi`) ; les tests en fournissent une version factice.
  */
 export type DriveApi = {
   createFolder(name: string): Promise<DriveActionResult>;

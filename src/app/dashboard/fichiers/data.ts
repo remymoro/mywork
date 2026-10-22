@@ -3,15 +3,6 @@ import { totalUsage, type DriveEntry } from "@/lib/drive";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-/** Codes renvoyés quand la migration du Drive n'est pas (encore) appliquée : table ou fonction absente. */
-const NOT_READY_CODES = ["PGRST205", "PGRST202", "42P01", "42883"];
-
-export class DriveNotReadyError extends Error {
-  constructor() {
-    super("Le Drive n'est pas encore activé sur la base de données.");
-  }
-}
-
 export type DriveContent = {
   /** Dossier ouvert ; null à la racine. */
   folder: { id: string; name: string } | null;
@@ -50,9 +41,6 @@ export async function loadDrive(
       : supabase.from("drive_folders").select("id, name, created_at").eq("owner_id", userId).limit(100),
     supabase.rpc("storage_usage"),
   ]);
-  for (const failure of [filesRes.error, foldersRes.error, usageRes.error]) {
-    if (failure?.code && NOT_READY_CODES.includes(failure.code)) throw new DriveNotReadyError();
-  }
   if (filesRes.error) throw new Error(`Lecture des fichiers impossible : ${filesRes.error.message}`);
   if (foldersRes.error) throw new Error(`Lecture des dossiers impossible : ${foldersRes.error.message}`);
 
