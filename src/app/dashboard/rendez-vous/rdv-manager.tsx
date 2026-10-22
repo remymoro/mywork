@@ -308,7 +308,7 @@ function AppointmentsCard({
         Tes rendez-vous
       </h2>
       <Tabs defaultValue="upcoming" className="space-y-3">
-        <TabsList variant="line" className="max-w-full border-b">
+        <TabsList className="w-full sm:w-fit">
           <TabsTrigger value="upcoming">À venir ({appointments.length})</TabsTrigger>
           <TabsTrigger value="past">Passés ({past.length})</TabsTrigger>
           <TabsTrigger value="cancelled">Annulés ({cancelled.length})</TabsTrigger>
