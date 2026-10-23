@@ -54,7 +54,7 @@ Revue en lecture seule du code et des migrations, rien n'a été modifié. **Sol
 
 **Non vérifiable depuis la session cloud** : migrations réellement appliquées à Supabase (`pnpm exec supabase db push`), `supabase db advisors --linked --type security` (dernier passage : 2026-10-20, plus de 15 migrations depuis), redirections et écran de consentement Google OAuth en production.
 
-**À faire avant l'ouverture au public** (reprend l'audit d'avril) : limites de débit, captcha, quota de stockage par utilisateur, suppression de compte et export RGPD (D16).
+**À faire avant l'ouverture au public** (reprend l'audit complet prévu à la fin de D17 (audit du 2026-10-20)) : limites de débit, captcha, quota de stockage par utilisateur, suppression de compte et export RGPD (D16).
 
 ## Questions ouvertes
 
