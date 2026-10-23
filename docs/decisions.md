@@ -39,6 +39,23 @@ Statuts : **Acté** (validé avec le porteur du projet), **Proposé** (recommand
 - **Profil public** : choisir ce qui est indexable par les moteurs de recherche.
 - **RGPD** (D16) : consentement, suppression de compte, export des données.
 
+## Sécurité : revue du 2026-10-23 (à traiter ensuite)
+Revue en lecture seule du code et des migrations, rien n'a été modifié. **Solide** : RLS activée sur les 22 tables, droits par colonne, dossiers Drive et Kanban privés avec adresses signées de 60 s, aucune clé secrète dans le code, jeton visio de 60 s avec contrôle de l'origine, e-mails protégés contre l'injection de HTML, limites anti-abus des rendez-vous en base, `pnpm audit --prod` propre. Statut : **Proposé**, rien n'est décidé.
+
+| # | Priorité | Point | Piste |
+|---|---|---|---|
+| S1 | Moyenne | Aucun en-tête de sécurité sur le site (seules les pages de visio en ont) : pas de CSP, ni `frame-ancestors` (clickjacking), ni `X-Content-Type-Options`. | `headers()` dans `next.config.ts` ; la CSP demande un réglage pour le script de thème (`layout.tsx`). |
+| S2 | Moyenne | `rdv_book` est appelable directement par n'importe qui : le champ piège est contourné et rien n'empêche de remplir les 30 réservations par heure d'un propriétaire. | Captcha ou jeton de contrôle avant l'ouverture au public ; à ce moment, limites de débit. |
+| S3 | Faible | Liens des e-mails construits depuis l'en-tête `Host` (`siteOrigin()` dans `src/app/rdv/actions.ts`). | Variable `SITE_URL`. |
+| S4 | Faible | `revealContactEmail` sans limite de débit (collecte par robot). | Limite de débit. |
+| S5 | Faible | Drive : dépôt possible dans son dossier hors de la limite de 100 éléments ; types refusés par liste noire seulement. | Liste blanche de types ; vérifier le dépôt côté base. |
+| S6 | Faible | `storage_usage()` visible de tout utilisateur connecté (voulu pour la jauge). | À revoir avec le quota par utilisateur. |
+| S7 | Faible | CI : actions GitHub référencées par version (pas par empreinte), pas de bloc `permissions:`. | Épingler les empreintes ; `permissions: contents: read`. |
+
+**Non vérifiable depuis la session cloud** : migrations réellement appliquées à Supabase (`pnpm exec supabase db push`), `supabase db advisors --linked --type security` (dernier passage : 2026-10-20, plus de 15 migrations depuis), redirections et écran de consentement Google OAuth en production.
+
+**À faire avant l'ouverture au public** (reprend l'audit d'avril) : limites de débit, captcha, quota de stockage par utilisateur, suppression de compte et export RGPD (D16).
+
 ## Questions ouvertes
 
 ## Stack (D8)
