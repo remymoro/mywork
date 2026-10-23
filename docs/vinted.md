@@ -2,7 +2,7 @@
 
 Suivi de ses ventes Vinted, de l'article en stock jusqu'à l'argent reçu. Voir `docs/decisions.md` (D28).
 
-Statut : **V1 de conception (2026-10-23)**, logique volontairement simple pour juger la maquette. **Aucune connexion à Vinted ni aux transporteurs** : tout est saisi à la main. Le suivi automatique des colis (API La Poste pour Colissimo et Chronopost) et la lecture des e-mails Vinted viendront plus tard.
+Statut : **V1 de conception (2026-10-23)**, migration `20261023120000_vinted.sql` **appliquée à Supabase le 2026-10-23**, logique volontairement simple pour juger la maquette. **Aucune connexion à Vinted ni aux transporteurs** : tout est saisi à la main. Le suivi automatique des colis (API La Poste pour Colissimo et Chronopost) et la lecture des e-mails Vinted viendront plus tard.
 
 ## Page « Mes ventes Vinted » (`/dashboard/vinted`)
 
