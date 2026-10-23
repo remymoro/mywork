@@ -4,6 +4,7 @@ import {
   FolderOpen,
   LayoutGrid,
   LayoutDashboard,
+  Tag,
   User,
 } from "lucide-react";
 import { UserMenu } from "./user-menu";
@@ -14,6 +15,7 @@ const NAV = [
   { id: "kanban", href: "/dashboard/kanban", label: "Kanban", shortLabel: "Kanban", Icon: LayoutGrid },
   { id: "rdv", href: "/dashboard/rendez-vous", label: "Rendez-vous", shortLabel: "RDV", Icon: Calendar },
   { id: "fichiers", href: "/dashboard/fichiers", label: "Fichiers", shortLabel: "Fichiers", Icon: FolderOpen },
+  { id: "vinted", href: "/dashboard/vinted", label: "Vinted", shortLabel: "Vinted", Icon: Tag },
 ] as const;
 
 export type SidebarActive = (typeof NAV)[number]["id"];
@@ -37,7 +39,7 @@ export function Sidebar({
       className="flex w-full min-w-0 shrink-0 flex-col gap-2 border-b border-sidebar-border bg-sidebar p-2 text-sidebar-foreground md:w-60 md:border-r md:border-b-0 md:p-4"
     >
       <div className="min-w-0 space-y-6">
-        <ul className="grid grid-cols-5 gap-1 md:block md:space-y-1">
+        <ul className="grid grid-cols-6 gap-1 md:block md:space-y-1">
           {NAV.map(({ id, href, label, shortLabel, Icon }) => {
             const isActive = id === active;
             return (
@@ -48,8 +50,8 @@ export function Sidebar({
                   aria-current={isActive ? "page" : undefined}
                   className={
                     isActive
-                      ? "flex min-w-0 items-center justify-center gap-1.5 rounded-md bg-primary px-2 py-2.5 text-sm font-medium text-primary-foreground md:justify-start md:gap-3 md:px-3 md:py-2"
-                      : "flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2.5 text-sm text-sidebar-foreground hover:bg-sidebar-accent md:justify-start md:gap-3 md:px-3 md:py-2"
+                      ? "flex min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-[11px] bg-primary font-medium text-primary-foreground md:flex-row md:justify-start md:text-sm md:gap-3 md:px-3 md:py-2"
+                      : "flex min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-[11px] text-sidebar-foreground hover:bg-sidebar-accent md:flex-row md:justify-start md:text-sm md:gap-3 md:px-3 md:py-2"
                   }
                 >
                   <Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />

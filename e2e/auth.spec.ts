@@ -6,7 +6,7 @@ test("la page de connexion propose Google", async ({ page }) => {
 });
 
 test("les pages privées renvoient vers la connexion", async ({ page }) => {
-  for (const path of ["/dashboard", "/dashboard/profil", "/dashboard/profil/cv", "/dashboard/kanban", "/dashboard/fichiers", "/dashboard/rendez-vous"]) {
+  for (const path of ["/dashboard", "/dashboard/profil", "/dashboard/profil/cv", "/dashboard/kanban", "/dashboard/fichiers", "/dashboard/rendez-vous", "/dashboard/vinted"]) {
     await page.goto(path);
     await expect(page).toHaveURL(/\/login$/);
   }
