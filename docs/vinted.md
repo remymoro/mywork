@@ -10,7 +10,8 @@ Statut : **V1 de conception (2026-10-23)**, logique volontairement simple pour j
 - En haut, 4 chiffres : **En vente** (nombre et valeur affichée), **À expédier** (nombre, dont en retard), **Ventes du mois** (nombre et total encaissé ou à encaisser), **Marge du mois** (prix de vente moins prix d'achat, pour les articles dont le prix d'achat est connu).
 - Onglets par étape (avec le nombre d'articles) : Tous · À mettre en ligne · En vente · À expédier · En livraison · Livrés · Terminés. Adresse : `?etape=a-expedier`.
 - Recherche par titre ou marque (sans tenir compte des majuscules ni des accents). Tri : dernier article modifié en premier.
-- Bouton **Ajouter un article**. Un clic sur un article ouvre sa fiche (modifier, passer à l'étape suivante, revenir en arrière, annuler la vente, supprimer avec confirmation).
+- **Tableau par étapes** (maquette B choisie le 2026-10-23, `.maquettes/vinted-B.html`) : une colonne par étape (nombre d'articles et total), cartes qu'on **fait glisser** vers la colonne voisine pour avancer ou reculer d'une étape (un saut de plusieurs colonnes est refusé). Sur téléphone, une colonne à la fois, choisie dans une liste.
+- Bouton **Ajouter un article**. Un clic sur un article ouvre sa fiche dans un **panneau à droite** (modifier, passer à l'étape suivante, revenir en arrière, annuler la vente, supprimer avec confirmation).
 - Écran vide : « Aucun article pour l'instant. Ajoute ton premier article. »
 
 ## Étapes d'un article (comme sur Vinted)

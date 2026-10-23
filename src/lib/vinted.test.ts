@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   STATUSES, CONDITIONS, CARRIERS, MAX_ITEMS, parsePrice, formatPrice, validateItem,
-  nextStatus, previousStatus, canAdvance, datesForTransition, cancelSale, addBusinessDays,
+  nextStatus, previousStatus, moveFor, canAdvance, datesForTransition, cancelSale, addBusinessDays,
   shipDeadline, isLate, moneyAvailableOn, stats, filterItems, countsByStatus, type VintedItem,
 } from "./vinted";
 
@@ -196,5 +196,15 @@ describe("filtres, tri et compteurs", () => {
   it("compte chaque étape, même vide", () => {
     expect(countsByStatus(items)).toEqual({ a_publier: 0, en_vente: 1, vendu: 2, expedie: 0, livre: 0, termine: 0 });
     expect(Object.values(countsByStatus([]))).toEqual([0, 0, 0, 0, 0, 0]);
+  });
+});
+
+describe("moveFor", () => {
+  it("n'autorise que les colonnes voisines", () => {
+    expect(moveFor("en_vente", "vendu")).toBe("advance");
+    expect(moveFor("vendu", "en_vente")).toBe("back");
+    expect(moveFor("vendu", "vendu")).toBe("same");
+    expect(moveFor("a_publier", "livre")).toBeNull();
+    expect(moveFor("termine", "a_publier")).toBeNull();
   });
 });

@@ -127,6 +127,14 @@ export function previousStatus(status: Status): Status | null {
   return STATUSES[STATUSES.findIndex((s) => s.id === status) - 1]?.id ?? null;
 }
 
+/** Glisser-déposer : seules les colonnes voisines sont permises (une étape à la fois). */
+export function moveFor(from: Status, to: Status): "advance" | "back" | "same" | null {
+  if (from === to) return "same";
+  if (nextStatus(from) === to) return "advance";
+  if (previousStatus(from) === to) return "back";
+  return null;
+}
+
 export function canAdvance(item: Pick<VintedItem, "status" | "salePriceCents" | "carrier">): string | null {
   if (item.status === "termine") return "Cet article est déjà terminé.";
   if (item.status === "en_vente" && item.salePriceCents === null) return "Indique le prix de vente avant de passer à « À expédier ».";

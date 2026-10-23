@@ -1,8 +1,20 @@
 "use client";
 
-import { useState, useTransition, type FormEvent, type MouseEvent } from "react";
+import { useOptimistic, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -11,11 +23,7 @@ import {
   Clock,
   Copy,
   Plus,
-  RotateCcw,
   Search,
-  Trash2,
-  Truck,
-  Wallet,
 } from "lucide-react";
 import {
   advanceItem,
@@ -26,7 +34,27 @@ import {
   updateItem,
   type VintedActionResult,
 } from "@/app/dashboard/vinted/actions";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  CARRIERS,
+  CONDITIONS,
+  STATUSES,
+  canAdvance,
+  countsByStatus,
+  filterItems,
+  formatPrice,
+  isLate,
+  moneyAvailableOn,
+  moveFor,
+  nextStatus,
+  parsePrice,
+  shipDeadline,
+  stats,
+  type Carrier,
+  type Condition,
+  type Status,
+  type VintedItem,
+} from "@/lib/vinted";
+import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,61 +67,44 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  CARRIERS,
-  CONDITIONS,
-  STATUSES,
-  canAdvance,
-  countsByStatus,
-  filterItems,
-  formatPrice,
-  isLate,
-  moneyAvailableOn,
-  nextStatus,
-  parsePrice,
-  shipDeadline,
-  stats,
-  type Status,
-  type VintedItem,
-} from "@/lib/vinted";
 
 const NETWORK_ERROR = "La connexion a été interrompue. Réessaie dans un instant.";
 
-const parisDateFormatter = new Intl.DateTimeFormat("fr-FR", {
+const COLUMN_SUBTITLES: Record<Status, string> = {
+  a_publier: "En stock, pas encore publié",
+  en_vente: "Publiés sur Vinted",
+  vendu: "5 jours ouvrés max.",
+  expedie: "Colis confiés au transporteur",
+  livre: "2 jours pour l'acheteur",
+  termine: "Argent reçu",
+};
+
+const shortDateFormatter = new Intl.DateTimeFormat("fr-FR", {
   weekday: "short",
   day: "numeric",
   month: "short",
   timeZone: "Europe/Paris",
 });
 
-function formatShortDate(date: Date): string {
-  return parisDateFormatter.format(date);
+function formatShortDate(value: string | Date): string {
+  return shortDateFormatter.format(typeof value === "string" ? new Date(value) : value);
 }
 
-/** Convertit des centimes en texte d'euros avec virgule (ex. 1250 -> "12,50"). */
-function centsToEurosInput(cents: number | null): string {
+function centsToInput(cents: number | null): string {
   if (cents === null) return "";
   return (cents / 100).toFixed(2).replace(".", ",");
-}
-
-function safeParsePrice(raw: string): number | null {
-  try {
-    return parsePrice(raw);
-  } catch {
-    return null;
-  }
 }
 
 function statusLabel(status: Status): string {
   return STATUSES.find((s) => s.id === status)?.label ?? status;
 }
 
-function conditionLabel(condition: VintedItem["condition"]): string | null {
+function conditionLabel(condition: Condition | null): string | null {
   if (!condition) return null;
   return CONDITIONS.find((c) => c.id === condition)?.label ?? null;
 }
 
-function carrierLabel(carrier: VintedItem["carrier"]): string | null {
+function carrierLabel(carrier: Carrier | null): string | null {
   if (!carrier) return null;
   return CARRIERS.find((c) => c.id === carrier)?.label ?? null;
 }
@@ -101,17 +112,9 @@ function carrierLabel(carrier: VintedItem["carrier"]): string | null {
 function badgeVariantForStatus(
   status: Status,
 ): "default" | "secondary" | "destructive" | "success" | "accent" | "outline" {
-  switch (status) {
-    case "vendu":
-      return "accent";
-    case "expedie":
-      return "outline";
-    case "livre":
-    case "termine":
-      return "success";
-    default:
-      return "secondary";
-  }
+  if (status === "vendu") return "accent";
+  if (status === "livre" || status === "termine") return "success";
+  return "secondary";
 }
 
 function stepDateForStatus(item: VintedItem, status: Status): string | null {
@@ -131,125 +134,65 @@ function stepDateForStatus(item: VintedItem, status: Status): string | null {
   }
 }
 
-type FormState = {
-  title: string;
-  brand: string;
-  size: string;
-  condition: string;
-  purchasePrice: string;
-  listingPrice: string;
-  salePrice: string;
-  buyer: string;
-  carrier: string;
-  trackingNumber: string;
-  notes: string;
-};
-
-function emptyFormState(): FormState {
-  return {
-    title: "",
-    brand: "",
-    size: "",
-    condition: "",
-    purchasePrice: "",
-    listingPrice: "",
-    salePrice: "",
-    buyer: "",
-    carrier: "",
-    trackingNumber: "",
-    notes: "",
-  };
+function deadlineSummary(
+  item: VintedItem,
+  nowDate: Date,
+): { text: string; late: boolean; payout: boolean } {
+  switch (item.status) {
+    case "vendu": {
+      const deadline = shipDeadline(item);
+      const late = isLate(item, nowDate);
+      const formatted = deadline ? formatShortDate(deadline) : "—";
+      return {
+        text: late
+          ? `En retard · À expédier avant le ${formatted}`
+          : `À expédier avant le ${formatted}`,
+        late,
+        payout: false,
+      };
+    }
+    case "livre": {
+      const available = moneyAvailableOn(item);
+      return {
+        text: available ? `Argent dispo vers le ${formatShortDate(available)}` : "Livré",
+        late: false,
+        payout: true,
+      };
+    }
+    case "expedie": {
+      const cLabel = carrierLabel(item.carrier);
+      const tracking = item.trackingNumber ? `Suivi : ${item.trackingNumber}` : "Suivi : —";
+      return {
+        text: cLabel ? `${tracking} · ${cLabel}` : tracking,
+        late: false,
+        payout: false,
+      };
+    }
+    case "en_vente": {
+      const d = item.listedAt ?? item.createdAt;
+      return {
+        text: `Mis en ligne le ${formatShortDate(d)}`,
+        late: false,
+        payout: false,
+      };
+    }
+    case "a_publier":
+      return { text: "En stock", late: false, payout: false };
+    case "termine": {
+      const d = item.completedAt;
+      return {
+        text: d ? `Argent reçu le ${formatShortDate(d)}` : "Argent reçu",
+        late: false,
+        payout: false,
+      };
+    }
+  }
 }
 
-function itemToFormState(item: VintedItem): FormState {
-  return {
-    title: item.title,
-    brand: item.brand ?? "",
-    size: item.size ?? "",
-    condition: item.condition ?? "",
-    purchasePrice: centsToEurosInput(item.purchasePriceCents),
-    listingPrice: centsToEurosInput(item.listingPriceCents),
-    salePrice: centsToEurosInput(item.salePriceCents),
-    buyer: item.buyer ?? "",
-    carrier: item.carrier ?? "",
-    trackingNumber: item.trackingNumber ?? "",
-    notes: item.notes ?? "",
-  };
-}
-
-function ItemDeadline({ item, nowDate }: { item: VintedItem; nowDate: Date }) {
-  if (item.status === "vendu") {
-    const deadline = shipDeadline(item);
-    const late = isLate(item, nowDate);
-    if (late) {
-      return (
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
-          <AlertTriangle aria-hidden="true" className="size-3.5 shrink-0" />
-          <span>
-            {deadline
-              ? `En retard · À expédier avant le ${formatShortDate(deadline)}`
-              : "En retard · À expédier"}
-          </span>
-        </span>
-      );
-    }
-    if (deadline) {
-      return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
-          <Clock aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
-          <span>À expédier avant le {formatShortDate(deadline)}</span>
-        </span>
-      );
-    }
-  }
-
-  if (item.status === "livre") {
-    const available = moneyAvailableOn(item);
-    if (available) {
-      return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
-          <Wallet aria-hidden="true" className="size-3.5 shrink-0" />
-          <span>Argent dispo vers le {formatShortDate(available)}</span>
-        </span>
-      );
-    }
-  }
-
-  if (item.status === "expedie") {
-    const carrier = carrierLabel(item.carrier);
-    const details = [carrier, item.trackingNumber].filter(Boolean).join(" · ");
-    if (details) {
-      return (
-        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Truck aria-hidden="true" className="size-3.5 shrink-0" />
-          <span>{details}</span>
-        </span>
-      );
-    }
-  }
-
-  if (item.status === "en_vente" && item.listedAt) {
-    return (
-      <span className="text-xs text-muted-foreground">
-        Mis en ligne le {formatShortDate(new Date(item.listedAt))}
-      </span>
-    );
-  }
-
-  if (item.status === "termine" && item.completedAt) {
-    return (
-      <span className="text-xs text-muted-foreground">
-        Argent reçu le {formatShortDate(new Date(item.completedAt))}
-      </span>
-    );
-  }
-
-  if (item.status === "a_publier") {
-    return <span className="text-xs text-muted-foreground">En stock · Prêt à publier</span>;
-  }
-
-  return null;
-}
+type DrawerMode =
+  | { type: "Closed" }
+  | { type: "Create" }
+  | { type: "Edit"; itemId: string };
 
 export function VintedWorkspace({
   items,
@@ -262,224 +205,164 @@ export function VintedWorkspace({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [query, setQuery] = useState("");
-  const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(null);
-  const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(emptyFormState);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [confirmCancel, setConfirmCancel] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [optimisticItems, applyOptimistic] = useOptimistic(
+    items,
+    (current: VintedItem[], update: { id: string; status: Status }) =>
+      current.map((it) => (it.id === update.id ? { ...it, status: update.status } : it)),
+  );
 
   const nowDate = new Date(now);
-  const kpi = stats(items, nowDate);
-  const counts = countsByStatus(items);
-  const activeTabSlug =
-    STATUSES.find((s) => s.slug === stage || s.id === stage)?.slug ?? null;
-  const visibleItems = filterItems(items, activeTabSlug, query);
-  const activeItem = activeItemId
-    ? items.find((item) => item.id === activeItemId) ?? null
-    : null;
+  const activeStageObj = STATUSES.find((s) => s.slug === stage) ?? null;
 
-  function openCreateDialog() {
-    setDialogMode("create");
-    setActiveItemId(null);
-    setForm(emptyFormState());
-    setErrorMessage("");
-    setConfirmCancel(false);
-    setConfirmDelete(false);
-    setCopied(false);
-  }
+  const [query, setQuery] = useState("");
+  const [mobileStatus, setMobileStatus] = useState<Status>(
+    activeStageObj?.id ?? "a_publier",
+  );
+  const [boardError, setBoardError] = useState<string | null>(null);
+  const [drawerError, setDrawerError] = useState<string | null>(null);
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>({ type: "Closed" });
+  const [activeDragItem, setActiveDragItem] = useState<VintedItem | null>(null);
 
-  function openEditDialog(item: VintedItem, initialError = "") {
-    setDialogMode("edit");
-    setActiveItemId(item.id);
-    setForm(itemToFormState(item));
-    setErrorMessage(initialError);
-    setConfirmCancel(false);
-    setConfirmDelete(false);
-    setCopied(false);
-  }
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor),
+  );
 
-  function closeDialog() {
-    setDialogMode(null);
-    setActiveItemId(null);
-    setErrorMessage("");
-    setConfirmCancel(false);
-    setConfirmDelete(false);
-    setCopied(false);
-  }
+  const kpi = stats(optimisticItems, nowDate);
+  const counts = countsByStatus(optimisticItems);
+  const filtered = filterItems(optimisticItems, null, query);
 
-  function buildFormData(): FormData {
-    const fd = new FormData();
-    fd.set("title", form.title);
-    fd.set("brand", form.brand);
-    fd.set("size", form.size);
-    fd.set("condition", form.condition);
-    fd.set("purchasePrice", form.purchasePrice);
-    fd.set("listingPrice", form.listingPrice);
-    fd.set("salePrice", form.salePrice);
-    fd.set("buyer", form.buyer);
-    fd.set("carrier", form.carrier);
-    fd.set("trackingNumber", form.trackingNumber);
-    fd.set("notes", form.notes);
-    return fd;
-  }
+  const visibleStatuses = activeStageObj ? [activeStageObj] : STATUSES;
+  const inTimeToShip = Math.max(0, kpi.toShip.count - kpi.toShip.late);
 
-  function runAction(
-    action: () => Promise<VintedActionResult>,
-    options?: { onSuccess?: () => void; onErrorItem?: VintedItem },
-  ) {
-    setErrorMessage("");
-    startTransition(async () => {
-      try {
-        const result = await action();
-        if (result.error) {
-          if (options?.onErrorItem) {
-            openEditDialog(options.onErrorItem, result.error);
-          } else {
-            setErrorMessage(result.error);
-          }
-          return;
-        }
-        options?.onSuccess?.();
-        router.refresh();
-      } catch {
-        if (options?.onErrorItem) {
-          openEditDialog(options.onErrorItem, NETWORK_ERROR);
-        } else {
-          setErrorMessage(NETWORK_ERROR);
-        }
-      }
-    });
-  }
-
-  function handleQuickAdvance(event: MouseEvent<HTMLButtonElement>, item: VintedItem) {
-    event.stopPropagation();
-    const reason = canAdvance(item);
-    if (reason) {
-      openEditDialog(item, reason);
-      return;
-    }
-    runAction(() => advanceItem(item.id), { onErrorItem: item });
-  }
-
-  function handleSubmitForm(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const fd = buildFormData();
-    if (dialogMode === "create") {
-      runAction(() => createItem(fd), { onSuccess: closeDialog });
-    } else if (dialogMode === "edit" && activeItem) {
-      runAction(() => updateItem(activeItem.id, fd), { onSuccess: closeDialog });
-    }
-  }
-
-  function handleDialogAdvance() {
-    if (!activeItem) return;
-    const fd = buildFormData();
-    setErrorMessage("");
-    startTransition(async () => {
-      try {
-        const updateRes = await updateItem(activeItem.id, fd);
-        if (updateRes.error) {
-          setErrorMessage(updateRes.error);
-          return;
-        }
-        const advanceRes = await advanceItem(activeItem.id);
-        if (advanceRes.error) {
-          setErrorMessage(advanceRes.error);
-          router.refresh();
-          return;
-        }
-        closeDialog();
-        router.refresh();
-      } catch {
-        setErrorMessage(NETWORK_ERROR);
-      }
-    });
-  }
-
-  function handleDialogBack() {
-    if (!activeItem) return;
-    runAction(() => backItem(activeItem.id), { onSuccess: closeDialog });
-  }
-
-  function handleDialogCancelSale() {
-    if (!activeItem) return;
-    if (!confirmCancel) {
-      setConfirmCancel(true);
-      return;
-    }
-    runAction(() => cancelSale(activeItem.id), { onSuccess: closeDialog });
-  }
-
-  function handleDialogDelete() {
-    if (!activeItem) return;
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      return;
-    }
-    runAction(() => deleteItem(activeItem.id), { onSuccess: closeDialog });
-  }
-
-  async function handleCopyTracking() {
-    if (!form.trackingNumber.trim()) return;
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(form.trackingNumber.trim());
-      }
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      setCopied(false);
-    }
-  }
-
-  const livePurchaseCents = safeParsePrice(form.purchasePrice);
-  const liveSaleCents = safeParsePrice(form.salePrice);
-  const liveMarginCents =
-    livePurchaseCents !== null && liveSaleCents !== null
-      ? liveSaleCents - livePurchaseCents
+  const selectedItem =
+    drawerMode.type === "Edit"
+      ? optimisticItems.find((it) => it.id === drawerMode.itemId) ?? null
       : null;
 
-  const currentStepIndex = activeItem
-    ? STATUSES.findIndex((s) => s.id === activeItem.status)
-    : 0;
-  const nextStepId = activeItem ? nextStatus(activeItem.status) : null;
+  const isDrawerOpen =
+    drawerMode.type === "Create" || (drawerMode.type === "Edit" && selectedItem !== null);
+
+  function openCreateDrawer() {
+    setBoardError(null);
+    setDrawerError(null);
+    setDrawerMode({ type: "Create" });
+  }
+
+  function openEditDrawer(item: VintedItem, initialError: string | null = null) {
+    setBoardError(null);
+    setDrawerError(initialError);
+    setDrawerMode({ type: "Edit", itemId: item.id });
+  }
+
+  function closeDrawer() {
+    setDrawerError(null);
+    setDrawerMode({ type: "Closed" });
+  }
+
+  function handleAdvanceFromBoard(item: VintedItem) {
+    setBoardError(null);
+    const reason = canAdvance(item);
+    if (reason) {
+      openEditDrawer(item, reason);
+      return;
+    }
+    const target = nextStatus(item.status);
+    if (!target) return;
+
+    startTransition(async () => {
+      applyOptimistic({ id: item.id, status: target });
+      try {
+        const res: VintedActionResult = await advanceItem(item.id);
+        if (res.error) {
+          setBoardError(res.error);
+          return;
+        }
+        router.refresh();
+      } catch {
+        setBoardError(NETWORK_ERROR);
+      }
+    });
+  }
+
+  function handleBackFromBoard(item: VintedItem, target: Status) {
+    setBoardError(null);
+    startTransition(async () => {
+      applyOptimistic({ id: item.id, status: target });
+      try {
+        const res: VintedActionResult = await backItem(item.id);
+        if (res.error) {
+          setBoardError(res.error);
+          return;
+        }
+        router.refresh();
+      } catch {
+        setBoardError(NETWORK_ERROR);
+      }
+    });
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    const item = event.active.data.current?.item as VintedItem | undefined;
+    if (item) setActiveDragItem(item);
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    setActiveDragItem(null);
+    const item = event.active.data.current?.item as VintedItem | undefined;
+    const overId = event.over?.id as Status | undefined;
+    if (!item || !overId) return;
+
+    const move = moveFor(item.status, overId);
+    if (move === "same") return;
+    if (move === null) {
+      setBoardError("Déplace l'article d'une seule étape à la fois.");
+      return;
+    }
+    if (move === "advance") {
+      handleAdvanceFromBoard(item);
+      return;
+    }
+    if (move === "back") {
+      handleBackFromBoard(item, overId);
+    }
+  }
 
   return (
-    <div className="space-y-6">
-      {/* En-tête de la page */}
-      <div className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-            ESPACE PRIVÉ
+    <div className="flex min-w-0 flex-1 flex-col gap-5">
+      {/* En-tête */}
+      <header className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            ESPACE PRIVÉ · TABLEAU PAR ÉTAPES
           </p>
-          <h1 className="font-heading text-3xl font-normal tracking-tight sm:text-4xl">
+          <h1 className="mt-1 font-heading text-2xl font-normal tracking-tight text-foreground sm:text-4xl">
             Mes ventes Vinted
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Suis tes articles du stock jusqu&apos;à l&apos;argent reçu, sans rien oublier.
+          <p className="mt-1 text-sm text-muted-foreground">
+            Fais glisser tes articles d&apos;une colonne à l&apos;autre au fil de tes expéditions et encaissements.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" onClick={openCreateDialog}>
-            <Plus aria-hidden="true" className="size-4" />
+        <div className="flex shrink-0 items-center gap-2">
+          <Button type="button" onClick={openCreateDrawer} disabled={isPending}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
             <span>Ajouter un article</span>
           </Button>
         </div>
-      </div>
+      </header>
 
-      {/* Les 4 chiffres clés (grille 2×2 lisible dès 320 px, 4 colonnes sur grand écran) */}
+      {/* Les 4 chiffres en haut */}
       <section
         aria-label="Indicateurs du mois"
-        className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4"
+        className="grid grid-cols-2 overflow-hidden rounded-lg border border-border bg-card lg:grid-cols-4"
       >
-        <article className="flex min-w-0 flex-col justify-between gap-1.5 rounded-xl border border-border bg-card p-3 sm:p-4">
-          <span className="text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">
-            En vente
-          </span>
-          <p className="font-heading text-xl font-medium tracking-tight text-foreground sm:text-3xl">
+        <article className="flex min-w-0 flex-col justify-between gap-1.5 border-b border-r border-border p-3.5 lg:border-b-0 lg:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              En vente
+            </span>
+          </div>
+          <p className="font-heading text-xl font-medium text-foreground sm:text-2xl">
             {kpi.onSale.count} {kpi.onSale.count > 1 ? "articles" : "article"}
           </p>
           <p className="text-xs text-muted-foreground">
@@ -491,111 +374,102 @@ export function VintedWorkspace({
         </article>
 
         <article
-          className={`flex min-w-0 flex-col justify-between gap-1.5 rounded-xl border border-border bg-card p-3 sm:p-4 ${
-            kpi.toShip.late > 0 ? "border-t-[3px] border-t-primary" : ""
+          className={`flex min-w-0 flex-col justify-between gap-1.5 border-b border-border p-3.5 lg:border-b-0 lg:border-r lg:p-4 ${
+            kpi.toShip.late > 0 ? "bg-accent/30" : ""
           }`}
         >
           <div className="flex flex-wrap items-center justify-between gap-1">
-            <span className="text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               À expédier
             </span>
             {kpi.toShip.late > 0 && (
-              <Badge variant="destructive" className="px-1.5 py-0 text-[0.68rem]">
-                dont {kpi.toShip.late} en retard
-              </Badge>
+              <Badge variant="destructive">dont {kpi.toShip.late} en retard</Badge>
             )}
           </div>
-          <p className="font-heading text-xl font-medium tracking-tight text-foreground sm:text-3xl">
+          <p className="font-heading text-xl font-medium text-foreground sm:text-2xl">
             {kpi.toShip.count} colis
           </p>
           <p className="text-xs text-muted-foreground">
-            {kpi.toShip.late > 0
-              ? `${kpi.toShip.count - kpi.toShip.late} dans les délais · ${kpi.toShip.late} à déposer vite`
-              : kpi.toShip.count > 0
-                ? "Tous dans les délais (5 jours ouvrés)"
-                : "Aucun colis en attente"}
+            {inTimeToShip} dans les délais · {kpi.toShip.late} à déposer vite
           </p>
         </article>
 
-        <article className="flex min-w-0 flex-col justify-between gap-1.5 rounded-xl border border-border bg-card p-3 sm:p-4">
-          <span className="text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">
-            Ventes du mois
-          </span>
-          <p className="font-heading text-xl font-medium tracking-tight text-foreground sm:text-3xl">
+        <article className="flex min-w-0 flex-col justify-between gap-1.5 border-r border-border p-3.5 lg:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Ventes du mois
+            </span>
+          </div>
+          <p className="font-heading font-mono text-xl font-medium text-foreground sm:text-2xl">
             {formatPrice(kpi.monthSales.totalCents)}
           </p>
           <p className="text-xs text-muted-foreground">
             <strong className="font-mono font-medium text-foreground">
               {kpi.monthSales.count} {kpi.monthSales.count > 1 ? "ventes" : "vente"}
             </strong>{" "}
-            · en attente : {formatPrice(kpi.pendingCents)}
+            · En attente :{" "}
+            <span className="font-mono text-foreground">{formatPrice(kpi.pendingCents)}</span>
           </p>
         </article>
 
-        <article className="flex min-w-0 flex-col justify-between gap-1.5 rounded-xl border border-border bg-card p-3 sm:p-4">
-          <span className="text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">
-            Marge du mois
-          </span>
-          <p
-            className={`font-heading text-xl font-medium tracking-tight sm:text-3xl ${
-              kpi.monthMarginCents < 0 ? "text-destructive" : "text-success"
-            }`}
-          >
-            {kpi.monthMarginCents > 0 ? "+ " : ""}
-            {formatPrice(kpi.monthMarginCents)}
+        <article className="flex min-w-0 flex-col justify-between gap-1.5 p-3.5 lg:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Marge du mois
+            </span>
+          </div>
+          <p className="font-heading font-mono text-xl font-medium text-success sm:text-2xl">
+            {kpi.monthMarginCents >= 0
+              ? `+ ${formatPrice(kpi.monthMarginCents)}`
+              : formatPrice(kpi.monthMarginCents)}
           </p>
           <p className="text-xs text-muted-foreground">
-            Prix de vente − prix d&apos;achat
+            Sur les ventes avec prix d&apos;achat
           </p>
         </article>
       </section>
 
-      {/* Barre d'onglets par étape et recherche locale */}
-      <section
-        aria-label="Filtres et recherche"
-        className="space-y-3 rounded-xl border border-border bg-card p-3 sm:p-4"
-      >
-        <nav
-          aria-label="Filtrer par étape"
-          className="flex flex-wrap items-center gap-1.5 border-b border-border pb-3"
-        >
+      {/* Barre d'onglets, sélecteur mobile et recherche */}
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 sm:p-4">
+        <nav aria-label="Filtrer par étape" className="flex flex-wrap items-center gap-1.5">
           <Link
             href="/dashboard/vinted"
-            aria-current={activeTabSlug === null ? "page" : undefined}
-            className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors sm:text-sm ${
-              activeTabSlug === null
+            aria-current={activeStageObj === null ? "page" : undefined}
+            className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+              activeStageObj === null
                 ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             }`}
           >
             <span>Tous</span>
             <span
-              className={`rounded-full px-1.5 py-0.5 font-mono text-[0.7rem] ${
-                activeTabSlug === null
+              className={`rounded-full px-1.5 py-0.5 font-mono text-[11px] ${
+                activeStageObj === null
                   ? "bg-primary-foreground/20 text-primary-foreground"
                   : "bg-secondary text-secondary-foreground"
               }`}
             >
-              {items.length}
+              {optimisticItems.length}
             </span>
           </Link>
 
           {STATUSES.map((s) => {
-            const isActive = activeTabSlug === s.slug;
+            const isActive = activeStageObj?.id === s.id;
             return (
               <Link
                 key={s.id}
                 href={`/dashboard/vinted?etape=${s.slug}`}
                 aria-current={isActive ? "page" : undefined}
-                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors sm:text-sm ${
+                onClick={() => setMobileStatus(s.id)}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`}
               >
                 <span>{s.label}</span>
                 <span
-                  className={`rounded-full px-1.5 py-0.5 font-mono text-[0.7rem] ${
+                  className={`rounded-full px-1.5 py-0.5 font-mono text-[11px] ${
                     isActive
                       ? "bg-primary-foreground/20 text-primary-foreground"
                       : "bg-secondary text-secondary-foreground"
@@ -608,537 +482,929 @@ export function VintedWorkspace({
           })}
         </nav>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative max-w-md flex-1">
-            <Label htmlFor="vinted-search" className="sr-only">
-              Rechercher par titre ou marque
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+          {/* Sélecteur mobile (< md) */}
+          <div className="md:hidden">
+            <Label htmlFor="mobile-stage-select" className="sr-only">
+              Étape affichée
             </Label>
+            <select
+              id="mobile-stage-select"
+              value={activeStageObj?.id ?? mobileStatus}
+              onChange={(e) => {
+                const next = e.target.value as Status;
+                setMobileStatus(next);
+                if (activeStageObj) {
+                  const found = STATUSES.find((s) => s.id === next);
+                  if (found) router.push(`/dashboard/vinted?etape=${found.slug}`);
+                }
+              }}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              {STATUSES.map((s, idx) => (
+                <option key={s.id} value={s.id}>
+                  {idx + 1}. {s.label} ({counts[s.id]})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative max-w-md flex-1">
             <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
             />
             <Input
-              id="vinted-search"
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher par titre ou marque (ex. Sézane, Levi's…)"
-              className="pl-8"
+              placeholder="Rechercher par titre ou marque…"
+              aria-label="Rechercher par titre ou marque"
+              className="pl-9"
             />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Tri : dernier article modifié en premier
-          </p>
         </div>
-      </section>
+      </div>
 
-      {/* Liste des articles ou états vides */}
-      {items.length === 0 ? (
+      {boardError && <Alert variant="destructive">{boardError}</Alert>}
+
+      {/* Écran vide ou Tableau par étapes */}
+      {optimisticItems.length === 0 ? (
         <section
           aria-label="Aucun article"
-          className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card px-4 py-10 text-center"
+          className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card px-4 py-12 text-center"
         >
-          <p className="font-heading text-xl text-foreground">
+          <p className="font-heading text-lg text-foreground">
             Aucun article pour l&apos;instant. Ajoute ton premier article.
           </p>
-          <p className="max-w-md text-sm text-muted-foreground">
-            Prépare ton stock, note tes prix d&apos;achat et suis chaque colis jusqu&apos;au
-            virement de l&apos;argent.
-          </p>
-          <Button type="button" onClick={openCreateDialog}>
-            <Plus aria-hidden="true" className="size-4" />
+          <Button type="button" onClick={openCreateDrawer}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
             <span>Ajouter un article</span>
           </Button>
         </section>
-      ) : visibleItems.length === 0 ? (
-        <section
-          aria-label="Aucun résultat"
-          className="flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-10 text-center"
-        >
-          <p className="font-heading text-xl text-foreground">Aucun article ici.</p>
-          <p className="text-sm text-muted-foreground">
-            Aucun article ne correspond à cette étape ou à ta recherche.
-          </p>
-        </section>
       ) : (
-        <section aria-label="Liste de mes articles" className="space-y-2.5">
-          {visibleItems.map((item) => {
-            const late = isLate(item, nowDate);
-            const cond = conditionLabel(item.condition);
-            const metaParts = [item.brand, item.size, cond].filter(Boolean);
-            const displayPriceCents = item.salePriceCents ?? item.listingPriceCents;
-            const hasMargin =
-              item.purchasePriceCents !== null && item.salePriceCents !== null;
-            const marginCents = hasMargin
-              ? (item.salePriceCents ?? 0) - (item.purchasePriceCents ?? 0)
-              : null;
+        <section
+          aria-label="Tableau par étapes"
+          className="w-full min-w-0 overflow-x-hidden md:overflow-x-auto md:pb-3"
+        >
+          <DndContext
+            id="vinted-board"
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragCancel={() => setActiveDragItem(null)}
+            onDragEnd={handleDragEnd}
+            accessibility={{
+              screenReaderInstructions: {
+                draggable:
+                  "Appuie sur Espace pour attraper. Utilise les flèches pour déplacer. Appuie sur Espace pour poser, ou sur Échap pour annuler.",
+              },
+              announcements: {
+                onDragStart: () =>
+                  "Article attrapé. Utilise les flèches pour le déplacer.",
+                onDragOver: ({ over }) =>
+                  over
+                    ? "Nouvelle colonne sélectionnée."
+                    : "Aucune colonne sélectionnée.",
+                onDragEnd: () => "Article posé.",
+                onDragCancel: () => "Déplacement annulé.",
+              },
+            }}
+          >
+            <div className="block w-full min-w-0 md:flex md:w-max md:min-w-full md:items-start md:gap-3.5">
+              {visibleStatuses.map((statusObj) => {
+                const stepNumber = STATUSES.findIndex((s) => s.id === statusObj.id) + 1;
+                const columnItems = filtered.filter((it) => it.status === statusObj.id);
+                const columnTotalCents = columnItems.reduce(
+                  (acc, it) => acc + (it.salePriceCents ?? it.listingPriceCents ?? 0),
+                  0,
+                );
+                const isMobileVisible =
+                  activeStageObj !== null || statusObj.id === mobileStatus;
 
-            return (
-              <article
-                key={item.id}
-                onClick={() => openEditDialog(item)}
-                className={`flex cursor-pointer flex-col gap-2.5 rounded-xl border border-border bg-card p-3.5 transition-colors hover:border-muted-foreground sm:p-4 ${
-                  late ? "border-l-[3px] border-l-destructive" : ""
-                } ${activeItemId === item.id ? "ring-1 ring-primary" : ""}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h2 className="font-heading text-base font-medium leading-snug text-foreground sm:text-lg">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEditDialog(item);
-                        }}
-                        className="text-left hover:underline focus-visible:outline-none focus-visible:underline"
-                      >
-                        {item.title}
-                      </button>
-                    </h2>
-                    {(metaParts.length > 0 || item.buyer) && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {metaParts.join(" · ")}
-                        {metaParts.length > 0 && item.buyer ? " · " : ""}
-                        {item.buyer && (
-                          <span>
-                            Acheteur :{" "}
-                            <strong className="font-medium text-foreground">
-                              {item.buyer}
-                            </strong>
-                          </span>
-                        )}
-                      </p>
+                return (
+                  <StageColumn
+                    key={statusObj.id}
+                    status={statusObj.id}
+                    label={statusObj.label}
+                    stepNumber={stepNumber}
+                    subtitle={COLUMN_SUBTITLES[statusObj.id]}
+                    totalCents={columnTotalCents}
+                    items={columnItems}
+                    nowDate={nowDate}
+                    isMobileVisible={isMobileVisible}
+                    selectedItemId={selectedItem?.id ?? null}
+                    isPending={isPending}
+                    onSelectItem={(it) => openEditDrawer(it)}
+                    onAdvanceItem={handleAdvanceFromBoard}
+                  />
+                );
+              })}
+            </div>
+
+            <DragOverlay>
+              {activeDragItem ? (
+                <div className="w-72 rounded-lg border-2 border-primary bg-card p-3 shadow-lg">
+                  <p className="font-heading text-sm font-medium text-foreground">
+                    {activeDragItem.title}
+                  </p>
+                  <p className="mt-1 font-mono text-xs text-muted-foreground">
+                    {formatPrice(
+                      activeDragItem.salePriceCents ??
+                        activeDragItem.listingPriceCents ??
+                        0,
                     )}
-                  </div>
-
-                  <div className="shrink-0 text-right">
-                    <span className="font-mono text-sm font-semibold text-foreground sm:text-base">
-                      {displayPriceCents !== null ? formatPrice(displayPriceCents) : "—"}
-                    </span>
-                    {marginCents !== null ? (
-                      <span
-                        className={`block font-mono text-xs ${
-                          marginCents < 0 ? "text-destructive" : "text-success"
-                        }`}
-                      >
-                        Marge {marginCents >= 0 ? "+" : ""}
-                        {formatPrice(marginCents)}
-                      </span>
-                    ) : item.purchasePriceCents !== null ? (
-                      <span className="block font-mono text-xs text-muted-foreground">
-                        Achat {formatPrice(item.purchasePriceCents)}
-                      </span>
-                    ) : null}
-                  </div>
+                  </p>
                 </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-dashed border-border pt-2.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={badgeVariantForStatus(item.status)}>
-                      {statusLabel(item.status)}
-                    </Badge>
-                    <ItemDeadline item={item} nowDate={nowDate} />
-                  </div>
-
-                  {item.status !== "termine" ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={isPending}
-                      onClick={(e) => handleQuickAdvance(e, item)}
-                    >
-                      <span>Étape suivante</span>
-                      <ArrowRight aria-hidden="true" className="size-3.5" />
-                    </Button>
-                  ) : (
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Vente bouclée ✓
-                    </span>
-                  )}
-                </div>
-              </article>
-            );
-          })}
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         </section>
       )}
 
-      {/* Fenêtre Fiche article / Nouvel article */}
+      {/* Panneau latéral droit (Fiche article / Création) */}
       <Dialog
-        open={dialogMode !== null}
+        open={isDrawerOpen}
         onOpenChange={(open) => {
-          if (!open) closeDialog();
+          if (!open) closeDrawer();
         }}
       >
-        <DialogContent className="inset-0 top-0 left-0 h-dvh max-h-dvh w-full max-w-none translate-x-0 translate-y-0 gap-0 overflow-y-auto rounded-none border-t-[3px] border-t-primary p-0 sm:top-1/2 sm:left-1/2 sm:h-auto sm:max-h-[90dvh] sm:w-full sm:max-w-2xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl">
-          <DialogHeader className="border-b border-border bg-card p-4 pr-10 sm:px-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              {dialogMode === "create" ? "NOUVEL ARTICLE" : "FICHE ARTICLE OUVERTE"}
-            </p>
-            <DialogTitle className="font-heading text-xl font-medium text-foreground">
-              {dialogMode === "edit" && activeItem ? activeItem.title : "Nouvel article"}
-            </DialogTitle>
-            <DialogDescription className="flex flex-wrap items-center gap-2 pt-1">
-              {dialogMode === "edit" && activeItem ? (
-                <>
-                  <Badge variant={badgeVariantForStatus(activeItem.status)}>
-                    {statusLabel(activeItem.status)}
-                  </Badge>
-                  <ItemDeadline item={activeItem} nowDate={nowDate} />
-                </>
-              ) : (
-                <span>Renseigne les informations de ton article pour suivre sa vente.</span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="fixed inset-y-0 right-0 left-0 top-0 z-50 flex h-full max-h-screen w-full max-w-full translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto rounded-none border-l border-border bg-card p-0 shadow-xl sm:left-auto sm:max-w-md">
+          {drawerMode.type === "Create" ? (
+            <ArticleDrawerForm
+              key="create"
+              item={null}
+              nowDate={nowDate}
+              error={drawerError}
+              isPending={isPending}
+              onError={setDrawerError}
+              onClose={closeDrawer}
+              onSuccess={() => {
+                closeDrawer();
+                router.refresh();
+              }}
+              startTransition={startTransition}
+            />
+          ) : selectedItem ? (
+            <ArticleDrawerForm
+              key={`${selectedItem.id}-${selectedItem.updatedAt}-${selectedItem.status}`}
+              item={selectedItem}
+              nowDate={nowDate}
+              error={drawerError}
+              isPending={isPending}
+              onError={setDrawerError}
+              onClose={closeDrawer}
+              onSuccess={() => {
+                closeDrawer();
+                router.refresh();
+              }}
+              startTransition={startTransition}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
-          <form onSubmit={handleSubmitForm} className="space-y-4 p-4 sm:p-6">
-            {errorMessage && (
-              <Alert variant="destructive">
-                <AlertDescription>{errorMessage}</AlertDescription>
-              </Alert>
-            )}
+function StageColumn({
+  status,
+  label,
+  stepNumber,
+  subtitle,
+  totalCents,
+  items,
+  nowDate,
+  isMobileVisible,
+  selectedItemId,
+  isPending,
+  onSelectItem,
+  onAdvanceItem,
+}: {
+  status: Status;
+  label: string;
+  stepNumber: number;
+  subtitle: string;
+  totalCents: number;
+  items: VintedItem[];
+  nowDate: Date;
+  isMobileVisible: boolean;
+  selectedItemId: string | null;
+  isPending: boolean;
+  onSelectItem: (item: VintedItem) => void;
+  onAdvanceItem: (item: VintedItem) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: status,
+    data: { status },
+  });
 
-            {/* Frise des 6 étapes */}
-            {dialogMode === "edit" && activeItem && (
-              <div
-                aria-label="Progression des 6 étapes"
-                className="space-y-3 rounded-lg border border-border bg-secondary p-3"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <span className="font-semibold text-foreground">
-                    Parcours de l&apos;article (étape {currentStepIndex + 1} sur{" "}
-                    {STATUSES.length})
-                  </span>
-                  <span className="text-muted-foreground">
-                    Dates enregistrées automatiquement
-                  </span>
-                </div>
+  return (
+    <section
+      ref={setNodeRef}
+      aria-label={label}
+      className={`${
+        isMobileVisible ? "flex" : "hidden md:flex"
+      } w-full min-w-0 flex-col rounded-lg border bg-secondary/50 transition-colors md:w-72 md:shrink-0 ${
+        status === "vendu" ? "border-t-4 border-t-primary" : ""
+      } ${isOver ? "border-primary bg-accent/40 ring-2 ring-primary" : "border-border"}`}
+    >
+      <header className="flex flex-col gap-1 rounded-t-lg border-b border-border bg-card p-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="inline-flex items-center gap-2 font-heading text-base font-medium text-foreground">
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border bg-secondary font-mono text-xs text-muted-foreground">
+              {stepNumber}
+            </span>
+            <span>{label}</span>
+          </h2>
+          <span className="rounded-full border border-border bg-secondary px-2 py-0.5 font-mono text-xs font-semibold text-secondary-foreground">
+            {items.length}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>{subtitle}</span>
+          <span className="font-mono font-medium text-foreground">
+            {formatPrice(totalCents)}
+          </span>
+        </div>
+      </header>
 
-                <ol className="grid grid-cols-2 gap-1.5 sm:grid-cols-6">
-                  {STATUSES.map((s, idx) => {
-                    const isCurrent = idx === currentStepIndex;
-                    const isDone = idx < currentStepIndex;
-                    const isReached = idx <= currentStepIndex;
-                    const rawDate = isReached ? stepDateForStatus(activeItem, s.id) : null;
+      <div className="flex min-h-36 flex-1 flex-col gap-2.5 p-2.5">
+        {items.length === 0 ? (
+          <div className="rounded-md border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+            Aucun article
+          </div>
+        ) : (
+          items.map((item) => (
+            <ArticleCard
+              key={item.id}
+              item={item}
+              nowDate={nowDate}
+              isSelected={selectedItemId === item.id}
+              isPending={isPending}
+              onSelect={() => onSelectItem(item)}
+              onAdvance={() => onAdvanceItem(item)}
+            />
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
 
-                    return (
-                      <li
-                        key={s.id}
-                        aria-current={isCurrent ? "step" : undefined}
-                        className={`flex min-w-0 flex-col gap-0.5 rounded-md border p-2 text-xs ${
-                          isCurrent
-                            ? "border-primary bg-accent text-accent-foreground ring-1 ring-primary"
-                            : isDone
-                              ? "border-border bg-card/80 text-foreground"
-                              : "border-border bg-card text-muted-foreground"
-                        }`}
-                      >
-                        <span className="flex items-center justify-between font-mono text-[0.65rem] font-semibold">
-                          <span>{idx + 1}</span>
-                          {isDone && <Check aria-hidden="true" className="size-3" />}
-                          {isCurrent && <span aria-hidden="true">●</span>}
-                        </span>
-                        <span className="truncate font-semibold">{s.label}</span>
-                        <span className="truncate text-[0.65rem] opacity-80">
-                          {rawDate ? formatShortDate(new Date(rawDate)) : "—"}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ol>
+function ArticleCard({
+  item,
+  nowDate,
+  isSelected,
+  isPending,
+  onSelect,
+  onAdvance,
+}: {
+  item: VintedItem;
+  nowDate: Date;
+  isSelected: boolean;
+  isPending: boolean;
+  onSelect: () => void;
+  onAdvance: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: item.id,
+    data: { item },
+  });
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {activeItem.status !== "termine" && nextStepId && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={isPending}
-                      onClick={handleDialogAdvance}
-                      className="flex-1"
-                    >
-                      <span>Étape suivante · {statusLabel(nextStepId)}</span>
-                      <ArrowRight aria-hidden="true" className="size-3.5" />
-                    </Button>
-                  )}
+  const displayPriceCents = item.salePriceCents ?? item.listingPriceCents;
+  const metaParts = [item.brand, item.size, conditionLabel(item.condition)].filter(
+    Boolean,
+  );
+  const deadline = deadlineSummary(item, nowDate);
 
-                  {activeItem.status !== "a_publier" && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isPending}
-                      onClick={handleDialogBack}
-                    >
-                      <ArrowLeft aria-hidden="true" className="size-3.5" />
-                      <span>Revenir en arrière</span>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
+  const hasMargin = item.purchasePriceCents !== null && item.salePriceCents !== null;
+  const marginCents = hasMargin
+    ? (item.salePriceCents ?? 0) - (item.purchasePriceCents ?? 0)
+    : null;
 
-            {/* Champs de l'article */}
-            <div className="space-y-1.5">
-              <div className="flex items-baseline justify-between gap-2">
-                <Label htmlFor="f-title">Titre de l&apos;article *</Label>
-                <span className="text-xs text-muted-foreground">
-                  {form.title.length} / 100 car.
+  return (
+    <article
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={`flex min-w-0 cursor-grab flex-col gap-2 rounded-md border bg-card p-3 shadow-xs transition-all active:cursor-grabbing ${
+        deadline.late ? "border-l-4 border-l-primary" : ""
+      } ${
+        isSelected
+          ? "border-primary ring-1 ring-primary"
+          : "border-border hover:border-muted-foreground"
+      } ${isDragging ? "opacity-45" : ""}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="min-w-0 flex-1 font-heading text-base font-medium leading-snug text-foreground">
+          <button
+            type="button"
+            onClick={onSelect}
+            className="w-full cursor-pointer text-left break-words hover:text-primary focus-visible:underline focus-visible:outline-none"
+          >
+            {item.title}
+          </button>
+        </h3>
+        {displayPriceCents !== null && (
+          <span className="shrink-0 font-mono text-sm font-semibold text-foreground">
+            {formatPrice(displayPriceCents)}
+          </span>
+        )}
+      </div>
+
+      {metaParts.length > 0 && (
+        <p className="text-xs text-muted-foreground">{metaParts.join(" · ")}</p>
+      )}
+
+      {(item.buyer || marginCents !== null || item.purchasePriceCents !== null) && (
+        <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground">
+          <span>
+            {item.buyer ? (
+              <>
+                Acheteur : <strong className="text-foreground">{item.buyer}</strong>
+              </>
+            ) : null}
+          </span>
+          {marginCents !== null ? (
+            <span className="font-mono font-medium text-success">
+              Marge {marginCents >= 0 ? "+" : ""}
+              {formatPrice(marginCents)}
+            </span>
+          ) : item.purchasePriceCents !== null ? (
+            <span className="font-mono">
+              Achat {formatPrice(item.purchasePriceCents)}
+            </span>
+          ) : null}
+        </div>
+      )}
+
+      <div
+        className={`flex items-center gap-1.5 rounded-sm px-2 py-1 text-xs ${
+          deadline.late
+            ? "bg-destructive/10 font-semibold text-destructive"
+            : deadline.payout
+              ? "bg-accent/50 font-medium text-foreground"
+              : "bg-secondary text-muted-foreground"
+        }`}
+      >
+        {deadline.late ? (
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        ) : item.status === "vendu" ? (
+          <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        ) : null}
+        <span>{deadline.text}</span>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 border-t border-dashed border-border pt-2">
+        <Badge variant={badgeVariantForStatus(item.status)}>
+          {statusLabel(item.status)}
+        </Badge>
+        {item.status !== "termine" && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={isPending}
+            onClick={onAdvance}
+            className="h-7 px-2 text-xs"
+          >
+            Étape suivante →
+          </Button>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function ArticleDrawerForm({
+  item,
+  nowDate,
+  error,
+  isPending,
+  onError,
+  onClose,
+  onSuccess,
+  startTransition,
+}: {
+  item: VintedItem | null;
+  nowDate: Date;
+  error: string | null;
+  isPending: boolean;
+  onError: (msg: string | null) => void;
+  onClose: () => void;
+  onSuccess: () => void;
+  startTransition: (callback: () => Promise<void>) => void;
+}) {
+  const [title, setTitle] = useState(item?.title ?? "");
+  const [brand, setBrand] = useState(item?.brand ?? "");
+  const [size, setSize] = useState(item?.size ?? "");
+  const [condition, setCondition] = useState<string>(item?.condition ?? "");
+  const [purchasePrice, setPurchasePrice] = useState(
+    centsToInput(item?.purchasePriceCents ?? null),
+  );
+  const [listingPrice, setListingPrice] = useState(
+    centsToInput(item?.listingPriceCents ?? null),
+  );
+  const [salePrice, setSalePrice] = useState(
+    centsToInput(item?.salePriceCents ?? null),
+  );
+  const [buyer, setBuyer] = useState(item?.buyer ?? "");
+  const [carrier, setCarrier] = useState<string>(item?.carrier ?? "");
+  const [trackingNumber, setTrackingNumber] = useState(item?.trackingNumber ?? "");
+  const [notes, setNotes] = useState(item?.notes ?? "");
+
+  const [copied, setCopied] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  function buildFormData(): FormData {
+    const fd = new FormData();
+    fd.set("title", title);
+    fd.set("brand", brand);
+    fd.set("size", size);
+    fd.set("condition", condition);
+    fd.set("purchasePrice", purchasePrice);
+    fd.set("listingPrice", listingPrice);
+    fd.set("salePrice", salePrice);
+    fd.set("buyer", buyer);
+    fd.set("carrier", carrier);
+    fd.set("trackingNumber", trackingNumber);
+    fd.set("notes", notes);
+    fd.set("status", item?.status ?? "a_publier");
+    return fd;
+  }
+
+  let liveMarginLabel = "—";
+  try {
+    const buyCents = parsePrice(purchasePrice);
+    const sellCents = parsePrice(salePrice);
+    if (buyCents !== null && sellCents !== null) {
+      const diff = sellCents - buyCents;
+      liveMarginLabel = `${diff >= 0 ? "+" : ""}${formatPrice(diff)}`;
+    }
+  } catch {
+    liveMarginLabel = "Prix invalide";
+  }
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    onError(null);
+    const fd = buildFormData();
+
+    startTransition(async () => {
+      try {
+        const res: VintedActionResult = item
+          ? await updateItem(item.id, fd)
+          : await createItem(fd);
+        if (res.error) {
+          onError(res.error);
+          return;
+        }
+        onSuccess();
+      } catch {
+        onError(NETWORK_ERROR);
+      }
+    });
+  }
+
+  function handleSaveAndAdvance() {
+    if (!item) return;
+    onError(null);
+    const fd = buildFormData();
+
+    startTransition(async () => {
+      try {
+        const updateRes: VintedActionResult = await updateItem(item.id, fd);
+        if (updateRes.error) {
+          onError(updateRes.error);
+          return;
+        }
+        const advRes: VintedActionResult = await advanceItem(item.id);
+        if (advRes.error) {
+          onError(advRes.error);
+          return;
+        }
+        onSuccess();
+      } catch {
+        onError(NETWORK_ERROR);
+      }
+    });
+  }
+
+  function handleBack() {
+    if (!item) return;
+    onError(null);
+    startTransition(async () => {
+      try {
+        const res: VintedActionResult = await backItem(item.id);
+        if (res.error) {
+          onError(res.error);
+          return;
+        }
+        onSuccess();
+      } catch {
+        onError(NETWORK_ERROR);
+      }
+    });
+  }
+
+  function handleCancelSale() {
+    if (!item) return;
+    if (!confirmCancel) {
+      setConfirmCancel(true);
+      return;
+    }
+    onError(null);
+    startTransition(async () => {
+      try {
+        const res: VintedActionResult = await cancelSale(item.id);
+        if (res.error) {
+          onError(res.error);
+          return;
+        }
+        onSuccess();
+      } catch {
+        onError(NETWORK_ERROR);
+      }
+    });
+  }
+
+  function handleDelete() {
+    if (!item) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    onError(null);
+    startTransition(async () => {
+      try {
+        const res: VintedActionResult = await deleteItem(item.id);
+        if (res.error) {
+          onError(res.error);
+          return;
+        }
+        onSuccess();
+      } catch {
+        onError(NETWORK_ERROR);
+      }
+    });
+  }
+
+  async function handleCopyTracking() {
+    if (!trackingNumber.trim() || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(trackingNumber.trim());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Presse-papiers indisponible
+    }
+  }
+
+  const nextId = item ? nextStatus(item.status) : null;
+  const nextLabel = nextId ? statusLabel(nextId) : null;
+  const currentStepIdx = item
+    ? STATUSES.findIndex((s) => s.id === item.status)
+    : -1;
+  const deadline = item ? deadlineSummary(item, nowDate) : null;
+  const canCancelSale =
+    item !== null && ["vendu", "expedie", "livre"].includes(item.status);
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-1 flex-col">
+      <DialogHeader className="border-b border-border bg-card p-4 text-left sm:px-5">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          FICHE ARTICLE
+        </p>
+        <DialogTitle className="mt-1 font-heading text-xl font-medium text-foreground">
+          {item ? item.title : "Nouvel article"}
+        </DialogTitle>
+        <DialogDescription className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            {item && deadline ? (
+              <>
+                <Badge variant={badgeVariantForStatus(item.status)}>
+                  {statusLabel(item.status)}
+                </Badge>
+                <span
+                  className={
+                    deadline.late ? "font-semibold text-destructive" : "text-foreground"
+                  }
+                >
+                  {deadline.text}
                 </span>
-              </div>
-              <Input
-                id="f-title"
-                name="title"
-                required
-                maxLength={100}
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="Ex. Veste Will en jean brut bio"
-              />
-            </div>
+              </>
+            ) : (
+              <span>Renseigne les détails de ton article Vinted.</span>
+            )}
+          </DialogDescription>
+      </DialogHeader>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="f-brand">Marque</Label>
-                <Input
-                  id="f-brand"
-                  name="brand"
-                  maxLength={60}
-                  value={form.brand}
-                  onChange={(e) => setForm({ ...form, brand: e.target.value })}
-                  placeholder="Ex. Sézane"
-                />
-              </div>
+      <div className="flex flex-1 flex-col gap-4 p-4 sm:px-5">
+        {error && <Alert variant="destructive">{error}</Alert>}
 
-              <div className="space-y-1.5">
-                <Label htmlFor="f-size">Taille</Label>
-                <Input
-                  id="f-size"
-                  name="size"
-                  maxLength={20}
-                  value={form.size}
-                  onChange={(e) => setForm({ ...form, size: e.target.value })}
-                  placeholder="Ex. M / 38"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="f-condition">État</Label>
-                <select
-                  id="f-condition"
-                  name="condition"
-                  value={form.condition}
-                  onChange={(e) => setForm({ ...form, condition: e.target.value })}
-                  className="h-8 w-full rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <option value="">Non précisé</option>
-                  {CONDITIONS.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Prix en euros + Marge en direct */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="f-purchasePrice">Prix d&apos;achat (€)</Label>
-                <Input
-                  id="f-purchasePrice"
-                  name="purchasePrice"
-                  inputMode="decimal"
-                  value={form.purchasePrice}
-                  onChange={(e) => setForm({ ...form, purchasePrice: e.target.value })}
-                  placeholder="Ex. 12,50"
-                  className="font-mono"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="f-listingPrice">Prix affiché (€)</Label>
-                <Input
-                  id="f-listingPrice"
-                  name="listingPrice"
-                  inputMode="decimal"
-                  value={form.listingPrice}
-                  onChange={(e) => setForm({ ...form, listingPrice: e.target.value })}
-                  placeholder="Ex. 25,00"
-                  className="font-mono"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="f-salePrice">Prix de vente (€)</Label>
-                <Input
-                  id="f-salePrice"
-                  name="salePrice"
-                  inputMode="decimal"
-                  value={form.salePrice}
-                  onChange={(e) => setForm({ ...form, salePrice: e.target.value })}
-                  placeholder="Ex. 22,00"
-                  className="font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-xs">
-              <span className="text-muted-foreground">
-                Marge nette (prix de vente − prix d&apos;achat, 0 € de frais vendeur) :
+        {/* Frise des 6 étapes (uniquement en édition) */}
+        {item && (
+          <div
+            aria-label="Progression des 6 étapes"
+            className="flex flex-col gap-3 rounded-md border border-border bg-secondary p-3"
+          >
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-foreground">
+                Parcours (étape {currentStepIdx + 1} sur 6)
               </span>
-              <strong
-                className={`font-mono text-sm ${
-                  liveMarginCents === null
-                    ? "text-muted-foreground"
-                    : liveMarginCents < 0
-                      ? "text-destructive"
-                      : "text-success"
-                }`}
-              >
-                {liveMarginCents !== null
-                  ? `${liveMarginCents >= 0 ? "+ " : ""}${formatPrice(liveMarginCents)}`
-                  : "—"}
-              </strong>
+              <span className="text-muted-foreground">Dates automatiques</span>
             </div>
 
-            {/* Acheteur, Transporteur & Suivi */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="f-buyer">Pseudo de l&apos;acheteur</Label>
-                <Input
-                  id="f-buyer"
-                  name="buyer"
-                  maxLength={60}
-                  value={form.buyer}
-                  onChange={(e) => setForm({ ...form, buyer: e.target.value })}
-                  placeholder="Ex. @claire_vintage75"
-                />
-              </div>
+            <ol className="grid grid-cols-3 gap-1.5">
+              {STATUSES.map((s, idx) => {
+                const isCurrent = s.id === item.status;
+                const isDone = idx < currentStepIdx;
+                const rawDate = stepDateForStatus(item, s.id);
+                return (
+                  <li
+                    key={s.id}
+                    aria-current={isCurrent ? "step" : undefined}
+                    className={`flex min-w-0 flex-col gap-0.5 rounded-sm border p-2 text-xs ${
+                      isCurrent
+                        ? "border-primary bg-accent text-accent-foreground ring-1 ring-primary"
+                        : "border-border bg-card text-foreground"
+                    }`}
+                  >
+                    <span className="flex items-center justify-between font-mono text-[11px] font-semibold">
+                      <span>{idx + 1}</span>
+                      <span>{isDone ? "✓" : isCurrent ? "●" : ""}</span>
+                    </span>
+                    <span className="truncate font-semibold">{s.label}</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {rawDate ? formatShortDate(rawDate) : "—"}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
 
-              <div className="space-y-1.5">
-                <div className="flex items-baseline justify-between gap-2">
-                  <Label htmlFor="f-carrier">Transporteur</Label>
-                  <span className="text-xs text-muted-foreground">
-                    Requis pour expédier
-                  </span>
-                </div>
-                <select
-                  id="f-carrier"
-                  name="carrier"
-                  value={form.carrier}
-                  onChange={(e) => setForm({ ...form, carrier: e.target.value })}
-                  className="h-8 w-full rounded-lg border border-input bg-background px-2.5 py-1 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <option value="">Non choisi</option>
-                  {CARRIERS.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-baseline justify-between gap-2">
-                <Label htmlFor="f-trackingNumber">Numéro de suivi</Label>
-                <span className="text-xs text-muted-foreground">Facultatif</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="f-trackingNumber"
-                  name="trackingNumber"
-                  maxLength={60}
-                  value={form.trackingNumber}
-                  onChange={(e) => setForm({ ...form, trackingNumber: e.target.value })}
-                  placeholder="Ex. MR-884920194-FR"
-                  className="font-mono"
-                />
+            <div className="flex flex-wrap items-center gap-2">
+              {nextLabel && (
                 <Button
                   type="button"
-                  variant="outline"
                   size="sm"
-                  disabled={!form.trackingNumber.trim()}
-                  onClick={handleCopyTracking}
+                  disabled={isPending}
+                  onClick={handleSaveAndAdvance}
+                  className="flex-1"
                 >
-                  <Copy aria-hidden="true" className="size-3.5" />
-                  <span>{copied ? "Copié ✓" : "Copier"}</span>
+                  <span>Étape suivante · {nextLabel}</span>
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                 </Button>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-baseline justify-between gap-2">
-                <Label htmlFor="f-notes">Note libre</Label>
-                <span className="text-xs text-muted-foreground">
-                  {form.notes.length} / 1 000 car.
-                </span>
-              </div>
-              <Textarea
-                id="f-notes"
-                name="notes"
-                maxLength={1000}
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="Détails du colis, point relais, remarques…"
-              />
-            </div>
-
-            {/* Pied de la fiche : Annuler la vente, Supprimer, Enregistrer */}
-            <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-              {dialogMode === "edit" && activeItem ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  {["vendu", "expedie", "livre"].includes(activeItem.status) && (
-                    <Button
-                      type="button"
-                      variant={confirmCancel ? "destructive" : "outline"}
-                      size="sm"
-                      disabled={isPending}
-                      onClick={handleDialogCancelSale}
-                    >
-                      <RotateCcw aria-hidden="true" className="size-3.5" />
-                      <span>
-                        {confirmCancel ? "Confirmer l'annulation" : "Annuler la vente"}
-                      </span>
-                    </Button>
-                  )}
-
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    disabled={isPending}
-                    onClick={handleDialogDelete}
-                  >
-                    <Trash2 aria-hidden="true" className="size-3.5" />
-                    <span>
-                      {confirmDelete ? "Confirmer la suppression" : "Supprimer"}
-                    </span>
-                  </Button>
-                </div>
-              ) : (
-                <div />
               )}
-
-              <div className="flex items-center justify-end gap-2">
+              {item.status !== "a_publier" && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   disabled={isPending}
-                  onClick={closeDialog}
+                  onClick={handleBack}
                 >
-                  Fermer
+                  <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Revenir en arrière</span>
                 </Button>
-                <Button type="submit" size="sm" disabled={isPending}>
-                  Enregistrer
-                </Button>
-              </div>
+              )}
             </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </div>
+        )}
+
+        {/* Champs du formulaire */}
+        <input type="hidden" name="status" value={item?.status ?? "a_publier"} />
+
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <Label htmlFor="f-title">Titre de l&apos;article *</Label>
+            <span className="font-mono text-xs text-muted-foreground">
+              {title.length}/100
+            </span>
+          </div>
+          <Input
+            id="f-title"
+            name="title"
+            required
+            maxLength={100}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="f-brand">Marque</Label>
+            <Input
+              id="f-brand"
+              name="brand"
+              maxLength={60}
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="f-size">Taille</Label>
+            <Input
+              id="f-size"
+              name="size"
+              maxLength={20}
+              value={size}
+              onChange={(e) => setSize(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="f-condition">État</Label>
+            <select
+              id="f-condition"
+              name="condition"
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+              className="h-9 w-full rounded-md border border-border bg-background px-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Non précisé</option>
+              {CONDITIONS.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="f-purchasePrice">Prix d&apos;achat (€)</Label>
+            <Input
+              id="f-purchasePrice"
+              name="purchasePrice"
+              inputMode="decimal"
+              value={purchasePrice}
+              onChange={(e) => setPurchasePrice(e.target.value)}
+              className="font-mono"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="f-listingPrice">Prix affiché (€)</Label>
+            <Input
+              id="f-listingPrice"
+              name="listingPrice"
+              inputMode="decimal"
+              value={listingPrice}
+              onChange={(e) => setListingPrice(e.target.value)}
+              className="font-mono"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="f-salePrice">Prix de vente (€)</Label>
+            <Input
+              id="f-salePrice"
+              name="salePrice"
+              inputMode="decimal"
+              value={salePrice}
+              onChange={(e) => setSalePrice(e.target.value)}
+              className="font-mono"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between rounded-md border border-border bg-secondary px-3 py-2 text-xs">
+          <span className="text-muted-foreground">Marge nette :</span>
+          <strong className="font-mono text-sm text-success">{liveMarginLabel}</strong>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="f-buyer">Pseudo de l&apos;acheteur</Label>
+            <Input
+              id="f-buyer"
+              name="buyer"
+              maxLength={60}
+              value={buyer}
+              onChange={(e) => setBuyer(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-baseline justify-between gap-1">
+              <Label htmlFor="f-carrier">Transporteur</Label>
+              <span className="text-[11px] text-muted-foreground">
+                Obligatoire pour expédier
+              </span>
+            </div>
+            <select
+              id="f-carrier"
+              name="carrier"
+              value={carrier}
+              onChange={(e) => setCarrier(e.target.value)}
+              className="h-9 w-full rounded-md border border-border bg-background px-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Non choisi</option>
+              {CARRIERS.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="f-trackingNumber">Numéro de suivi</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="f-trackingNumber"
+              name="trackingNumber"
+              maxLength={60}
+              value={trackingNumber}
+              onChange={(e) => setTrackingNumber(e.target.value)}
+              className="flex-1 font-mono"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCopyTracking}
+            >
+              {copied ? (
+                <>
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Copié ✓</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Copier</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <Label htmlFor="f-notes">Notes</Label>
+            <span className="font-mono text-xs text-muted-foreground">
+              {notes.length}/1 000
+            </span>
+          </div>
+          <Textarea
+            id="f-notes"
+            name="notes"
+            maxLength={1000}
+            rows={3}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Pied de fiche */}
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border bg-secondary p-4 sm:px-5">
+        <div className="flex flex-wrap items-center gap-2">
+          {canCancelSale && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isPending}
+              onClick={handleCancelSale}
+            >
+              {confirmCancel ? "Confirmer l'annulation" : "Annuler la vente"}
+            </Button>
+          )}
+          {item && (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={isPending}
+              onClick={handleDelete}
+            >
+              {confirmDelete ? "Confirmer la suppression" : "Supprimer"}
+            </Button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isPending}
+            onClick={onClose}
+          >
+            Fermer
+          </Button>
+          <Button type="submit" size="sm" disabled={isPending}>
+            Enregistrer
+          </Button>
+        </div>
+      </div>
+    </form>
   );
 }

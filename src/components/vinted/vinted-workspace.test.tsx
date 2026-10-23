@@ -59,14 +59,25 @@ describe("VintedWorkspace", () => {
     expect(screen.getByRole("link", { name: /À expédier/ })).toHaveAttribute("href", "/dashboard/vinted?etape=a-expedier");
   });
 
-  it("filtre par étape et par recherche sans accents", () => {
+  it("range les articles par colonne d'étape, avec nombre et total", () => {
+    renderPage();
+    const board = within(screen.getByRole("region", { name: "Tableau par étapes" }));
+    const toShip = within(board.getByRole("region", { name: "À expédier" }));
+    expect(toShip.getByText("Écharpe en laine")).toBeInTheDocument();
+    expect(toShip.getByText("5 jours ouvrés max.")).toBeInTheDocument();
+    expect(within(board.getByRole("region", { name: "En vente" })).getByText("Veste en jean")).toBeInTheDocument();
+    expect(within(board.getByRole("region", { name: "Terminé" })).getByText("Aucun article")).toBeInTheDocument();
+  });
+
+  it("n'affiche que la colonne de l'onglet choisi et filtre par recherche sans accents", () => {
     renderPage(items, "a-expedier");
     expect(screen.getByText("Écharpe en laine")).toBeInTheDocument();
     expect(screen.queryByText("Veste en jean")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Rechercher par titre ou marque"), { target: { value: "echarpe" } });
     expect(screen.getByText("Écharpe en laine")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Rechercher par titre ou marque"), { target: { value: "zzz" } });
-    expect(screen.getByText("Aucun article ici.")).toBeInTheDocument();
+    expect(screen.queryByText("Écharpe en laine")).not.toBeInTheDocument();
+    expect(screen.getByText("Aucun article")).toBeInTheDocument();
   });
 
   it("affiche l'écran vide", () => {
@@ -76,7 +87,7 @@ describe("VintedWorkspace", () => {
 
   it("ouvre la fiche avec la raison quand l'étape suivante est bloquée", () => {
     renderPage([item()]);
-    fireEvent.click(screen.getByRole("button", { name: "Étape suivante" }));
+    fireEvent.click(screen.getByRole("button", { name: "Étape suivante →" }));
     expect(actions.advanceItem).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog")).toHaveTextContent("Indique le prix de vente");
   });
